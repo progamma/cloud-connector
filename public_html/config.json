@@ -1,0 +1,27 @@
+{
+  "name": "cc-baldini",
+  "remoteServers": ["http://192.168.0.104:8081/baldini", "http://192.168.0.104:8081/maioli"],
+  "remoteUserNames": ["giuseppelanzi"],
+  "datamodels": [
+    {
+      "name": "MyTempDB",
+      "class": "SQLServer",
+      "connectionOptions": {
+        "server": "localhost\\SQLEXPRESS",
+        "db": "MyTempDB",
+        "username": "sa",
+        "password": "p99061g"
+      }
+    },
+    {
+      "name": "DBOracle",
+      "class": "Oracle",
+      "connectionOptions": {
+        "server": "192.168.1.1",
+        "db": "UNICODE",
+        "username": "SYSTEM",
+        "password": "p99061g"
+      }
+    }
+  ]
+}
