@@ -3,7 +3,6 @@
  * Copyright Pro Gamma Spa 2000-2014
  * All rights reserved
  */
-/* global module */
 
 var Node = Node || {};
 
@@ -23,7 +22,6 @@ Node.CloudServer = function ()
 {
   this.servers = [];        // List of servers (IDE/apps)
   this.datamodels = [];     // List of datamodels (DBs)
-  //
   this.logger = new Node.Logger();
 };
 
@@ -33,14 +31,8 @@ Node.CloudServer = function ()
  */
 Node.CloudServer.prototype.start = function ()
 {
-  this.logger.log("INFO", "Start Cloud Server");
-  //
-  var file = Node.fs.readFileSync("config.json", {encoding: "utf8"});
-  this.config = JSON.parse(file);
-  //
-  this.createServers();
-  //
-  this.createDataModels();
+  this.log("INFO", "Start Cloud Server");
+  this.loadConfig();
 };
 
 
@@ -62,63 +54,102 @@ Node.CloudServer.prototype.log = function (level, message, data)
  */
 Node.CloudServer.serverForUser = function (username)
 {
-  return "http://internal.instantdevelopercloud.com";
+  // TODO
+  return "http://localhost:8081";
+};
+
+
+/**
+ * Read the JSON of the configuration from the file config.json
+ */
+Node.CloudServer.prototype.loadConfig = function ()
+{
+  var file = Node.fs.readFileSync("config.json", {encoding: "utf8"});
+  //
+  // If the read is successful the variable "file" contains the content of config.json
+  if (!file) {
+    this.log("ERROR", "Error reading the configuration",
+            {source: "Node.CloudServer.prototype.loadConfig"});
+    return;
+  }
+  //
+  try {
+    var config = JSON.parse(file);
+    this.name = config.name;
+    //
+    this.createDataModels(config);
+    this.createServers(config);
+    //
+    this.log("INFO", "Configuration loaded with success");
+  }
+  catch (e) {
+    this.log("ERROR", "Error parsing the configuration",
+            {source: "Node.CloudServer.prototype.loadConfig"});
+  }
 };
 
 
 /**
  * Start all the clients
+ * @param {Object} config
  */
-Node.CloudServer.prototype.createServers = function ()
+Node.CloudServer.prototype.createServers = function (config)
 {
   // First attach app servers
-  for (var i = 0; i < this.config.remoteServers.length; i++) {
-    var srvName = this.config.remoteServers[i];
+  for (var i = 0; i < config.remoteServers.length; i++) {
+    var srvUrl = config.remoteServers[i];
     //
-    var cli = new Node.Server(this, srvName);
+    // Create the server and connect it
+    var cli = new Node.Server(this, srvUrl);
     cli.connect();
     //
     this.servers.push(cli);
   }
   //
   // Next, attach "IDE" servers
-  for (var i = 0; i < this.config.remoteUserNames.length; i++) {
-    var uname = this.config.remoteUserNames[i];
+  for (var i = 0; i < config.remoteUserNames.length; i++) {
+    var uname = config.remoteUserNames[i];
     //
     // Ask the InDe console where is this user
-    var srvName = Node.CloudServer.serverForUser(uname);
-    if (!srvName) {
+    var srvUrl = Node.CloudServer.serverForUser(uname);
+    if (!srvUrl) {
       this.log("WARNING", "Can't locate the server for the user " + uname);
       continue;
     }
     //
-    var cli = new Node.Server(this, srvName);
+    // Create the server and connect it
+    var cli = new Node.Server(this, srvUrl);
+    cli.ideUserName = uname;
     cli.connect();
     //
+    // Add server to list
     this.servers.push(cli);
   }
 };
 
 
 /**
- * Start all the datamodel connections
+ * Create all the datamodels
+ * @param {Object} config
  */
-Node.CloudServer.prototype.createDataModels = function ()
+Node.CloudServer.prototype.createDataModels = function (config)
 {
   // Create all connections
-  for (var i = 0; i < this.config.datamodels.length; i++) {
-    var db = this.config.datamodels[i];
+  for (var i = 0; i < config.datamodels.length; i++) {
+    var db = config.datamodels[i];
     //
-    var dbobj = new Node.DataModel(this);
-    dbobj.class = db.class;
-    //
-    // Add name so that I can look for it
-    dbobj.name = db.name;
-    //
-    // Add connection options
-    dbobj.options = db.connectionOptions;
-    //
-    this.datamodels.push(dbobj);
+    // Import local module
+    try {
+      Node[db.class] = require("./" + db.class.toLowerCase());
+      //
+      // Create datamodel from config
+      var dbobj = new Node[db.class](this, db);
+      this.datamodels.push(dbobj);
+    }
+    catch (e) {
+      this.log("ERROR", "Error creating datamodel " + db.name + ": " + e,
+              {source: "Node.CloudServer.prototype.createDataModels"});
+    }
   }
 };
 
@@ -140,4 +171,3 @@ Node.CloudServer.prototype.dataModelByName = function (dmname)
 
 // Start the server
 new Node.CloudServer().start();
-console.log("Started");

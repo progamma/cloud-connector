@@ -1,24 +1,33 @@
 {
-  "name": "cc-baldini",
-  "remoteServers": ["http://192.168.0.104:8081/baldini", "http://192.168.0.104:8081/maioli"],
-  "remoteUserNames": ["giuseppelanzi"],
+  "name": "cc-sirri",
+  "remoteServers": ["http://localhost:9999"],
+  "remoteUserNames": ["matteo"],
   "datamodels": [
     {
-      "name": "MyTempDB",
+      "name": "NWindDB Postgres",
+      "class": "Postgres",
+      "connectionOptions": {
+        "server": "localhost",
+        "db": "matteo-NWindDB",
+        "username": "root",
+        "password": "root"
+      }
+    },
+    {
+      "name": "NWindDB SQLServer",
       "class": "SQLServer",
       "connectionOptions": {
-        "server": "localhost\\SQLEXPRESS",
-        "db": "MyTempDB",
+        "server": "localhost",
+        "db": "NWindDB",
         "username": "sa",
         "password": "p99061g"
       }
     },
     {
-      "name": "DBOracle",
+      "name": "NWindDB Oracle",
       "class": "Oracle",
       "connectionOptions": {
-        "server": "192.168.1.1",
-        "db": "UNICODE",
+        "server": "UNICODEWWW2",
         "username": "SYSTEM",
         "password": "p99061g"
       }

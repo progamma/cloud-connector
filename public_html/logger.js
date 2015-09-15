@@ -7,7 +7,7 @@
 
 var Node = Node || {};
 
-// Import modules
+// Import global modules
 Node.fs = require("fs");
 
 /**
@@ -25,17 +25,15 @@ Node.Logger = function ()
  */
 Node.Logger.prototype.init = function ()
 {
-  return;
-
-
-
-  if ((new Date()).toISOString().substring(0, 10) !== this.date) {
-    this.date = (new Date()).toISOString().substring(0, 10);
-    //
-    // generate a new stream for each day
-    this.stream = Node.fs.createWriteStream("log/" + this.date + ".log", {"flags": "a"});
-    this.errStream = Node.fs.createWriteStream("log/" + this.date + "-err.log", {"flags": "a"});
-  }
+  /*
+   if ((new Date()).toISOString().substring(0, 10) !== this.date) {
+   this.date = (new Date()).toISOString().substring(0, 10);
+   //
+   // generate a new stream for each day
+   this.stream = Node.fs.createWriteStream("log/" + this.date + ".log", {"flags": "a"});
+   this.errStream = Node.fs.createWriteStream("log/" + this.date + "-err.log", {"flags": "a"});
+   }
+   */
 };
 
 
@@ -47,7 +45,7 @@ Node.Logger.prototype.init = function ()
  */
 Node.Logger.prototype.log = function (level, message, data)
 {
-  var logString = JSON.stringify({level: level, message: message, date: new Date(), data: data});
+  var logString = JSON.stringify({level: level, message: message, /*date: new Date(),*/ data: data});
   //
   console.log(logString);
   /*
@@ -59,5 +57,4 @@ Node.Logger.prototype.log = function (level, message, data)
 
 
 // Export module for node
-if (module)
-  module.exports = Node.Logger;
+module.exports = Node.Logger;
