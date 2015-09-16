@@ -155,7 +155,7 @@ Node.SQLServer.prototype.beginTransaction = function (msg, callback)
     return;
   }
   //
-  this.connections[msg.cid].transaction = new Node.mssql.Transaction(this.connections[msg.cid]);
+  this.connections[msg.cid].transaction = new App.mssql.Transaction(this.connections[msg.cid]);
   this.connections[msg.cid].transaction.begin(function (error) {
     callback(null, error);
   });
