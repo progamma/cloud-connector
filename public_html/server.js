@@ -71,7 +71,7 @@ Node.Server.prototype.connect = function ()
         msg.data = {};
         msg.data.name = pthis.parent.name;
         if (error)
-          msg.data.error = error;
+          msg.data.error = error.message;
         else
           msg.data.result = result;
         //
