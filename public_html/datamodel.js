@@ -44,7 +44,7 @@ Node.DataModel.prototype.onMessage = function (msg, callback)
       this.openConnection(msg, callback);
       break;
     case Node.DataModel.commandTypes.close:
-      this.closeConnection(msg);
+      this.closeConnection(msg, callback);
       break;
     case Node.DataModel.commandTypes.execute:
       this.execute(msg, callback);
@@ -79,8 +79,9 @@ Node.DataModel.prototype.openConnection = function (msg, callback)
 /**
  * Close the connection to the database
  * @param {Object} msg - message received
+ * @param {Function} callback - function to be called at the end
  */
-Node.DataModel.prototype.closeConnection = function (msg)
+Node.DataModel.prototype.closeConnection = function (msg, callback)
 {
   callback(null, new Error("closeConnection not implemented"));
 };
@@ -136,10 +137,16 @@ Node.DataModel.prototype.rollbackTransaction = function (msg, callback)
  */
 Node.DataModel.prototype.serverDisconnected = function (server)
 {
+  var pthis = this;
   var cids = Object.keys(this.connections);
   for (var i = 0; i < cids.length; i++) {
-    if (this.connections.server === server)
-      this.closeConnection({cid: cids[i]});
+    if (this.connections[cids[i]].server === server) {
+      this.closeConnection({cid: cids[i]}, function (result, error) {
+        if (error)
+          pthis.parent.log("ERROR", "Error closing connection of datamodel '"
+                  + this.name + "': " + error);
+      });
+    }
   }
 };
 

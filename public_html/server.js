@@ -50,34 +50,40 @@ Node.Server.prototype.connect = function ()
   this.socket.on("cloudServerMsg", function (data) {
     pthis.parent.log("INFO", "Server onMessage: " + JSON.stringify(data));
     //
+    // Compose the message of response
+    var msg = {};
+    msg.type = Node.Server.messageTypes.response;
+    msg.sid = data.sid;
+    if (pthis.ideUserName)
+      msg.userName = pthis.ideUserName;
+    if (data.appid)
+      msg.appid = data.appid;
+    if (data.cbid)
+      msg.cbid = data.cbid;
+    msg.data = {};
+    msg.data.name = pthis.parent.name;
+    //
     var dm = pthis.parent.dataModelByName(data.dm);
     if (!dm) {
       pthis.parent.log("ERROR", "datamodel '" + data.dm + "' not found");
-      pthis.sendMessage({cid: data.cid, error: "datamodel '" + data.dm + "' not found"});
+      //
+      // If command has a callback send response
+      if (data.cbid) {
+        msg.data.error = "datamodel '" + data.dm + "' not found";
+        pthis.sendMessage(msg);
+      }
     }
     else {
       // Ask the datamodel
-      msg.server = this;
+      data.server = pthis;
       dm.onMessage(data, function (result, error) {
-        var msg = {};
-        msg.type = Node.Server.messageTypes.response;
-        if (pthis.ideUserName)
-          msg.userName = pthis.ideUserName;
-        //
-        // Compose the message with error or result
-        msg.sid = data.sid;
-        if (data.appid)
-          msg.appid = data.appid;
-        msg.data = {};
-        msg.data.name = pthis.parent.name;
-        if (error)
-          msg.data.error = error.message;
-        else
-          msg.data.result = result;
-        //
         // If command has a callback send response
         if (data.cbid) {
-          msg.cbid = data.cbid;
+          if (error)
+            msg.data.error = error.toString();
+          else
+            msg.data.result = result;
+          //
           pthis.sendMessage(msg);
         }
       });
@@ -97,7 +103,7 @@ Node.Server.prototype.connect = function ()
     //
     // Notify to all datamodels that a server is disconnected
     for (var i = 0; i < pthis.parent.datamodels.length; i++)
-      pthis.parent.datamodels[i].serverDisconnected();
+      pthis.parent.datamodels[i].serverDisconnected(pthis);
   });
   //
   this.socket.on("indeError", function (data) {

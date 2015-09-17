@@ -43,14 +43,7 @@ Node.SQLServer.prototype.openConnection = function (msg, callback)
   //
   // Open connection
   var pthis = this;
-  var options = {
-    server: this.connectionOptions.server,
-    port: this.connectionOptions.port,
-    user: this.connectionOptions.username,
-    password: this.connectionOptions.password,
-    database: this.connectionOptions.db
-  };
-  var conn = this.connection = new Node.mssql.Connection(options);
+  var conn = new Node.mssql.Connection(this.connectionOptions);
   conn.connect(function (err) {
     if (err)
       callback(null, err);
@@ -65,13 +58,15 @@ Node.SQLServer.prototype.openConnection = function (msg, callback)
 /**
  * Close the connection to the database
  * @param {Object} msg - message received
+ * @param {Function} callback - function to be called at the end
  */
-Node.SQLServer.prototype.closeConnection = function (msg)
+Node.SQLServer.prototype.closeConnection = function (msg, callback)
 {
   if (this.connections[msg.cid]) {
     this.connections[msg.cid].conn.close();
     delete this.connections[msg.cid];
   }
+  callback();
 };
 
 
@@ -122,7 +117,7 @@ Node.SQLServer.prototype.execute = function (msg, callback)
             var row = [];
             rs.rows.push(row);
             if (i === 0)
-              rs.cols = Object.keys(result[i]);
+              rs.cols = Object.keys(result[0]);
             for (var j = 0; j < rs.cols.length; j++)
               row.push(result[i][rs.cols[j]]);
           }

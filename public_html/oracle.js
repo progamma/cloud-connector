@@ -43,12 +43,7 @@ Node.Oracle.prototype.openConnection = function (msg, callback)
   //
   // Open connection
   var pthis = this;
-  var options = {
-    connectString: this.connectionOptions.server,
-    user: this.connectionOptions.username,
-    password: this.connectionOptions.password
-  };
-  Node.oracledb.getConnection(options, function (err, connection) {
+  Node.oracledb.getConnection(this.connectionOptions, function (err, connection) {
     if (err)
       callback(null, err);
     else {
@@ -62,11 +57,14 @@ Node.Oracle.prototype.openConnection = function (msg, callback)
 /**
  * Close the connection to the database
  * @param {Object} msg - message received
+ * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype.closeConnection = function (msg)
+Node.Oracle.prototype.closeConnection = function (msg, callback)
 {
   if (this.connections[msg.cid]) {
-    this.connections[msg.cid].conn.release();
+    this.connections[msg.cid].conn.release(function (error) {
+      callback(null, error);
+    });
     delete this.connections[msg.cid];
   }
 };
@@ -91,7 +89,7 @@ Node.Oracle.prototype.execute = function (msg, callback)
   if (msg.sql.toLowerCase().indexOf("insert into ") !== -1)
     bind.counter = {type: Node.oracledb.NUMBER, dir: Node.oracledb.BIND_OUT};
   //
-  conn.execute(msg.sql, bind, params, function (error, result) {
+  conn.conn.execute(msg.sql, bind, params, function (error, result) {
     if (error)
       callback(null, error);
     else {
@@ -99,26 +97,24 @@ Node.Oracle.prototype.execute = function (msg, callback)
       rs.cols = [];
       rs.rows = [];
       //
-      if (result) {
+      if (result.rows) {
         // Serialize rows
         for (var i = 0; i < result.rows.length; i++) {
           var row = [];
           rs.rows.push(row);
-          for (var j = 0; j < result.fields.length; j++) {
-            var colname = result.fields[j].name;
-            if (i === 0)
-              rs.cols.push(colname);
-            row.push(result.rows[i][colname]);
-          }
+          if (i === 0)
+            rs.cols = Object.keys(result.rows[0]);
+          for (var j = 0; j < rs.cols.length; j++)
+            row.push(result.rows[i][rs.cols[j]]);
         }
-        //
-        // Serialize extra info
-        if (result) {
-          rs.lastRowsAffected = result.rowsAffected;
-          rs.lastInsertId = (result.outBinds ? result.outBinds.counter : null);
-        }
-        callback(rs);
       }
+      //
+      // Serialize extra info
+      if (result) {
+        rs.lastRowsAffected = result.rowsAffected;
+        rs.lastInsertId = (result.outBinds ? result.outBinds.counter : null);
+      }
+      callback(rs);
     }
   });
 };
