@@ -7,9 +7,9 @@
       "name": "NWindDB Postgres",
       "class": "Postgres",
       "connectionOptions": {
-        "server": "localhost",
-        "db": "matteo-NWindDB",
-        "username": "root",
+        "host": "localhost",
+        "database": "matteo-NWindDB",
+        "user": "root",
         "password": "root"
       }
     },
@@ -18,8 +18,8 @@
       "class": "SQLServer",
       "connectionOptions": {
         "server": "localhost",
-        "db": "NWindDB",
-        "username": "sa",
+        "database": "NWindDB",
+        "user": "sa",
         "password": "p99061g"
       }
     },
@@ -27,8 +27,8 @@
       "name": "NWindDB Oracle",
       "class": "Oracle",
       "connectionOptions": {
-        "server": "UNICODEWWW2",
-        "username": "SYSTEM",
+        "connectString": "192.168.0.10/UNICODE",
+        "user": "SYSTEM",
         "password": "p99061g"
       }
     }
