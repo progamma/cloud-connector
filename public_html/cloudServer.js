@@ -8,6 +8,7 @@ var Node = Node || {};
 
 // Import global modules
 Node.fs = require("fs");
+Node.https = require("https");
 
 // Import local modules
 Node.DataModel = require("./datamodel");
@@ -51,11 +52,39 @@ Node.CloudServer.prototype.log = function (level, message, data)
 /**
  * Given a username returns the server that hosts that user
  * @param {String} username
+ * @param {Function} callback - function to be called at the end
  */
-Node.CloudServer.serverForUser = function (username)
+Node.CloudServer.serverForUser = function (username, callback)
 {
-  // TODO
-  return "http://localhost:8081";
+  var options = {hostname: "console.instantdevelopercloud.com",
+    path: "/IndePlatform/?mode=rest&cmd=serverURL&username=" + username,
+    port: 80,
+    method: "GET"
+  };
+  //
+  var req = Node.https.request(options, function (res) {
+    var data = "";
+    res.on("data", function (chunk) {
+      data = data + chunk;
+    });
+    res.on("end", function () {
+      if (res.statusCode !== 200)
+        callback(null, data);
+      else {
+        try {
+          var json = JSON.parse(data);
+          callback(json.url);
+        }
+        catch (e) {
+          callback(null, e);
+        }
+      }
+    });
+  });
+  req.on("error", function (error) {
+    callback(null, error);
+  });
+  req.end();
 };
 
 
@@ -83,7 +112,7 @@ Node.CloudServer.prototype.loadConfig = function ()
     this.log("INFO", "Configuration loaded with success");
   }
   catch (e) {
-    this.log("ERROR", "Error parsing the configuration",
+    this.log("ERROR", "Error parsing the configuration: " + e,
             {source: "Node.CloudServer.prototype.loadConfig"});
   }
 };
@@ -107,23 +136,29 @@ Node.CloudServer.prototype.createServers = function (config)
   }
   //
   // Next, attach "IDE" servers
+  var pthis = this;
   for (var i = 0; i < config.remoteUserNames.length; i++) {
     var uname = config.remoteUserNames[i];
     //
     // Ask the InDe console where is this user
-    var srvUrl = Node.CloudServer.serverForUser(uname);
-    if (!srvUrl) {
-      this.log("WARNING", "Can't locate the server for the user " + uname);
-      continue;
-    }
-    //
-    // Create the server and connect it
-    var cli = new Node.Server(this, srvUrl);
-    cli.ideUserName = uname;
-    cli.connect();
-    //
-    // Add server to list
-    this.servers.push(cli);
+    Node.CloudServer.serverForUser(uname, function (srvUrl, error) {
+      if (error) {
+        pthis.log("ERROR", "Can't locate the server for the user " + uname + ": " + error);
+        return;
+      }
+      if (!srvUrl) {
+        pthis.log("WARNING", "Can't locate the server for the user " + uname);
+        return;
+      }
+      //
+      // Create the server and connect it
+      var cli = new Node.Server(pthis, srvUrl);
+      cli.ideUserName = uname;
+      cli.connect();
+      //
+      // Add server to list
+      pthis.servers.push(cli);
+    });
   }
 };
 
