@@ -76,7 +76,10 @@ Node.Server.prototype.connect = function ()
       // Compose the message of response
       var msg = {};
       msg.type = Node.Server.messageTypes.response;
-      msg.sid = data.sid;
+      if (data.sid)
+        msg.sid = data.sid;
+      if (data.dmid)
+        msg.dmid = data.dmid;
       if (pthis.ideUserName)
         msg.userName = pthis.ideUserName;
       if (data.appid)
@@ -131,7 +134,10 @@ Node.Server.prototype.connect = function ()
   });
   //
   this.socket.on("indeError", function (data) {
-    pthis.parent.log("INFO", "indeError: " + data.msg);
+    Node.zlib.inflate(data, function (error, buffer) {
+      data = JSON.parse(buffer.toString("utf8"));
+      pthis.parent.log("INFO", "indeError: " + data.msg);
+    });
   });
 };
 

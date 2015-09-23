@@ -125,10 +125,10 @@ Node.SQLServer.prototype.execute = function (msg, callback)
         else {
           // Serialize extra info
           for (var i = result.length - 1; i >= 0; i--) {
-            if (!rs.hasOwnProperty("lastRowsAffected") && result[i][0].hasOwnProperty("RowsAffected"))
-              rs.lastRowsAffected = result[i][0].RowsAffected;
-            if (!rs.hasOwnProperty("lastInsertId") && result[i][0].hasOwnProperty("Counter"))
-              rs.lastInsertId = result[i][0].Counter;
+            if (!rs.hasOwnProperty("rowsAffected") && result[i][0].hasOwnProperty("RowsAffected"))
+              rs.rowsAffected = result[i][0].RowsAffected;
+            if (!rs.hasOwnProperty("insertId") && result[i][0].hasOwnProperty("Counter"))
+              rs.insertId = result[i][0].Counter;
           }
         }
       }

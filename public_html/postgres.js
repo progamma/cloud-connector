@@ -105,9 +105,9 @@ Node.Postgres.prototype.execute = function (msg, callback)
       //
       // Serialize extra info
       if (["INSERT", "UPDATE", "DELETE"].indexOf(result.command) !== -1) {
-        rs.lastRowsAffected = result.rowCount;
+        rs.rowsAffected = result.rowCount;
         if (result.command === "INSERT" && result.rows.length === 1 && result.rows[0].counter > 0)
-          rs.lastInsertId = result.rows[0].counter;
+          rs.insertId = result.rows[0].counter;
       }
       callback(rs);
     }

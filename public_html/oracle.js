@@ -111,8 +111,8 @@ Node.Oracle.prototype.execute = function (msg, callback)
       //
       // Serialize extra info
       if (result) {
-        rs.lastRowsAffected = result.rowsAffected;
-        rs.lastInsertId = (result.outBinds ? result.outBinds.counter : null);
+        rs.rowsAffected = result.rowsAffected;
+        rs.insertId = (result.outBinds ? result.outBinds.counter : null);
       }
       callback(rs);
     }

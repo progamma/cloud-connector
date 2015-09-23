@@ -56,6 +56,7 @@ Node.CloudServer.prototype.log = function (level, message, data)
  */
 Node.CloudServer.serverForUser = function (username, callback)
 {
+  return callback("https://internal.instantdevelopercloud.com");
   var options = {hostname: "console.instantdevelopercloud.com",
     path: "/IndePlatform/?mode=rest&cmd=serverURL&username=" + username,
     port: 80,
