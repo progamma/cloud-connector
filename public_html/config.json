@@ -10,7 +10,7 @@
         "host": "localhost",
         "database": "matteo-NWindDB",
         "user": "root",
-        "password": "root"
+        "password": ""
       }
     },
     {
@@ -20,7 +20,7 @@
         "server": "localhost",
         "database": "NWindDB",
         "user": "sa",
-        "password": "p99061g"
+        "password": ""
       }
     },
     {
@@ -29,7 +29,7 @@
       "connectionOptions": {
         "connectString": "192.168.0.10/UNICODE",
         "user": "SYSTEM",
-        "password": "p99061g"
+        "password": ""
       }
     }
   ]
