@@ -39,7 +39,7 @@ Node.Server.prototype.connect = function ()
   var opt = {};
   opt.forceNew = true;
   opt.reconnection = true;
-  opt.timeout = 1000;
+  opt.timeout = 30000;
   this.socket = Node.io(this.serverUrl, opt);
   //
   var pthis = this;
@@ -70,6 +70,12 @@ Node.Server.prototype.connect = function ()
   this.socket.on("cloudServerMsg", function (data) {
     // Decompress the message
     Node.zlib.inflate(data, function (error, buffer) {
+      if (error) {
+        pthis.parent.log.log("ERROR", "Error inflating message of type cloudServerMsg: " + error);
+        pthis.socket.disconnect();
+        return;
+      }
+      //
       data = JSON.parse(buffer.toString("utf8"));
       pthis.parent.log("INFO", "Server onMessage: " + JSON.stringify(data));
       //
@@ -135,6 +141,12 @@ Node.Server.prototype.connect = function ()
   //
   this.socket.on("indeError", function (data) {
     Node.zlib.inflate(data, function (error, buffer) {
+      if (error) {
+        pthis.parent.log("ERROR", "Error inflating message of type indeError: " + error);
+        pthis.socket.disconnect();
+        return;
+      }
+      //
       data = JSON.parse(buffer.toString("utf8"));
       pthis.parent.log("INFO", "indeError: " + data.msg);
     });
@@ -151,6 +163,11 @@ Node.Server.prototype.sendMessage = function (msg)
   // Send message with compression
   var pthis = this;
   Node.zlib.deflate(JSON.stringify(msg), function (error, buffer) {
+    if (error) {
+      pthis.parent.log("ERROR", "Error deflating message: " + error);
+      return;
+    }
+    //
     pthis.socket.emit("cloudConnector", buffer);
   });
 };
