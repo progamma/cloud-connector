@@ -1,0 +1,36 @@
+{
+  "name": "{connectorName}",
+  "remoteServers": ["{applicationUrl1}", "{applicationUrl2}"],
+  "remoteUserNames": ["{IdeUsername1}", "{IdeUsername2}"],
+  "datamodels": [
+    {
+      "name": "{datamodelName}",
+      "class": "Postgres",
+      "connectionOptions": {
+        "host": "{hostname}",
+        "database": "{databaseName}",
+        "user": "{username}",
+        "password": "{password}"
+      }
+    },
+    {
+      "name": "{datamodelName}",
+      "class": "SQLServer",
+      "connectionOptions": {
+        "server": "{hostname}",
+        "database": "{databaseName}",
+        "user": "{username}",
+        "password": "{password}"
+      }
+    },
+    {
+      "name": "{datamodelName}",
+      "class": "Oracle",
+      "connectionOptions": {
+        "connectString": "{hostname/databaseName}",
+        "user": "{username}",
+        "password": "{password}"
+      }
+    }
+  ]
+}
