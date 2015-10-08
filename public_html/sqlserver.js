@@ -150,7 +150,7 @@ Node.SQLServer.prototype.beginTransaction = function (msg, callback)
     return;
   }
   //
-  this.connections[msg.cid].transaction = new Node.mssql.Transaction(this.connections[msg.cid]);
+  this.connections[msg.cid].transaction = new Node.mssql.Transaction(this.connections[msg.cid].conn);
   this.connections[msg.cid].transaction.begin(function (error) {
     callback(null, error);
   });
@@ -189,8 +189,9 @@ Node.SQLServer.prototype.rollbackTransaction = function (msg, callback)
     return;
   }
   //
+  var pthis = this;
   this.connections[msg.cid].transaction.rollback(function (error) {
-    delete this.connections[msg.cid].transaction;
+    delete pthis.connections[msg.cid].transaction;
     callback(null, error);
   });
 };
