@@ -45,8 +45,10 @@ Node.Postgres.prototype.openConnection = function (msg, callback)
   var pthis = this;
   var conn = new Node.pg.Client(this.connectionOptions);
   conn.connect(function (err) {
-    if (err)
+    if (err) {
+      conn.end();
       callback(null, err);
+    }
     else {
       pthis.connections[msg.cid] = {conn: conn, server: msg.server};
       callback();
