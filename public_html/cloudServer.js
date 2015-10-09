@@ -56,10 +56,8 @@ Node.CloudServer.prototype.log = function (level, message, data)
  */
 Node.CloudServer.serverForUser = function (username, callback)
 {
-  return callback("https://internal.instantdevelopercloud.com");
   var options = {hostname: "console.instantdevelopercloud.com",
-    path: "/IndePlatform/?mode=rest&cmd=serverURL&username=" + username,
-    port: 80,
+    path: "/IndePlatform/?mode=rest&cmd=serverURL&user=" + username,
     method: "GET"
   };
   //
@@ -71,15 +69,8 @@ Node.CloudServer.serverForUser = function (username, callback)
     res.on("end", function () {
       if (res.statusCode !== 200)
         callback(null, data);
-      else {
-        try {
-          var json = JSON.parse(data);
-          callback(json.url);
-        }
-        catch (e) {
-          callback(null, e);
-        }
-      }
+      else
+        callback(data);
     });
   });
   req.on("error", function (error) {
