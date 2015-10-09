@@ -94,7 +94,7 @@ Node.SQLServer.prototype.execute = function (msg, callback)
     command = "insert";
   //
   // For INSERT, UPDATE and DELETE append another statement for info
-  var req = new Node.mssql.Request(this.connections[msg.cid].conn);
+  var req = new Node.mssql.Request(this.connections[msg.cid].transaction || this.connections[msg.cid].conn);
   if (command) {
     req.multiple = true;
     sql += "; select @@rowcount as RowsAffected";
