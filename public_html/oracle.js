@@ -150,7 +150,7 @@ Node.Oracle.prototype.commitTransaction = function (msg, callback)
   }
   //
   var pthis = this;
-  this.connections[msg.cid].transaction.commit(function (error) {
+  this.connections[msg.cid].conn.commit(function (error) {
     delete pthis.connections[msg.cid].transaction;
     callback(null, error);
   });
@@ -170,7 +170,7 @@ Node.Oracle.prototype.rollbackTransaction = function (msg, callback)
   }
   //
   var pthis = this;
-  this.connections[msg.cid].transaction.rollback(function (error) {
+  this.connections[msg.cid].conn.rollback(function (error) {
     delete pthis.connections[msg.cid].transaction;
     callback(null, error);
   });
