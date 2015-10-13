@@ -41,6 +41,9 @@ Node.Oracle.prototype.openConnection = function (msg, callback)
     return;
   }
   //
+  if (this.maxRows)
+    Node.oracledb.maxRows = this.maxRows;
+  //
   // Open connection
   var pthis = this;
   Node.oracledb.getConnection(this.connectionOptions, function (err, connection) {
