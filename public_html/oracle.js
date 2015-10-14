@@ -87,12 +87,14 @@ Node.Oracle.prototype.execute = function (msg, callback)
   //
   // Execute the statement
   var conn = this.connections[msg.cid];
-  var params = {outFormat: Node.oracledb.OBJECT, autoCommit: !conn.transaction};
-  var bind = {};
-  if (msg.sql.toLowerCase().indexOf("insert into ") !== -1)
-    bind.counter = {type: Node.oracledb.NUMBER, dir: Node.oracledb.BIND_OUT};
+  var options = {outFormat: Node.oracledb.OBJECT, autoCommit: !conn.transaction};
+  var bindParams = {};
   //
-  conn.conn.execute(msg.sql, bind, params, function (error, result) {
+  // Set output parameter for read value of counter field
+  if (msg.ct)
+    bindParams.counter = {type: Node.oracledb.NUMBER, dir: Node.oracledb.BIND_OUT};
+  //
+  conn.conn.execute(msg.sql, bindParams, options, function (error, result) {
     if (error)
       callback(null, error);
     else {
