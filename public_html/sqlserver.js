@@ -43,15 +43,28 @@ Node.SQLServer.prototype.openConnection = function (msg, callback)
   //
   // Open connection
   var pthis = this;
-  var conn = new Node.mssql.Connection(this.connectionOptions);
-  conn.connect(function (err) {
+  this.initPool(function (err) {
     if (err)
       callback(null, err);
     else {
-      pthis.connections[msg.cid] = {conn: conn, server: msg.server};
+      pthis.connections[msg.cid] = {server: msg.server};
       callback();
     }
   });
+};
+
+
+/**
+ * Init the application pool
+ * @param {Function} callback - function to be called at the end
+ */
+Node.SQLServer.prototype.initPool = function (callback) {
+  if (this.pool)
+    callback();
+  else {
+    this.pool = new Node.mssql.Connection(this.connectionOptions);
+    this.pool.connect(callback);
+  }
 };
 
 
@@ -62,10 +75,8 @@ Node.SQLServer.prototype.openConnection = function (msg, callback)
  */
 Node.SQLServer.prototype.closeConnection = function (msg, callback)
 {
-  if (this.connections[msg.cid]) {
-    this.connections[msg.cid].conn.close();
+  if (this.connections[msg.cid])
     delete this.connections[msg.cid];
-  }
   callback();
 };
 
@@ -94,7 +105,7 @@ Node.SQLServer.prototype.execute = function (msg, callback)
     command = "insert";
   //
   // For INSERT, UPDATE and DELETE append another statement for info
-  var req = new Node.mssql.Request(this.connections[msg.cid].transaction || this.connections[msg.cid].conn);
+  var req = new Node.mssql.Request(this.connections[msg.cid].transaction || this.pool);
   if (command) {
     req.multiple = true;
     sql += "; select @@rowcount as RowsAffected";
@@ -150,7 +161,7 @@ Node.SQLServer.prototype.beginTransaction = function (msg, callback)
     return;
   }
   //
-  this.connections[msg.cid].transaction = new Node.mssql.Transaction(this.connections[msg.cid].conn);
+  this.connections[msg.cid].transaction = new Node.mssql.Transaction(this.pool);
   this.connections[msg.cid].transaction.begin(function (error) {
     callback(null, error);
   });
