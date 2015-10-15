@@ -46,14 +46,38 @@ Node.Oracle.prototype.openConnection = function (msg, callback)
   //
   // Open connection
   var pthis = this;
-  Node.oracledb.getConnection(this.connectionOptions, function (err, connection) {
+  this.initPool(function (err) {
     if (err)
       callback(null, err);
     else {
-      pthis.connections[msg.cid] = {conn: connection, server: msg.server};
-      callback();
+      pthis.pool.getConnection(function (err, connection) {
+        if (err)
+          callback(null, err);
+        else {
+          pthis.connections[msg.cid] = {conn: connection, server: msg.server};
+          callback();
+        }
+      });
     }
   });
+};
+
+
+/**
+ * Init the application pool
+ * @param {Function} callback - function to be called at the end
+ */
+Node.Oracle.prototype.initPool = function (callback) {
+  if (this.pool)
+    callback();
+  else {
+    var pthis = this;
+    Node.oracledb.createPool(this.connectionOptions, function (error, pool) {
+      if (!error)
+        pthis.pool = pool;
+      callback(error);
+    });
+  }
 };
 
 
