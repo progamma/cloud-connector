@@ -43,14 +43,13 @@ Node.Postgres.prototype.openConnection = function (msg, callback)
   //
   // Open connection
   var pthis = this;
-  var conn = new Node.pg.Client(this.connectionOptions);
-  conn.connect(function (err) {
+  Node.pg.connect(this.connectionOptions, function (err, client, done) {
     if (err) {
-      conn.end();
+      done();
       callback(null, err);
     }
     else {
-      pthis.connections[msg.cid] = {conn: conn, server: msg.server};
+      pthis.connections[msg.cid] = {conn: client, server: msg.server, done: done};
       callback();
     }
   });
@@ -65,7 +64,7 @@ Node.Postgres.prototype.openConnection = function (msg, callback)
 Node.Postgres.prototype.closeConnection = function (msg, callback)
 {
   if (this.connections[msg.cid]) {
-    this.connections[msg.cid].conn.end();
+    this.connections[msg.cid].done();
     delete this.connections[msg.cid];
   }
   callback();
