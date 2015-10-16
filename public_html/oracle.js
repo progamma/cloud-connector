@@ -118,6 +118,7 @@ Node.Oracle.prototype.execute = function (msg, callback)
   if (msg.ct)
     bindParams.counter = {type: Node.oracledb.NUMBER, dir: Node.oracledb.BIND_OUT};
   //
+  var startTime = new Date();
   conn.conn.execute(msg.sql, bindParams, options, function (error, result) {
     if (error)
       callback(null, error);
@@ -125,6 +126,7 @@ Node.Oracle.prototype.execute = function (msg, callback)
       var rs = {};
       rs.cols = [];
       rs.rows = [];
+      rs.times = {qry: (new Date()).getTime() - startTime.getTime()};
       //
       if (result.rows) {
         // Serialize rows

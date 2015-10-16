@@ -114,6 +114,7 @@ Node.SQLServer.prototype.execute = function (msg, callback)
   }
   //
   // Execute the statement
+  var startTime = new Date();
   req.query(sql, function (error, result) {
     if (error)
       callback(null, error);
@@ -121,6 +122,8 @@ Node.SQLServer.prototype.execute = function (msg, callback)
       var rs = {};
       rs.cols = [];
       rs.rows = [];
+      rs.times = {qry: (new Date()).getTime() - startTime.getTime()};
+      //
       if (result) {
         if (!command) {
           // Serialize rows

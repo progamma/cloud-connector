@@ -84,6 +84,7 @@ Node.Postgres.prototype.execute = function (msg, callback)
   }
   //
   // Execute the statement
+  var startTime = new Date();
   this.connections[msg.cid].conn.query(msg.sql, function (error, result) {
     if (error)
       callback(null, error);
@@ -91,6 +92,7 @@ Node.Postgres.prototype.execute = function (msg, callback)
       var rs = {};
       rs.cols = [];
       rs.rows = [];
+      rs.times = {qry: (new Date()).getTime() - startTime.getTime()};
       //
       // Serialize rows
       for (var i = 0; i < result.rows.length; i++) {
