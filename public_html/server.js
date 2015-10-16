@@ -68,6 +68,7 @@ Node.Server.prototype.connect = function ()
   });
   //
   this.socket.on("cloudServerMsg", function (data) {
+    var startTime = new Date();
     // Decompress the message
     Node.zlib.inflate(data, function (error, buffer) {
       if (error) {
@@ -113,8 +114,10 @@ Node.Server.prototype.connect = function ()
           if (data.cbid) {
             if (error)
               msg.data.error = error.toString();
-            else
+            else if (result) {
               msg.data.result = result;
+              msg.data.result.times.cc = (new Date()).getTime() - startTime.getTime();
+            }
             //
             pthis.sendMessage(msg);
           }
