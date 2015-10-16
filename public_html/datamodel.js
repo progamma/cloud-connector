@@ -28,7 +28,8 @@ Node.DataModel.commandTypes = {
   execute: "execute",
   begin: "begin",
   commit: "commit",
-  rollback: "rollback"
+  rollback: "rollback",
+  ping: "ping"
 };
 
 
@@ -57,6 +58,9 @@ Node.DataModel.prototype.onMessage = function (msg, callback)
       break;
     case Node.DataModel.commandTypes.rollback:
       this.rollbackTransaction(msg, callback);
+      break;
+    case Node.DataModel.commandTypes.ping:
+      this.ping(msg, callback);
       break;
     default:
       callback(null, new Error("Command '" + msg.type + "' not supported"));
@@ -128,6 +132,17 @@ Node.DataModel.prototype.commitTransaction = function (msg, callback)
 Node.DataModel.prototype.rollbackTransaction = function (msg, callback)
 {
   callback(null, new Error("rollbackTransaction not implemented"));
+};
+
+
+/**
+ * Do nothing
+ * @param {Object} msg - message received
+ * @param {Function} callback - function to be called at the end
+ */
+Node.DataModel.prototype.ping = function (msg, callback)
+{
+  callback();
 };
 
 
