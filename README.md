@@ -10,8 +10,8 @@ Installing a Cloud Connector on the database server is the database itself to op
 
 ## Installation and configuration
 
-- Install [node.js](https://nodejs.org) or [io.js](https://iojs.org) on the database server. If you want connect an Oracle database you must install [io.js](https://iojs.org) v2.3.3.
-- Rename the file `config_example.json` as `config.json` and open it.
+- Install [io.js](https://iojs.org) v 2.3.3 on the machine where you can connect to database that you want expose.
+- Rename the file `public_html\config_example.json` as `config.json` and open it.
 - Enter information about the application servers to connect to the database and you want to expose.
   - In the section `remoteServers` are listened the urls of application servers to which you want connect (example https://myserver:8080).
   - In the section `remoteUserNames` are listened the username of Instant Developer IDE to which you want connect (example johnsmith).
