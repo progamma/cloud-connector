@@ -11,6 +11,7 @@ Installing a Cloud Connector on the database server is the database itself to op
 ## Installation and configuration
 
 - Install [io.js](https://iojs.org) v 2.3.3 on the machine where you can connect to database that you want expose.
+- Unzip the content of zip file where you prefer.
 - Rename the file `public_html\config_example.json` as `config.json` and open it.
 - Enter information about the application servers to connect to the database and you want to expose.
   - In the section `remoteServers` are listened the urls of application servers to which you want connect (example https://myserver:8080).
