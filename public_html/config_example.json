@@ -26,6 +26,7 @@
     {
       "name": "{datamodelName}",
       "class": "Oracle",
+      "maxRows": 10000,
       "connectionOptions": {
         "connectString": "{hostname/databaseName}",
         "user": "{username}",
