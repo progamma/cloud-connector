@@ -102,7 +102,7 @@ Node.Postgres.prototype.execute = function (msg, callback)
           var colname = result.fields[j].name;
           if (i === 0)
             rs.cols.push(colname);
-          row.push(result.rows[i][colname]);
+          row.push(Node.Postgres.convertValue(result.rows[i][colname], result.fields[j].dataTypeID));
         }
       }
       //
@@ -115,6 +115,32 @@ Node.Postgres.prototype.execute = function (msg, callback)
       callback(rs);
     }
   });
+};
+
+
+/**
+ * Convert a value
+ * @param {Object} value
+ * @param {Integer} datatype
+ */
+Node.Postgres.convertValue = function (value, datatype)
+{
+  if (value === null)
+    return value;
+  //
+  switch (datatype) {
+    case 701:  // float
+    case 790:  // money
+    case 1700: // numeric
+      return parseFloat(value);
+      break;
+
+    case 1082: // date
+    case 1184: // timestamp with time zone
+      return value.toISOString();
+      break;
+  }
+  return value;
 };
 
 

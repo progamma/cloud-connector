@@ -133,10 +133,13 @@ Node.Oracle.prototype.execute = function (msg, callback)
         for (var i = 0; i < result.rows.length; i++) {
           var row = [];
           rs.rows.push(row);
-          if (i === 0)
-            rs.cols = Object.keys(result.rows[0]);
-          for (var j = 0; j < rs.cols.length; j++)
-            row.push(result.rows[i][rs.cols[j]]);
+          for (var j = 0; j < result.metaData.length; j++) {
+            var colname = result.metaData[j].name;
+            if (i === 0)
+              rs.cols.push(colname);
+            //
+            row.push(Node.Oracle.convertValue(result.rows[i][colname]));
+          }
         }
       }
       //
@@ -148,6 +151,18 @@ Node.Oracle.prototype.execute = function (msg, callback)
       callback(rs);
     }
   });
+};
+
+
+/**
+ * Convert a value
+ * @param {Object} value
+ */
+Node.Oracle.convertValue = function (value)
+{
+  if (value instanceof Date)
+    return value.toISOString();
+  return value;
 };
 
 
