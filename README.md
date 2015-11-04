@@ -34,4 +34,4 @@ For save process infomation to run at restart run this command:
 
 For run pm2 as service you must follow information of this two article:
 - for linux [https://gist.github.com/leommoore/5998406](https://gist.github.com/leommoore/5998406).
-- for windows [https://github.com/Unitech/PM2/issues/1079](https://github.com/Unitech/PM2/issues/1079].
+- for windows [https://github.com/Unitech/PM2/issues/1079](https://github.com/Unitech/PM2/issues/1079).
