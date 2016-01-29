@@ -132,6 +132,13 @@ Node.CloudServer.prototype.createServers = function (config)
   for (var i = 0; i < config.remoteUserNames.length; i++) {
     var uname = config.remoteUserNames[i];
     //
+    // If server url is explicited use it
+    if (uname.startsWith("http://") || uname.startsWith("https://")) {
+      var parts = uname.split("@");
+      pthis.createServer(parts[0], parts[1]);
+      continue;
+    }
+    //
     // Ask the InDe console where is this user
     Node.CloudServer.serverForUser(uname, function (srvUrl, error) {
       if (error) {
@@ -143,15 +150,25 @@ Node.CloudServer.prototype.createServers = function (config)
         return;
       }
       //
-      // Create the server and connect it
-      var cli = new Node.Server(pthis, srvUrl);
-      cli.ideUserName = uname;
-      cli.connect();
-      //
-      // Add server to list
-      pthis.servers.push(cli);
+      pthis.createServer(srvUrl, uname);
     });
   }
+};
+
+
+/**
+ * Start a client
+ * @param {String} srvUrl
+ */
+Node.CloudServer.prototype.createServer = function (srvUrl, username)
+{
+  // Create the server and connect it
+  var cli = new Node.Server(this, srvUrl);
+  cli.ideUserName = username;
+  cli.connect();
+  //
+  // Add server to list
+  this.servers.push(cli);
 };
 
 
