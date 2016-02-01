@@ -117,41 +117,20 @@ Node.CloudServer.prototype.loadConfig = function ()
 Node.CloudServer.prototype.createServers = function (config)
 {
   // First attach app servers
-  for (var i = 0; i < config.remoteServers.length; i++) {
-    var srvUrl = config.remoteServers[i];
-    //
-    // Create the server and connect it
-    var cli = new Node.Server(this, srvUrl);
-    cli.connect();
-    //
-    this.servers.push(cli);
-  }
+  for (var i = 0; i < config.remoteServers.length; i++)
+    this.createServer(config.remoteServers[i]);
   //
   // Next, attach "IDE" servers
-  var pthis = this;
   for (var i = 0; i < config.remoteUserNames.length; i++) {
     var uname = config.remoteUserNames[i];
     //
-    // If server url is explicited use it
+    // Handled formats: http://domain, http://domain@username, username
     if (uname.startsWith("http://") || uname.startsWith("https://")) {
       var parts = uname.split("@");
-      pthis.createServer(parts[0], parts[1]);
-      continue;
+      this.createServer(parts[0], parts[1]);
     }
-    //
-    // Ask the InDe console where is this user
-    Node.CloudServer.serverForUser(uname, function (srvUrl, error) {
-      if (error) {
-        pthis.log("ERROR", "Can't locate the server for the user " + uname + ": " + error);
-        return;
-      }
-      if (!srvUrl) {
-        pthis.log("WARNING", "Can't locate the server for the user " + uname);
-        return;
-      }
-      //
-      pthis.createServer(srvUrl, uname);
-    });
+    else
+      this.createServer(undefined, uname);
   }
 };
 
@@ -159,16 +138,33 @@ Node.CloudServer.prototype.createServers = function (config)
 /**
  * Start a client
  * @param {String} srvUrl
+ * @param {String} username
  */
 Node.CloudServer.prototype.createServer = function (srvUrl, username)
 {
-  // Create the server and connect it
-  var cli = new Node.Server(this, srvUrl);
-  cli.ideUserName = username;
-  cli.connect();
-  //
-  // Add server to list
-  this.servers.push(cli);
+  var pthis = this;
+  if (srvUrl) {
+    // Create the server and connect it
+    var cli = new Node.Server(this, srvUrl);
+    if (username)
+      cli.ideUserName = username;
+    cli.connect();
+    //
+    // Add server to list
+    this.servers.push(cli);
+  }
+  else {
+    // Ask the InDe console where is this user
+    Node.CloudServer.serverForUser(username, function (srvUrl, error) {
+      if (error)
+        return pthis.log("ERROR", "Can't locate the server for the user " + username + ": " + error);
+      //
+      if (!srvUrl)
+        return pthis.log("WARNING", "Can't locate the server for the user " + username);
+      //
+      pthis.createServer(srvUrl, username);
+    });
+  }
 };
 
 
