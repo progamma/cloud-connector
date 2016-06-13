@@ -1,7 +1,7 @@
 {
   "name": "{connectorName}",
   "remoteServers": ["{applicationUrl1}", "{applicationUrl2}"],
-  "remoteUserNames": ["{IdeUsername1}", "{IdeUsername2}"],
+  "remoteUserNames": ["{ideUsername}", "{ideOrganization/IdeUsername}", "{ideUrl@ideUsername}"],
   "datamodels": [
     {
       "name": "{datamodelName}",

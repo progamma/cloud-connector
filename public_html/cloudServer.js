@@ -57,7 +57,7 @@ Node.CloudServer.prototype.log = function (level, message, data)
 Node.CloudServer.serverForUser = function (username, callback)
 {
   var options = {hostname: "console.instantdevelopercloud.com",
-    path: "/IndePlatform/?mode=rest&cmd=serverURL&user=" + username,
+    path: "/CCC/?mode=rest&cmd=serverURL&user=" + username,
     method: "GET"
   };
   //
@@ -146,8 +146,11 @@ Node.CloudServer.prototype.createServer = function (srvUrl, username)
   if (srvUrl) {
     // Create the server and connect it
     var cli = new Node.Server(this, srvUrl);
+    //
+    // Set ideUserName without organization
     if (username)
-      cli.ideUserName = username;
+      cli.ideUserName = username.split("/").pop();
+    //
     cli.connect();
     //
     // Add server to list
