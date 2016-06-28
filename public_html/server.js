@@ -9,7 +9,6 @@ var Node = Node || {};
 
 // Import global modules
 Node.io = require("socket.io-client");
-Node.zlib = require("zlib");
 
 /**
  * @class Definition of Client object
@@ -69,61 +68,51 @@ Node.Server.prototype.connect = function ()
   //
   this.socket.on("cloudServerMsg", function (data) {
     var startTime = new Date();
-    // Decompress the message
-    Node.zlib.inflate(data, function (error, buffer) {
-      if (error) {
-        pthis.parent.log.log("ERROR", "Error inflating message of type cloudServerMsg: " + error);
-        pthis.socket.disconnect();
-        return;
+    pthis.parent.log("INFO", "Server onMessage: " + JSON.stringify(data));
+    //
+    // Compose the message of response
+    var msg = {};
+    msg.type = Node.Server.messageTypes.response;
+    if (data.sid)
+      msg.sid = data.sid;
+    if (data.dmid)
+      msg.dmid = data.dmid;
+    if (pthis.ideUserName)
+      msg.userName = pthis.ideUserName;
+    if (data.appid)
+      msg.appid = data.appid;
+    if (data.cbid)
+      msg.cbid = data.cbid;
+    msg.data = {};
+    msg.data.name = pthis.parent.name;
+    //
+    var dm = pthis.parent.dataModelByName(data.dm);
+    if (!dm) {
+      pthis.parent.log("ERROR", "datamodel '" + data.dm + "' not found");
+      //
+      // If command has a callback send response
+      if (data.cbid) {
+        msg.data.error = "datamodel '" + data.dm + "' not found";
+        pthis.sendMessage(msg);
       }
-      //
-      data = JSON.parse(buffer.toString("utf8"));
-      pthis.parent.log("INFO", "Server onMessage: " + JSON.stringify(data));
-      //
-      // Compose the message of response
-      var msg = {};
-      msg.type = Node.Server.messageTypes.response;
-      if (data.sid)
-        msg.sid = data.sid;
-      if (data.dmid)
-        msg.dmid = data.dmid;
-      if (pthis.ideUserName)
-        msg.userName = pthis.ideUserName;
-      if (data.appid)
-        msg.appid = data.appid;
-      if (data.cbid)
-        msg.cbid = data.cbid;
-      msg.data = {};
-      msg.data.name = pthis.parent.name;
-      //
-      var dm = pthis.parent.dataModelByName(data.dm);
-      if (!dm) {
-        pthis.parent.log("ERROR", "datamodel '" + data.dm + "' not found");
-        //
+    }
+    else {
+      // Ask the datamodel
+      data.server = pthis;
+      dm.onMessage(data, function (result, error) {
         // If command has a callback send response
         if (data.cbid) {
-          msg.data.error = "datamodel '" + data.dm + "' not found";
+          if (error)
+            msg.data.error = error.toString();
+          else if (result) {
+            msg.data.result = result;
+            msg.data.result.times.cc = (new Date()).getTime() - startTime.getTime();
+          }
+          //
           pthis.sendMessage(msg);
         }
-      }
-      else {
-        // Ask the datamodel
-        data.server = pthis;
-        dm.onMessage(data, function (result, error) {
-          // If command has a callback send response
-          if (data.cbid) {
-            if (error)
-              msg.data.error = error.toString();
-            else if (result) {
-              msg.data.result = result;
-              msg.data.result.times.cc = (new Date()).getTime() - startTime.getTime();
-            }
-            //
-            pthis.sendMessage(msg);
-          }
-        });
-      }
-    });
+      });
+    }
   });
   //
   this.socket.on("connect_error", function (error) {
@@ -143,16 +132,7 @@ Node.Server.prototype.connect = function ()
   });
   //
   this.socket.on("indeError", function (data) {
-    Node.zlib.inflate(data, function (error, buffer) {
-      if (error) {
-        pthis.parent.log("ERROR", "Error inflating message of type indeError: " + error);
-        pthis.socket.disconnect();
-        return;
-      }
-      //
-      data = JSON.parse(buffer.toString("utf8"));
-      pthis.parent.log("INFO", "indeError: " + data.msg);
-    });
+    pthis.parent.log("INFO", "indeError: " + data.msg);
   });
 };
 
@@ -163,16 +143,7 @@ Node.Server.prototype.connect = function ()
  */
 Node.Server.prototype.sendMessage = function (msg)
 {
-  // Send message with compression
-  var pthis = this;
-  Node.zlib.deflate(JSON.stringify(msg), function (error, buffer) {
-    if (error) {
-      pthis.parent.log("ERROR", "Error deflating message: " + error);
-      return;
-    }
-    //
-    pthis.socket.emit("cloudConnector", buffer);
-  });
+  this.socket.emit("cloudConnector", msg);
 };
 
 
