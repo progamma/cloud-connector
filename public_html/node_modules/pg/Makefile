@@ -13,7 +13,6 @@ all:
 	npm install
 
 help:
-	@echo "make prepare-test-db [connectionString=postgres://<your connection string>]"
 	@echo "make test-all [connectionString=postgres://<your connection string>]"
 
 test: test-unit
@@ -21,7 +20,7 @@ test: test-unit
 test-all: jshint test-missing-native test-unit test-integration test-native test-binary
 
 
-udpate-npm:
+update-npm:
 	@npm i npm --global
 
 bench:
@@ -32,24 +31,18 @@ test-unit:
 
 test-connection:
 	@echo "***Testing connection***"
-	@node script/test-connection.js $(params)
-
-test-connection-binary:
-	@echo "***Testing binary connection***"
-	@node script/test-connection.js $(params) binary
+	@node script/create-test-tables.js $(params)
 
 test-missing-native:
 	@echo "***Testing optional native install***"
 	@rm -rf node_modules/pg-native
-	@node test/native/missing-native.js
-	@npm install pg-native@1.4.0
 	@node test/native/missing-native.js
 	@rm -rf node_modules/pg-native
 
 node_modules/pg-native/index.js:
 	@npm i pg-native
 
-test-native: node_modules/pg-native/index.js
+test-native: node_modules/pg-native/index.js test-connection
 	@echo "***Testing native bindings***"
 	@find test/native -name "*-tests.js" | $(node-command)
 	@find test/integration -name "*-tests.js" | $(node-command) native
@@ -58,13 +51,12 @@ test-integration: test-connection
 	@echo "***Testing Pure Javascript***"
 	@find test/integration -name "*-tests.js" | $(node-command)
 
-test-binary: test-connection-binary
+test-binary: test-connection
 	@echo "***Testing Pure Javascript (binary)***"
 	@find test/integration -name "*-tests.js" | $(node-command) binary
 
-prepare-test-db:
-	@echo "***Preparing the database for tests***"
-	@find script/create-test-tables.js  | $(node-command)
+test-pool:
+	@find test/integration/connection-pool -name "*.js" | $(node-command) binary
 
 jshint:
 	@echo "***Starting jshint***"
