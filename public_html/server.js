@@ -41,34 +41,33 @@ Node.Server.prototype.connect = function ()
   opt.timeout = 30000;
   this.socket = Node.io(this.serverUrl, opt);
   //
-  var pthis = this;
-  //
   this.socket.on("connect", function () {
-    pthis.parent.log("INFO", "Connected to " + pthis.serverUrl);
+    this.parent.log("INFO", "Connected to " + this.serverUrl);
     //
     // Send list of databases supported by this connector
     var msg = {};
     msg.type = Node.Server.messageTypes.init;
     msg.data = {};
-    msg.data.name = pthis.parent.name;
+    msg.data.name = this.parent.name;
     msg.data.dmlist = [];
-    for (var i = 0; i < pthis.parent.datamodels.length; i++) {
+    for (var i = 0; i < this.parent.datamodels.length; i++) {
       var dm = {};
-      dm.name = pthis.parent.datamodels[i].name;
-      dm.class = pthis.parent.datamodels[i].class;
+      dm.name = this.parent.datamodels[i].name;
+      dm.class = this.parent.datamodels[i].class;
+      dm.key = this.parent.datamodels[i].APIKey;
       msg.data.dmlist.push(dm);
     }
     //
     // Send username if is a IDE server
-    if (pthis.ideUserName)
-      msg.userName = pthis.ideUserName;
+    if (this.ideUserName)
+      msg.userName = this.ideUserName;
     //
-    pthis.sendMessage(msg);
-  });
+    this.sendMessage(msg);
+  }.bind(this));
   //
   this.socket.on("cloudServerMsg", function (data) {
     var startTime = new Date();
-    pthis.parent.log("INFO", "Server onMessage: " + JSON.stringify(data));
+    this.parent.log("INFO", "Server onMessage: " + JSON.stringify(data));
     //
     // Compose the message of response
     var msg = {};
@@ -77,28 +76,28 @@ Node.Server.prototype.connect = function ()
       msg.sid = data.sid;
     if (data.dmid)
       msg.dmid = data.dmid;
-    if (pthis.ideUserName)
-      msg.userName = pthis.ideUserName;
+    if (this.ideUserName)
+      msg.userName = this.ideUserName;
     if (data.appid)
       msg.appid = data.appid;
     if (data.cbid)
       msg.cbid = data.cbid;
     msg.data = {};
-    msg.data.name = pthis.parent.name;
+    msg.data.name = this.parent.name;
     //
-    var dm = pthis.parent.dataModelByName(data.dm);
+    var dm = this.parent.dataModelByName(data.dm);
     if (!dm) {
-      pthis.parent.log("ERROR", "datamodel '" + data.dm + "' not found");
+      this.parent.log("ERROR", "datamodel '" + data.dm + "' not found");
       //
       // If command has a callback send response
       if (data.cbid) {
         msg.data.error = "datamodel '" + data.dm + "' not found";
-        pthis.sendMessage(msg);
+        this.sendMessage(msg);
       }
     }
     else {
       // Ask the datamodel
-      data.server = pthis;
+      data.server = this;
       dm.onMessage(data, function (result, error) {
         // If command has a callback send response
         if (data.cbid) {
@@ -109,31 +108,31 @@ Node.Server.prototype.connect = function ()
             msg.data.result.times.cc = (new Date()).getTime() - startTime.getTime();
           }
           //
-          pthis.sendMessage(msg);
+          this.sendMessage(msg);
         }
-      });
+      }.bind(this));
     }
-  });
+  }.bind(this));
   //
   this.socket.on("connect_error", function (error) {
-    pthis.parent.log("ERROR", "Connect error to " + pthis.serverUrl);
-  });
+    this.parent.log("ERROR", "Connect error to " + this.serverUrl);
+  }.bind(this));
   //
   this.socket.on("connect_timeout", function () {
-    pthis.parent.log("ERROR", "Connect timeout to " + pthis.serverUrl);
-  });
+    this.parent.log("ERROR", "Connect timeout to " + this.serverUrl);
+  }.bind(this));
   //
   this.socket.on("disconnect", function () {
-    pthis.parent.log("INFO", "Disconnect to " + pthis.serverUrl);
+    this.parent.log("INFO", "Disconnect to " + this.serverUrl);
     //
     // Notify to all datamodels that a server is disconnected
-    for (var i = 0; i < pthis.parent.datamodels.length; i++)
-      pthis.parent.datamodels[i].serverDisconnected(pthis);
-  });
+    for (var i = 0; i < this.parent.datamodels.length; i++)
+      this.parent.datamodels[i].serverDisconnected(this);
+  }.bind(this));
   //
   this.socket.on("indeError", function (data) {
-    pthis.parent.log("INFO", "indeError: " + data.msg);
-  });
+    this.parent.log("INFO", "indeError: " + data.msg);
+  }.bind(this));
 };
 
 
