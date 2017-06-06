@@ -6,6 +6,7 @@
     {
       "name": "{datamodelName}",
       "class": "Postgres",
+      "APIKey": "00000000-0000-0000-0000-000000000000",
       "connectionOptions": {
         "host": "{hostname}",
         "database": "{databaseName}",
@@ -16,6 +17,7 @@
     {
       "name": "{datamodelName}",
       "class": "SQLServer",
+      "APIKey": "00000000-0000-0000-0000-000000000000",
       "connectionOptions": {
         "server": "{hostname}",
         "database": "{databaseName}",
@@ -27,6 +29,7 @@
       "name": "{datamodelName}",
       "class": "Oracle",
       "maxRows": 10000,
+      "APIKey": "00000000-0000-0000-0000-000000000000",
       "connectionOptions": {
         "connectString": "{hostname/databaseName}",
         "user": "{username}",
