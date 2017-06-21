@@ -3,7 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2014
  * All rights reserved
  */
-/* global module */
+/* global module, oracledb */
 
 var Node = Node || {};
 
@@ -18,6 +18,7 @@ Node.DataModel = require("./datamodel");
  */
 Node.Oracle = function (parent, config)
 {
+  this.moduleName = "oracledb";
   Node.DataModel.call(this, parent, config);
 };
 
@@ -25,41 +26,37 @@ Node.Oracle = function (parent, config)
 Node.Oracle.prototype = new Node.DataModel();
 
 
+
+/**
+ * Load module
+ */
+Node.Oracle.prototype.loadModule = function ()
+{
+  if (!Node.DataModel.prototype.loadModule.call(this))
+    return false;
+//
+  if (this.maxRows)
+    oracledb.maxRows = this.maxRows;
+  //
+  return true;
+};
+
+
 /**
  * Open the connection to the database
- * @param {Object} msg - message received
  * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype.openConnection = function (msg, callback)
+Node.Oracle.prototype._openConnection = function (callback)
 {
-  // Import global modules (could be missing)
-  try {
-    Node.oracledb = require("oracledb");
-  }
-  catch (ex) {
-    callback(null, new Error("Oracle driver not found.\nInstall \"oracledb\" module and try again"));
-    return;
-  }
-  //
-  if (this.maxRows)
-    Node.oracledb.maxRows = this.maxRows;
-  //
   // Open connection
-  var pthis = this;
   this.initPool(function (err) {
     if (err)
-      callback(null, err);
-    else {
-      pthis.pool.getConnection(function (err, connection) {
-        if (err)
-          callback(null, err);
-        else {
-          pthis.connections[msg.cid] = {conn: connection, server: msg.server};
-          callback();
-        }
-      });
-    }
-  });
+      return callback(null, err);
+    //
+    this.pool.getConnection(function (err, connection) {
+      callback({conn: connection}, err);
+    });
+  }.bind(this));
 };
 
 
@@ -69,87 +66,79 @@ Node.Oracle.prototype.openConnection = function (msg, callback)
  */
 Node.Oracle.prototype.initPool = function (callback) {
   if (this.pool)
-    callback();
-  else {
-    var pthis = this;
-    Node.oracledb.createPool(this.connectionOptions, function (error, pool) {
-      if (!error)
-        pthis.pool = pool;
-      callback(error);
-    });
-  }
+    return callback();
+  //
+  oracledb.createPool(this.connectionOptions, function (error, pool) {
+    if (!error)
+      this.pool = pool;
+    callback(error);
+  }.bind(this));
 };
 
 
 /**
  * Close the connection to the database
- * @param {Object} msg - message received
+ * @param {Object} conn
  * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype.closeConnection = function (msg, callback)
+Node.Oracle.prototype._closeConnection = function (conn, callback)
 {
-  if (this.connections[msg.cid]) {
-    this.connections[msg.cid].conn.release(function (error) {
-      callback(null, error);
-    });
-    delete this.connections[msg.cid];
-  }
+  conn.conn.release(function (error) {
+    callback(null, error);
+  });
 };
 
 
 /**
  * Execute a command on the database
+ * @param {Object} conn
  * @param {Object} msg - message received
  * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype.execute = function (msg, callback)
+Node.Oracle.prototype._execute = function (conn, msg, callback)
 {
-  if (!this.connections[msg.cid]) {
-    callback(null, new Error("Connection closed"));
-    return;
-  }
-  //
   // Execute the statement
-  var conn = this.connections[msg.cid];
-  var options = {outFormat: Node.oracledb.OBJECT, autoCommit: !conn.transaction};
+  var options = {outFormat: oracledb.OBJECT, autoCommit: !conn.transaction};
   var bindParams = {};
   //
   // Set output parameter for read value of counter field
   if (msg.ct)
-    bindParams.counter = {type: Node.oracledb.NUMBER, dir: Node.oracledb.BIND_OUT};
+    bindParams.counter = {type: oracledb.NUMBER, dir: oracledb.BIND_OUT};
   //
-  var startTime = new Date();
+  // Add input parameters
+  var parameters = msg.pars || [];
+  for (var i = 0; i < parameters.length; i++)
+    bindParams["P" + (i + 1)] = parameters[i];
+  //
   conn.conn.execute(msg.sql, bindParams, options, function (error, result) {
     if (error)
-      callback(null, error);
-    else {
-      var rs = {};
-      rs.cols = [];
-      rs.rows = [];
-      rs.times = {qry: (new Date()).getTime() - startTime.getTime()};
-      //
-      if (result.rows) {
-        // Serialize rows
-        for (var i = 0; i < result.rows.length; i++) {
-          var row = [];
-          rs.rows.push(row);
-          for (var j = 0; j < result.metaData.length; j++) {
-            var colname = result.metaData[j].name;
-            if (i === 0)
-              rs.cols.push(colname);
-            //
-            row.push(Node.Oracle.convertValue(result.rows[i][colname]));
-          }
+      return callback(null, error);
+    //
+    var rs = {};
+    rs.cols = [];
+    rs.rows = [];
+    //
+    if (result.rows) {
+      // Serialize rows
+      for (var i = 0; i < result.rows.length; i++) {
+        var row = [];
+        rs.rows.push(row);
+        for (var j = 0; j < result.metaData.length; j++) {
+          var colname = result.metaData[j].name;
+          if (i === 0)
+            rs.cols.push(colname);
+          //
+          row.push(Node.Oracle.convertValue(result.rows[i][colname]));
         }
       }
-      //
-      // Serialize extra info
-      if (result) {
-        rs.rowsAffected = result.rowsAffected;
-        rs.insertId = (result.outBinds ? result.outBinds.counter : null);
-      }
-      callback(rs);
     }
+    //
+    // Serialize extra info
+    if (result) {
+      rs.rowsAffected = result.rowsAffected;
+      rs.insertId = (result.outBinds ? result.outBinds.counter : null);
+    }
+    callback(rs);
   });
 };
 
@@ -168,58 +157,34 @@ Node.Oracle.convertValue = function (value)
 
 /**
  * Begin a transaction
- * @param {Object} msg - message received
+ * @param {Object} conn
  * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype.beginTransaction = function (msg, callback)
+Node.Oracle.prototype._beginTransaction = function (conn, callback)
 {
-  if (!this.connections[msg.cid]) {
-    callback(null, new Error("Connection closed"));
-    return;
-  }
-  //
-  this.connections[msg.cid].transaction = true;
-  callback();
+  callback(true);
 };
 
 
 /**
  * Commit a transaction
- * @param {Object} msg - message received
+ * @param {Object} conn
  * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype.commitTransaction = function (msg, callback)
+Node.Oracle.prototype._commitTransaction = function (conn, callback)
 {
-  if (!this.connections[msg.cid]) {
-    callback(null, new Error("Connection closed"));
-    return;
-  }
-  //
-  var pthis = this;
-  this.connections[msg.cid].conn.commit(function (error) {
-    delete pthis.connections[msg.cid].transaction;
-    callback(null, error);
-  });
+  conn.conn.commit(callback);
 };
 
 
 /**
  * Rollback a transaction
- * @param {Object} msg - message received
+ * @param {Object} conn
  * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype.rollbackTransaction = function (msg, callback)
+Node.Oracle.prototype._rollbackTransaction = function (conn, callback)
 {
-  if (!this.connections[msg.cid]) {
-    callback(null, new Error("Connection closed"));
-    return;
-  }
-  //
-  var pthis = this;
-  this.connections[msg.cid].conn.rollback(function (error) {
-    delete pthis.connections[msg.cid].transaction;
-    callback(null, error);
-  });
+  conn.conn.rollback(callback);
 };
 
 
