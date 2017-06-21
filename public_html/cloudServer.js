@@ -88,11 +88,9 @@ Node.CloudServer.prototype.loadConfig = function ()
   var file = Node.fs.readFileSync("config.json", {encoding: "utf8"});
   //
   // If the read is successful the variable "file" contains the content of config.json
-  if (!file) {
-    this.log("ERROR", "Error reading the configuration",
+  if (!file)
+    return this.log("ERROR", "Error reading the configuration",
             {source: "Node.CloudServer.prototype.loadConfig"});
-    return;
-  }
   //
   try {
     var config = JSON.parse(file);
@@ -142,7 +140,6 @@ Node.CloudServer.prototype.createServers = function (config)
  */
 Node.CloudServer.prototype.createServer = function (srvUrl, username)
 {
-  var pthis = this;
   if (srvUrl) {
     // Create the server and connect it
     var cli = new Node.Server(this, srvUrl);
@@ -160,13 +157,13 @@ Node.CloudServer.prototype.createServer = function (srvUrl, username)
     // Ask the InDe console where is this user
     Node.CloudServer.serverForUser(username, function (srvUrl, error) {
       if (error)
-        return pthis.log("ERROR", "Can't locate the server for the user " + username + ": " + error);
+        return this.log("ERROR", "Can't locate the server for the user " + username + ": " + error);
       //
       if (!srvUrl)
-        return pthis.log("WARNING", "Can't locate the server for the user " + username);
+        return this.log("WARNING", "Can't locate the server for the user " + username);
       //
-      pthis.createServer(srvUrl, username);
-    });
+      this.createServer(srvUrl, username);
+    }.bind(this));
   }
 };
 

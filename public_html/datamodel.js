@@ -3,7 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2014
  * All rights reserved
  */
-/* global module */
+/* global module, global */
 
 var Node = Node || {};
 
@@ -70,13 +70,40 @@ Node.DataModel.prototype.onMessage = function (msg, callback)
 
 
 /**
+ * Load module
+ */
+Node.DataModel.prototype.loadModule = function ()
+{
+  try {
+    if (!global[this.moduleName])
+      global[this.moduleName] = require(this.moduleName);
+    return true;
+  }
+  catch (ex) {
+    return false;
+  }
+};
+
+
+/**
  * Open the connection to the database
  * @param {Object} msg - message received
  * @param {Function} callback - function to be called at the end
  */
 Node.DataModel.prototype.openConnection = function (msg, callback)
 {
-  callback(null, new Error("openConnection not implemented"));
+  // Load module
+  if (!this.loadModule())
+    return callback(null, new Error(this.class + " driver not found.\nInstall \"" + this.moduleName + "\" module and try again"));
+  //
+  this._openConnection(function (result, error) {
+    if (error)
+      return callback(null, error);
+    //
+    this.connections[msg.cid] = result;
+    result.server = msg.server;
+    callback();
+  }.bind(this));
 };
 
 
@@ -87,7 +114,14 @@ Node.DataModel.prototype.openConnection = function (msg, callback)
  */
 Node.DataModel.prototype.closeConnection = function (msg, callback)
 {
-  callback(null, new Error("closeConnection not implemented"));
+  var conn = this.connections[msg.cid];
+  if (!conn)
+    return callback();
+  //
+  this._closeConnection(conn, function (result, error) {
+    delete this.connections[msg.cid];
+    callback(null, error);
+  }.bind(this));
 };
 
 
@@ -98,7 +132,18 @@ Node.DataModel.prototype.closeConnection = function (msg, callback)
  */
 Node.DataModel.prototype.execute = function (msg, callback)
 {
-  callback(null, new Error("execute not implemented"));
+  var conn = this.connections[msg.cid];
+  if (!conn)
+    return callback(null, new Error("Connection closed"));
+  //
+  var startTime = new Date();
+  this._execute(conn, msg, function (rs, error) {
+    if (error)
+      return callback(null, error);
+    //
+    rs.times = {qry: (new Date()).getTime() - startTime.getTime()};
+    callback(rs);
+  });
 };
 
 
@@ -109,7 +154,17 @@ Node.DataModel.prototype.execute = function (msg, callback)
  */
 Node.DataModel.prototype.beginTransaction = function (msg, callback)
 {
-  callback(null, new Error("beginTransaction not implemented"));
+  var conn = this.connections[msg.cid];
+  if (!conn)
+    return callback(null, new Error("Connection closed"));
+  //
+  this._beginTransaction(conn, function (tr, error) {
+    if (error)
+      return callback(null, error);
+    //
+    conn.transaction = tr;
+    callback();
+  });
 };
 
 
@@ -120,7 +175,14 @@ Node.DataModel.prototype.beginTransaction = function (msg, callback)
  */
 Node.DataModel.prototype.commitTransaction = function (msg, callback)
 {
-  callback(null, new Error("commitTransaction not implemented"));
+  var conn = this.connections[msg.cid];
+  if (!conn)
+    return callback(null, new Error("Connection closed"));
+  //
+  this._commitTransaction(conn, function (error) {
+    delete conn.transaction;
+    callback(null, error);
+  });
 };
 
 
@@ -131,7 +193,14 @@ Node.DataModel.prototype.commitTransaction = function (msg, callback)
  */
 Node.DataModel.prototype.rollbackTransaction = function (msg, callback)
 {
-  callback(null, new Error("rollbackTransaction not implemented"));
+  var conn = this.connections[msg.cid];
+  if (!conn)
+    return callback(null, new Error("Connection closed"));
+  //
+  this._rollbackTransaction(conn, function (error) {
+    delete conn.transaction;
+    callback(null, error);
+  });
 };
 
 
@@ -152,15 +221,14 @@ Node.DataModel.prototype.ping = function (msg, callback)
  */
 Node.DataModel.prototype.serverDisconnected = function (server)
 {
-  var pthis = this;
   var cids = Object.keys(this.connections);
   for (var i = 0; i < cids.length; i++) {
     if (this.connections[cids[i]].server === server) {
       this.closeConnection({cid: cids[i]}, function (result, error) {
         if (error)
-          pthis.parent.log("ERROR", "Error closing connection of datamodel '"
+          this.parent.log("ERROR", "Error closing connection of datamodel '"
                   + this.name + "': " + error);
-      });
+      }.bind(this));
     }
   }
 };
