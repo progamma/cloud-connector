@@ -105,6 +105,11 @@ Node.Oracle.prototype._execute = function (conn, msg, callback)
   if (msg.ct)
     bindParams.counter = {type: oracledb.NUMBER, dir: oracledb.BIND_OUT};
   //
+  // Add input parameters
+  var parameters = msg.pars || [];
+  for (var i = 0; i < parameters.length; i++)
+    bindParams["P" + (i + 1)] = parameters[i];
+  //
   conn.conn.execute(msg.sql, bindParams, options, function (error, result) {
     if (error)
       return callback(null, error);

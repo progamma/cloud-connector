@@ -90,6 +90,11 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
       sql += "; select @@identity as Counter";
   }
   //
+  // Add input parameters
+  var parameters = msg.pars || [];
+  for (var i = 0; i < parameters.length; i++)
+    req.input("P" + (i + 1), parameters[i]);
+  //
   // Execute the statement
   req.query(sql, function (error, result) {
     if (error)

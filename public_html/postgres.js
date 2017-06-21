@@ -64,7 +64,8 @@ Node.Postgres.prototype._closeConnection = function (conn, callback)
 Node.Postgres.prototype._execute = function (conn, msg, callback)
 {
   // Execute the statement
-  conn.conn.query(msg.sql, function (error, result) {
+  var parameters = msg.pars || [];
+  conn.conn.query(msg.sql, parameters, function (error, result) {
     if (error)
       return callback(null, error);
     //
