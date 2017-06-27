@@ -139,7 +139,7 @@ Node.DataModel.prototype.execute = function (msg, callback)
   // Deserialize some parameters
   if (msg.pars) {
     msg.pars.forEach(function (p, i) {
-      if (p && typeof p === "object" && p.data)
+      if (p && typeof p === "object" && p.type === "buffer", p.data)
         msg.pars[i] = Buffer.from(p.data, "base64");
     });
   }
@@ -162,7 +162,7 @@ Node.DataModel.prototype.execute = function (msg, callback)
 Node.DataModel.convertValue = function (value)
 {
   if (value instanceof Buffer)
-    return {data: value.toString("base64")};
+    return {type: "buffer", data: value.toString("base64")};
   return value;
 };
 
