@@ -35,6 +35,9 @@ Node.Oracle.prototype.loadModule = function ()
   if (!Node.DataModel.prototype.loadModule.call(this))
     return false;
 //
+  oracledb.fetchAsBuffer = [oracledb.BLOB];
+  oracledb.fetchAsString = [oracledb.CLOB];
+  //
   if (this.maxRows)
     oracledb.maxRows = this.maxRows;
   //
@@ -151,7 +154,7 @@ Node.Oracle.convertValue = function (value)
 {
   if (value instanceof Date)
     return value.toISOString();
-  return value;
+  return Node.DataModel.convertValue(value);
 };
 
 

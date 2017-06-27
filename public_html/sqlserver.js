@@ -113,7 +113,7 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
           if (i === 0)
             rs.cols = Object.keys(result[0]);
           for (var j = 0; j < rs.cols.length; j++)
-            row.push(result[i][rs.cols[j]]);
+            row.push(Node.DataModel.convertValue(result[i][rs.cols[j]]));
         }
       }
       else {
