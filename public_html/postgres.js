@@ -116,7 +116,7 @@ Node.Postgres.convertValue = function (value, datatype)
     case 1184: // timestamp with time zone
       return value.toISOString();
   }
-  return value;
+  return Node.DataModel.convertValue(value);
 };
 
 

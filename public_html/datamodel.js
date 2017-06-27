@@ -3,7 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2014
  * All rights reserved
  */
-/* global module, global */
+/* global module, global, Buffer */
 
 var Node = Node || {};
 
@@ -136,6 +136,14 @@ Node.DataModel.prototype.execute = function (msg, callback)
   if (!conn)
     return callback(null, new Error("Connection closed"));
   //
+  // Deserialize some parameters
+  if (msg.pars) {
+    msg.pars.forEach(function (p, i) {
+      if (p && typeof p === "object" && p.data)
+        msg.pars[i] = Buffer.from(p.data, "base64");
+    });
+  }
+  //
   var startTime = new Date();
   this._execute(conn, msg, function (rs, error) {
     if (error)
@@ -144,6 +152,18 @@ Node.DataModel.prototype.execute = function (msg, callback)
     rs.times = {qry: (new Date()).getTime() - startTime.getTime()};
     callback(rs);
   });
+};
+
+
+/**
+ * Convert a value
+ * @param {Object} value
+ */
+Node.DataModel.convertValue = function (value)
+{
+  if (value instanceof Buffer)
+    return {data: value.toString("base64")};
+  return value;
 };
 
 
