@@ -11,7 +11,6 @@ Node.fs = require("fs");
 Node.https = require("https");
 
 // Import local modules
-Node.DataModel = require("./datamodel");
 Node.Server = require("./server");
 Node.Logger = require("./logger");
 
@@ -23,6 +22,7 @@ Node.CloudServer = function ()
 {
   this.servers = [];        // List of servers (IDE/apps)
   this.datamodels = [];     // List of datamodels (DBs)
+  this.fileSystems = [];     // List of file systems
   this.logger = new Node.Logger();
 };
 
@@ -97,6 +97,7 @@ Node.CloudServer.prototype.loadConfig = function ()
     this.name = config.name;
     //
     this.createDataModels(config);
+    this.createFileSystems(config);
     this.createServers(config);
     //
     this.log("INFO", "Configuration loaded with success");
@@ -180,7 +181,7 @@ Node.CloudServer.prototype.createDataModels = function (config)
     //
     // Import local module
     try {
-      Node[db.class] = require("./" + db.class.toLowerCase());
+      Node[db.class] = require("./db/" + db.class.toLowerCase());
       //
       // Create datamodel from config
       var dbobj = new Node[db.class](this, db);
@@ -189,6 +190,32 @@ Node.CloudServer.prototype.createDataModels = function (config)
     catch (e) {
       this.log("ERROR", "Error creating datamodel " + db.name + ": " + e,
               {source: "Node.CloudServer.prototype.createDataModels"});
+    }
+  }
+};
+
+
+/**
+ * Create all file systems
+ * @param {Object} config
+ */
+Node.CloudServer.prototype.createFileSystems = function (config)
+{
+  // Create all connections
+  for (var i = 0; i < config.fileSystems.length; i++) {
+    var fs = config.fileSystems[i];
+    //
+    // Import local module
+    try {
+      Node.NodeDriver = require("./fs/nodedriver");
+      //
+      // Create file system from config
+      var fsobj = new Node.NodeDriver(this, fs);
+      this.fileSystems.push(fsobj);
+    }
+    catch (e) {
+      this.log("ERROR", "Error creating file system " + fs.name + ": " + e,
+              {source: "Node.CloudServer.prototype.createFS"});
     }
   }
 };
@@ -205,6 +232,21 @@ Node.CloudServer.prototype.dataModelByName = function (dmname)
     var dm = this.datamodels[i];
     if (dm.name === dmname)
       return dm;
+  }
+};
+
+
+/**
+ * Returns a file system with a specific name
+ * @param {String} fsname
+ */
+Node.CloudServer.prototype.getFileSystemByName = function (fsname)
+{
+  // Get the right datamodel
+  for (var i = 0; i < this.fileSystems.length; i++) {
+    var fs = this.fileSystems[i];
+    if (fs.name === fsname)
+      return fs;
   }
 };
 
