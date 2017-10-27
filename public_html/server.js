@@ -57,6 +57,15 @@ Node.Server.prototype.connect = function ()
       dm.key = this.parent.datamodels[i].APIKey;
       msg.data.dmlist.push(dm);
     }
+    msg.data.fslist = [];
+    for (var i = 0; i < this.parent.fileSystems.length; i++) {
+      var fs = {};
+      fs.name = this.parent.fileSystems[i].name;
+      fs.path = this.parent.fileSystems[i].path;
+      fs.permissions = this.parent.fileSystems[i].permissions;
+      fs.key = this.parent.fileSystems[i].APIKey;
+      msg.data.fslist.push(fs);
+    }
     //
     // Send username if is a IDE server
     if (this.ideUserName)
@@ -67,7 +76,18 @@ Node.Server.prototype.connect = function ()
   //
   this.socket.on("cloudServerMsg", function (data) {
     var startTime = new Date();
-    this.parent.log("INFO", "Server onMessage: " + JSON.stringify(data));
+    this.parent.log("INFO", "Server onMessage: " + JSON.stringify(data, function (k, v) {
+      if (k === "args") {
+        return v.map(function (value) {
+          if (value instanceof Buffer)
+            return "<Buffer length " + value.length + ">";
+          else
+            return value;
+        });
+      }
+      else
+        return v;
+    }));
     //
     // Compose the message of response
     var msg = {};
@@ -84,33 +104,65 @@ Node.Server.prototype.connect = function ()
       msg.cbid = data.cbid;
     msg.data = {};
     msg.data.name = this.parent.name;
-    //
-    var dm = this.parent.dataModelByName(data.dm);
-    if (!dm) {
-      this.parent.log("ERROR", "datamodel '" + data.dm + "' not found");
-      //
-      // If command has a callback send response
-      if (data.cbid) {
-        msg.data.error = "datamodel '" + data.dm + "' not found";
-        this.sendMessage(msg);
-      }
-    }
-    else {
-      // Ask the datamodel
-      data.server = this;
-      dm.onMessage(data, function (result, error) {
+    if (data.dm) {
+      var dm = this.parent.dataModelByName(data.dm);
+      if (!dm) {
+        this.parent.log("ERROR", "datamodel '" + data.dm + "' not found");
+        //
         // If command has a callback send response
         if (data.cbid) {
-          if (error)
-            msg.data.error = error.toString();
-          else if (result) {
-            msg.data.result = result;
-            msg.data.result.times.cc = (new Date()).getTime() - startTime.getTime();
-          }
-          //
+          msg.data.error = "datamodel '" + data.dm + "' not found";
           this.sendMessage(msg);
         }
-      }.bind(this));
+      }
+      else {
+        // Ask the datamodel
+        data.server = this;
+        dm.onMessage(data, function (result, error) {
+          // If command has a callback send response
+          if (data.cbid) {
+            if (error)
+              msg.data.error = error.toString();
+            else if (result) {
+              msg.data.result = result;
+              msg.data.result.times.cc = (new Date()).getTime() - startTime.getTime();
+            }
+            //
+            this.sendMessage(msg);
+          }
+        }.bind(this));
+      }
+    }
+    else if (data.fs) {
+      msg.fs = true;
+      var fs = this.parent.getFileSystemByName(data.fs);
+      if (!fs) {
+        this.parent.log("ERROR", "file system '" + data.fs + "' not found");
+        //
+        // If command has a callback send response
+        if (data.cbid) {
+          msg.data.error = "file system '" + data.fs + "' not found";
+          this.sendMessage(msg);
+        }
+      }
+      else {
+        fs.onMessage(data, function (result, error) {
+          // If command has a callback send response
+          if (data.cbid) {
+            Array.prototype.slice.apply(arguments).forEach(function (a, i) {
+              if (a instanceof Error) {
+                msg.data.error = a.message;
+                if (i === 1)
+                  msg.data.result = null;
+              }
+              else if (i === 0)
+                msg.data.result = a;
+            });
+            //
+            this.sendMessage(msg);
+          }
+        }.bind(this));
+      }
     }
   }.bind(this));
   //
