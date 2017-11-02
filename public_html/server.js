@@ -57,6 +57,8 @@ Node.Server.prototype.connect = function ()
       dm.key = this.parent.datamodels[i].APIKey;
       msg.data.dmlist.push(dm);
     }
+    //
+    // Send list of file systems supported by this connector
     msg.data.fslist = [];
     for (var i = 0; i < this.parent.fileSystems.length; i++) {
       var fs = {};
@@ -65,6 +67,16 @@ Node.Server.prototype.connect = function ()
       fs.permissions = this.parent.fileSystems[i].permissions;
       fs.key = this.parent.fileSystems[i].APIKey;
       msg.data.fslist.push(fs);
+    }
+    //
+    // Send list of plugins supported by this connector
+    msg.data.pluginslist = [];
+    for (var i = 0; i < this.parent.plugins.length; i++) {
+      var plugin = {};
+      plugin.name = this.parent.plugins[i].name;
+      plugin.class = this.parent.plugins[i].class;
+      plugin.key = this.parent.plugins[i].APIKey;
+      msg.data.pluginslist.push(plugin);
     }
     //
     // Send username if is a IDE server
@@ -147,6 +159,37 @@ Node.Server.prototype.connect = function ()
       }
       else {
         fs.onMessage(data, function (result, error) {
+          // If command has a callback send response
+          if (data.cbid) {
+            Array.prototype.slice.apply(arguments).forEach(function (a, i) {
+              if (a instanceof Error) {
+                msg.data.error = a.message;
+                if (i === 1)
+                  msg.data.result = null;
+              }
+              else if (i === 0)
+                msg.data.result = a;
+            });
+            //
+            this.sendMessage(msg);
+          }
+        }.bind(this));
+      }
+    }
+    else if (data.plugin) {
+      msg.plugin = true;
+      var plugin = this.parent.getPluginByName(data.plugin);
+      if (!plugin) {
+        this.parent.log("ERROR", "plugin '" + data.plugin + "' not found");
+        //
+        // If command has a callback send response
+        if (data.cbid) {
+          msg.data.error = "plugin '" + data.plugin + "' not found";
+          this.sendMessage(msg);
+        }
+      }
+      else {
+        plugin.onMessage(data, function (result, error) {
           // If command has a callback send response
           if (data.cbid) {
             Array.prototype.slice.apply(arguments).forEach(function (a, i) {

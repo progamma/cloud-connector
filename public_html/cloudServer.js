@@ -22,7 +22,8 @@ Node.CloudServer = function ()
 {
   this.servers = [];        // List of servers (IDE/apps)
   this.datamodels = [];     // List of datamodels (DBs)
-  this.fileSystems = [];     // List of file systems
+  this.fileSystems = [];    // List of file systems
+  this.plugins = [];        // List of plugins
   this.logger = new Node.Logger();
 };
 
@@ -98,6 +99,7 @@ Node.CloudServer.prototype.loadConfig = function ()
     //
     this.createDataModels(config);
     this.createFileSystems(config);
+    this.createPlugins(config);
     this.createServers(config);
     //
     this.log("INFO", "Configuration loaded with success");
@@ -222,6 +224,32 @@ Node.CloudServer.prototype.createFileSystems = function (config)
 
 
 /**
+ * Create all plugins
+ * @param {Object} config
+ */
+Node.CloudServer.prototype.createPlugins = function (config)
+{
+  // Create all connections
+  for (var i = 0; i < config.plugins.length; i++) {
+    var plugin = config.plugins[i];
+    //
+    // Import local module
+    try {
+      Node[plugin.class] = require("./plugins/" + plugin.class.toLowerCase());
+      //
+      // Create datamodel from config
+      var dbobj = new Node[plugin.class](this, plugin);
+      this.plugins.push(dbobj);
+    }
+    catch (e) {
+      this.log("ERROR", "Error creating plugin " + plugin.name + ": " + e,
+              {source: "Node.CloudServer.prototype.createPlugins"});
+    }
+  }
+};
+
+
+/**
  * Returns a datamodel with a specific name
  * @param {String} dmname
  */
@@ -242,13 +270,29 @@ Node.CloudServer.prototype.dataModelByName = function (dmname)
  */
 Node.CloudServer.prototype.getFileSystemByName = function (fsname)
 {
-  // Get the right datamodel
+  // Get the right file system
   for (var i = 0; i < this.fileSystems.length; i++) {
     var fs = this.fileSystems[i];
     if (fs.name === fsname)
       return fs;
   }
 };
+
+
+/**
+ * Returns a plugin with a specific name
+ * @param {String} pluginName
+ */
+Node.CloudServer.prototype.getPluginByName = function (pluginName)
+{
+  // Get the right plugin
+  for (var i = 0; i < this.plugins.length; i++) {
+    var plugin = this.plugins[i];
+    if (plugin.name === pluginName)
+      return plugin;
+  }
+};
+
 
 
 // Start the server
