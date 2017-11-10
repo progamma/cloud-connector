@@ -177,6 +177,9 @@ Node.CloudServer.prototype.createServer = function (srvUrl, username)
  */
 Node.CloudServer.prototype.createDataModels = function (config)
 {
+  if (!config.datamodels)
+    return;
+  //
   // Create all connections
   for (var i = 0; i < config.datamodels.length; i++) {
     var db = config.datamodels[i];
@@ -203,6 +206,9 @@ Node.CloudServer.prototype.createDataModels = function (config)
  */
 Node.CloudServer.prototype.createFileSystems = function (config)
 {
+  if (!config.fileSystems)
+    return;
+  //
   // Create all connections
   for (var i = 0; i < config.fileSystems.length; i++) {
     var fs = config.fileSystems[i];
@@ -229,6 +235,9 @@ Node.CloudServer.prototype.createFileSystems = function (config)
  */
 Node.CloudServer.prototype.createPlugins = function (config)
 {
+  if (!config.plugins)
+    return;
+  //
   // Create all connections
   for (var i = 0; i < config.plugins.length; i++) {
     var plugin = config.plugins[i];
@@ -238,8 +247,8 @@ Node.CloudServer.prototype.createPlugins = function (config)
       Node[plugin.class] = require("./plugins/" + plugin.class.toLowerCase());
       //
       // Create datamodel from config
-      var dbobj = new Node[plugin.class](this, plugin);
-      this.plugins.push(dbobj);
+      var pluginobj = new Node[plugin.class](this, plugin);
+      this.plugins.push(pluginobj);
     }
     catch (e) {
       this.log("ERROR", "Error creating plugin " + plugin.name + ": " + e,
