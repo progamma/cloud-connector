@@ -66,7 +66,7 @@ Node.Plugin.prototype.onMessage = function (msg, callback)
         applyCaller = caller;
       }
       else {
-        caller = require("./" + msg.obj.toLowerCase());
+        caller = require("./" + msg.obj.toLowerCase() + "/index");
         applyCaller = this;
       }
 

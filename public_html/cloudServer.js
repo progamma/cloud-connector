@@ -244,7 +244,7 @@ Node.CloudServer.prototype.createPlugins = function (config)
     //
     // Import local module
     try {
-      Node[plugin.class] = require("./plugins/" + plugin.class.toLowerCase());
+      Node[plugin.class] = require("./plugins/" + plugin.class.toLowerCase() + "/index");
       //
       // Create datamodel from config
       var pluginobj = new Node[plugin.class](this, plugin);
