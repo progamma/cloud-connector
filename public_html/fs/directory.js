@@ -22,9 +22,8 @@ Node.Directory = function (fs, dir)
   dir = dir || {};
   //
   // String containing the relative path of the directory
+  this.path = dir.path || "";
   if (dir.path) {
-    this.path = dir.path;
-    //
     // Remove final slash
     if (this.path.endsWith("/"))
       this.path = this.path.slice(0, -1);

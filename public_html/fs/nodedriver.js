@@ -47,7 +47,13 @@ Node.NodeDriver.prototype = new Node.FS();
 Node.NodeDriver.prototype.checkPath = function (obj)
 {
   // Absolute path
-  return [this.path, obj.path].join("/");
+  var path = [this.path, obj.path].join("/");
+  //
+  // Remove final slash
+  if (path.endsWith("/"))
+    path = path.slice(0, -1);
+  //
+  return path;
 };
 
 
@@ -760,7 +766,7 @@ Node.NodeDriver.prototype.readDirectory = function (directory, cb)
     files.sort();
     var content = new Array();
     //
-    var index = path.split("/").length - directory.path.split("/").length;
+    var index = path.split("/").length - (directory.path === "" ? 0 : directory.path.split("/").length);
     //
     // async for each
     Node.async.concat(files, function (files, cb) {
