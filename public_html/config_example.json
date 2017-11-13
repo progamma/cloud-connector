@@ -44,5 +44,12 @@
       "permissions": "rw",
       "APIKey": "00000000-0000-0000-0000-000000000000"
     }
+  ],
+  "plugins": [
+    {
+      "name": "{pluginName}",
+      "class": "{className}",
+      "APIKey": "00000000-0000-0000-0000-000000000000"
+    }
   ]
 }

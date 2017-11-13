@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "dependencies": {
     "mssql": "3.3.0",
-    "oracledb": "1.13.1",
     "pg": "6.0.1",
     "socket.io-client": "1.4.8",
     "archiver": "2.0.3",
