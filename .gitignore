@@ -1,3 +1,5 @@
 /public_html/log/
 /nbproject/private/
 /public_html/config.json
+/public_html/plugins/activedirectory/node_modules/
+/public_html/node_modules/
