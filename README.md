@@ -19,10 +19,10 @@ Installing a Cloud Connector on the database server is the database itself to op
   - In the section `datamodels` are listened the databases that you want expose. You can list multiple databases. Each type of database (Oracle, Postgres, SQLServer ) has specific connection parameters.
   - In the section `fileSystems` are listened the directory paths that you want expose.
   - In the section `plugins` are listened the classes that you can create inside the `public_html\plugins` folder and use as plugins. 
-  Cloud Connactor has a built-in plugin: ActiveDirectory. If you want to use it you have to add an object to this section similar to:
+  Cloud Connector has a built-in plugin: ActiveDirectory. If you want to use it you have to add an object to this section similar to:
   
-  ```js
-  {
+    ```js
+    {
       "name": "myAD",
       "class": "ActiveDirectory",
       "APIKey": "00000000-0000-0000-0000-000000000000",
@@ -32,8 +32,8 @@ Installing a Cloud Connector on the database server is the database itself to op
         "username": "username",
         "password": "password"
       }
-  }
-  ```
+    }
+    ```
     
 - Move to `public_html` folder and run this command to install node_modules:
 
