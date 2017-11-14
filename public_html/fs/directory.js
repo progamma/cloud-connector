@@ -113,10 +113,11 @@ Node.Directory.prototype.copy = function (newPath, cb)
 
 /**
  * Reads the content of directory: returns an array of files and folders
+ * @param {Integer} depth
  * @param {function} cb
  */
-Node.Directory.prototype.list = function (cb) {
-  this.fs.readDirectory(this, cb);
+Node.Directory.prototype.list = function (depth, cb) {
+  this.fs.readDirectory(this, depth, cb);
 };
 
 
