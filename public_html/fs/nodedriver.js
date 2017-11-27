@@ -712,19 +712,23 @@ Node.NodeDriver.prototype.copyDir = function (srcDir, dstDir, cb)
 /**
  * Reads recursively the content of directory
  * @param {Directory} directory
+ * @param {Integer} depth
  * @param {function} cb
  */
-Node.NodeDriver.prototype.readDirectory = function (directory, cb)
+Node.NodeDriver.prototype.readDirectory = function (directory, depth, cb)
 {
   // Check the validity of the path (reading)
   var path = this.checkPath(directory);
+  //
+  // Set default depth to 0
+  depth = depth || 0;
   //
   // Array of files/directory objects
   var content = [];
   //
   // Array of directories yet to be examined
   var dir = [];
-  dir.push(path);
+  dir.push({depth: 0, path: path});
   //
   // Recursive core
   var readDirRecursive = function (entries, content, cb) {
@@ -732,19 +736,27 @@ Node.NodeDriver.prototype.readDirectory = function (directory, cb)
     if (!entries.length)
       return cb(content);
     //
+    if (entries[0].depth > depth) {
+      // Remove the folder because is deeper than depth
+      entries.shift();
+      //
+      // recall the function
+      return readDirRecursive(entries, content, cb);
+    }
+    //
     // Reads the current directory
-    Node.nodeFs.readdir(entries[0], function (err, files) {
+    Node.nodeFs.readdir(entries[0].path, function (err, files) {
       if (err)
         return cb(null, err);
       //
       for (var i = 0; i < files.length; i++) {
         // Add the element to the content array
-        content = content.concat(entries[0] + "/" + files[i]);
-        var stats = Node.nodeFs.statSync(entries[0] + "/" + files[i]);
+        content = content.concat(entries[0].path + "/" + files[i]);
+        var stats = Node.nodeFs.statSync(entries[0].path + "/" + files[i]);
         //
         // if the element is a directory,i add it to the array of folders to be scanned
         if (stats.isDirectory())
-          entries.push(entries[0] + "/" + files[i]);
+          entries.push({depth: entries[0].depth + 1, path: entries[0].path + "/" + files[i]});
       }
       //
       // remove the folder just examined from the array
