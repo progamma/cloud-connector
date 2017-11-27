@@ -298,14 +298,14 @@ Node.NodeDriver.prototype.write = function (file, data, offset, size, position, 
 {
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
-    return cb(null, new Error("Permission denied"));
+    return cb(new Error("Permission denied"));
   //
   // Check that the file is opened (writing)
   if (!file.wstream)
-    return cb(null, new Error("File not open for write"));
+    return cb(new Error("File not open for write"));
   //
   if (!data)
-    return cb(null, new Error("No data to write"));
+    return cb(new Error("No data to write"));
   //
   if (!(data instanceof ArrayBuffer) && typeof data !== "string")
     data = JSON.stringify(data);
