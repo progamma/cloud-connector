@@ -3,7 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2014
  * All rights reserved
  */
-/* global module, pg */
+/* global module, pg, parseInt */
 
 var Node = Node || {};
 
@@ -32,6 +32,8 @@ Node.Postgres.prototype = new Node.DataModel();
  */
 Node.Postgres.prototype._openConnection = function (callback)
 {
+  // Convert bigserial + bigint (both with typeId = 20) to integer:
+  pg.types.setTypeParser(20, parseInt);
   pg.connect(this.connectionOptions, function (err, client, done) {
     if (err) {
       done();
