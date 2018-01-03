@@ -3,7 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2014
  * All rights reserved
  */
-/* global module */
+/* global module, Buffer */
 
 var Node = Node || {};
 
