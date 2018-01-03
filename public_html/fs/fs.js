@@ -5,7 +5,7 @@
  */
 
 
-/* global module, Proxy */
+/* global module */
 
 var Node = Node || {};
 
