@@ -246,8 +246,7 @@ Node.DataModel.prototype.serverDisconnected = function (server)
     if (this.connections[cids[i]].server === server) {
       this.closeConnection({cid: cids[i]}, function (result, error) {
         if (error)
-          this.parent.log("ERROR", "Error closing connection of datamodel '"
-                  + this.name + "': " + error);
+          this.parent.log("ERROR", "Error closing connection of datamodel '" + this.name + "': " + error);
       }.bind(this));
     }
   }
