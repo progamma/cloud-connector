@@ -34,7 +34,7 @@ Node.Oracle.prototype.loadModule = function ()
 {
   if (!Node.DataModel.prototype.loadModule.call(this))
     return false;
-//
+  //
   oracledb.fetchAsBuffer = [oracledb.BLOB];
   oracledb.fetchAsString = [oracledb.CLOB];
   //

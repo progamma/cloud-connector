@@ -776,7 +776,7 @@ Node.NodeDriver.prototype.readDirectory = function (directory, depth, cb)
       return cb();
     //
     files.sort();
-    var content = new Array();
+    var content = [];
     //
     var index = path.split("/").length - (directory.path === "" ? 0 : directory.path.split("/").length);
     //

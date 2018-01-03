@@ -129,7 +129,7 @@ Node.Postgres.convertValue = function (value, datatype)
  */
 Node.Postgres.prototype._beginTransaction = function (conn, callback)
 {
-  conn.conn.query("BEGIN", function (error, result) {
+  conn.conn.query("BEGIN", function (error) {
     callback(true, error);
   });
 };
