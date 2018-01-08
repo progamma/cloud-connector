@@ -115,6 +115,7 @@ Node.Postgres.convertValue = function (value, datatype)
       return parseFloat(value);
 
     case 1082: // date
+      return value.getFullYear() + "-" + value.getMonth() + "-" + value.getDay();
     case 1184: // timestamp with time zone
       return value.toISOString();
   }
