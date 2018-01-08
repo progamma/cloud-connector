@@ -770,13 +770,13 @@ Node.NodeDriver.prototype.readDirectory = function (directory, depth, cb)
   readDirRecursive(dir, content, function (files, err) {
     if (err)
       return cb(null, err);
+    var content = [];
     //
     // Empty directory
     if (files.length < 1)
-      return cb();
+      return cb(content);
     //
     files.sort();
-    var content = [];
     //
     var index = path.split("/").length - (directory.path === "" ? 0 : directory.path.split("/").length);
     //
