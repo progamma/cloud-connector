@@ -99,27 +99,21 @@ Node.NodeDriver.prototype.openFile = function (file, cb)
   // Check the validity of the path (reading)
   var fullPath = this.checkPath(file);
   //
-  // Checking the existence of the file
-  this.fileExists(file, function (exists) {
-    if (!exists)
-      return cb(new Error("File does not exist"));
-    //
-    // Object of type read stream used to read
-    file.rstream = Node.nodeFs.createReadStream(fullPath, {encoding: file.encoding});
-    //
-    // Listen to open event
-    file.rstream.on("open", function () {
-      file.rstream.removeAllListeners("error");
-      this.files[file.id] = file;
-      cb();
-    }.bind(this));
-    //
-    // Listen to next error event
-    file.rstream.once("error", function (error) {
-      delete file.rstream;
-      cb(error);
-    });
+  // Object of type read stream used to read
+  file.rstream = Node.nodeFs.createReadStream(fullPath, {encoding: file.encoding});
+  //
+  // Listen to open event
+  file.rstream.on("open", function () {
+    file.rstream.removeAllListeners("error");
+    this.files[file.id] = file;
+    cb();
   }.bind(this));
+  //
+  // Listen to next error event
+  file.rstream.once("error", function (error) {
+    delete file.rstream;
+    cb(error);
+  });
 };
 
 
@@ -165,20 +159,18 @@ Node.NodeDriver.prototype.close = function (file, cb)
   delete this.files[file.id];
   delete file.rspos;
   //
-  var firstError;
-  var done = function (stream, error) {
-    delete file[stream];
-    if (error)
-      firstError = new Error("Close file error");
-    if (!file.wstream && !file.rstream)
-      cb(firstError);
-  };
+  if (file.rstream) {
+    file.rstream.destroy();
+    delete file.rstream;
+  }
   //
-  if (file.wstream)
-    file.wstream.end(done.bind(this, "wstream"));
-  if (file.rstream)
-    file.rstream.close(done.bind(this, "rstream"));
-  done();
+  if (file.wstream) {
+    file.wstream.on("finish", cb);
+    file.wstream.end();
+    delete file.wstream;
+  }
+  else
+    cb();
 };
 
 
@@ -228,6 +220,7 @@ Node.NodeDriver.prototype.read = function (file, length, offset, cb)
   opts.encoding = null;
   //
   // I recreate the reader with the correct limits
+  file.rstream.destroy();
   file.rstream = Node.nodeFs.createReadStream(path, opts);
   //
   // I create the buffer where the bytes read will be placed on
