@@ -162,27 +162,23 @@ Node.NodeDriver.prototype.openFileForAppend = function (file, cb)
  */
 Node.NodeDriver.prototype.close = function (file, cb)
 {
-  // Delete variables stream
-  delete file.rstream;
-  delete file.rspos;
   delete this.files[file.id];
+  delete file.rspos;
   //
-  if (file.wstream) {
-    file.wstream.on("finish", function () {
-      delete file.wstream;
-      cb();
-    });
-    //
-    // Listen to next error event
-    file.wstream.once('error', function () {
-      delete file.wstream;
-      cb(new Error("Close file error"));
-    });
-    //
-    file.wstream.end();
-  }
-  else
-    cb();
+  var firstError;
+  var done = function (stream, error) {
+    delete file[stream];
+    if (error)
+      firstError = new Error("Close file error");
+    if (!file.wstream && !file.rstream)
+      cb(firstError);
+  };
+  //
+  if (file.wstream)
+    file.wstream.end(done.bind(this, "wstream"));
+  if (file.rstream)
+    file.rstream.close(done.bind(this, "rstream"));
+  done();
 };
 
 
