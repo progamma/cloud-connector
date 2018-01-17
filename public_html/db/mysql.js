@@ -74,7 +74,7 @@ Node.MySQL.prototype._closeConnection = function (conn, callback)
  */
 Node.MySQL.prototype._execute = function (conn, msg, callback)
 {
-  conn.conn.query(msg.sql, msg.pars, function (error, result) {
+  conn.conn.query(msg.sql, msg.pars, function (error, result, md) {
     if (error)
       return callback(null, error);
     //
@@ -91,7 +91,7 @@ Node.MySQL.prototype._execute = function (conn, msg, callback)
         for (var j = 0; j < cols.length; j++) {
           if (i === 0)
             rs.cols.push(cols[j]);
-          row.push(Node.MySQL.convertValue(result[i][cols[j]]));
+          row.push(Node.MySQL.convertValue(result[i][cols[j]], md[j].type));
         }
       }
       //
@@ -114,11 +114,12 @@ Node.MySQL.convertValue = function (value, datatype)
   if (value === null)
     return value;
   //
-  if (datatype === "DateTime" || datatype === "TimeStamp") {
-
-  }
-  else if (datatype === "Date") {
-
+  // Date
+  if (datatype === 10) {
+    var v = value.getFullYear() + "-";
+    v += (value.getMonth() + 1 < 10 ? "0" : "") + (value.getMonth() + 1) + "-";
+    v += (value.getDate() < 10 ? "0" : "") + value.getDate();
+    return v;
   }
   //
   return Node.DataModel.convertValue(value);
