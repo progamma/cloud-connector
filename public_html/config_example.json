@@ -35,6 +35,18 @@
         "user": "{username}",
         "password": "{password}"
       }
+    },
+    {
+      "name": "{datamodelName}",
+      "class": "MySQL",
+      "APIKey": "00000000-0000-0000-0000-000000000000",
+      "connectionOptions": {
+        "server": "{hostname}",
+        "database": "{databaseName}",
+        "user": "{username}",
+        "password": "{password}",
+        "connectionLimit": 10
+      }
     }
   ],
   "fileSystems": [
