@@ -87,11 +87,12 @@ Node.MySQL.prototype._execute = function (conn, msg, callback)
       for (var i = 0; i < result.length; i++) {
         var row = [];
         rs.rows.push(row);
-        var cols = Object.keys(result[i]);
-        for (var j = 0; j < cols.length; j++) {
-          if (i === 0)
-            rs.cols.push(cols[j]);
-          row.push(Node.MySQL.convertValue(result[i][cols[j]], md[j].type));
+        //
+        if (i === 0)
+          rs.cols = Object.keys(result[i]);
+        //
+        for (var j = 0; j < rs.cols.length; j++) {
+          row.push(Node.MySQL.convertValue(result[i][rs.cols[j]], md[j].type));
         }
       }
       //
