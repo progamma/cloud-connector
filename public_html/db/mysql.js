@@ -91,9 +91,8 @@ Node.MySQL.prototype._execute = function (conn, msg, callback)
         if (i === 0)
           rs.cols = Object.keys(result[i]);
         //
-        for (var j = 0; j < rs.cols.length; j++) {
+        for (var j = 0; j < rs.cols.length; j++)
           row.push(Node.MySQL.convertValue(result[i][rs.cols[j]], md[j].type));
-        }
       }
       //
       // Serialize extra info
