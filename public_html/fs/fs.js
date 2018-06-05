@@ -12,6 +12,7 @@ var Node = Node || {};
 if (module) {
   Node.File = require("./file");
   Node.Directory = require("./directory");
+  Node.Url = require("./url");
 }
 
 /**
@@ -54,6 +55,16 @@ Node.FS.prototype.file = function (file)
 Node.FS.prototype.directory = function (dir)
 {
   return new Node.Directory(this, dir);
+};
+
+
+/**
+ * Creates a URL object with the appropriate driver
+ * @param {string} url
+ */
+Node.FS.prototype.url = function (url)
+{
+  return new Node.Url(this, url);
 };
 
 
