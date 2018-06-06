@@ -24,6 +24,7 @@ Node.NodeDriver = function (parent, config)
   if (module) {
     Node.nodeFs = require("fs");
     Node.pathNode = require("path");
+    Node.querystring = require("querystring");
     Node.async = require("async"); //license and detail: https://github.com/caolan/async
     Node.fsExtra = require("fs.extra"); //license and detail: https://www.npmjs.com/package/fs.extra
     Node.archiver = require("archiver"); //license and detail: https://github.com/ctalkington/node-archiver
@@ -884,8 +885,327 @@ Node.NodeDriver.prototype.removeDirRecursive = function (directory, cb)
 };
 
 
+/**
+ * Makes an HTTP request to a web server
+ * @param {object} url
+ * @param {string} method
+ * @param {object} options
+ * @param {function} cb
+ */
+Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
+{
+  options = Object.assign({}, options);
+  //
+  var uri = url.url;
+  //
+  // Multipart request
+  var multiPart = false;
+  //
+  // Download
+  var download = false;
+  //
+  // Upload
+  var upload = false;
+  //
+  // Node module variable
+  var request = require("request");
+  //
+  // Create internal request options object
+  var opts = {};
+  opts.headers = {};
+  //
+  switch (method) {
+    case "POST":
+      multiPart = true;
+      break;
+
+    case "DOWNLOAD":
+      download = true;
+      if (options.method === "POST")
+        method = "POST";
+      else
+        method = "GET";
+      break;
+
+    case "UPLOAD":
+      multiPart = true;
+      upload = true;
+      method = "POST";
+      break;
+  }
+  //
+  // Add an Accept-Encoding header to request compressed content encodings from the server, default true
+  opts.gzip = options.hasOwnProperty("gzip") ? options.gzip : true;
+  //
+  if (method === "POST") {
+    // If not specified, the post request type is multipart
+    if (options.headers && options.headers["Content-Type"])
+      multiPart = false;
+  }
+  //
+  // Get custom headers
+  if (options.headers)
+    opts.headers = options.headers;
+  //
+  // Get eventually values for the autentication
+  if (options.authentication)
+    opts.auth = options.authentication;
+  //
+  // Set timeout
+  if (options.timeOut)
+    opts.timeout = options.timeOut;
+  //
+  opts.method = method;
+  opts.uri = uri;
+  //
+  // Custom body case
+  if (options.body) {
+    if (typeof options.bodyType === "string")
+      opts.headers["Content-Type"] = options.bodyType;
+    else if (options.headers && !options.headers["Content-Type"])
+      opts.headers["Content-Type"] = "application/octet-stream";
+    //
+    // Types allowed for the custom body are: string and ArrayBuffer, but you can pass an object to
+    // get a JSON custom body
+    if (options.body && (typeof options.body === "object") && !(options.body instanceof ArrayBuffer)) {
+      try {
+        options.body = JSON.stringify(options.body);
+      }
+      catch (ex) {
+        return cb({error: new Error("Cannot stringify custom body")});
+      }
+      options.headers["Content-Type"] = "application/json";
+    }
+    if (options.body instanceof ArrayBuffer || typeof options.body === "string")
+      opts.body = options.body;
+    else
+      return cb({error: new Error("Custom body must be string or ArrayBuffer")});
+  }
+  else if (multiPart) { // multipart
+    // Create multipart request for upload
+    opts.formData = options.params || {};
+    //
+    // Delete custom Content-Type
+    delete opts.headers["Content-Type"];
+    //
+    // File section (only fot the upload)
+    if (upload) {
+      // Check if the path of file is valid
+      var path = this.checkPath(false, options._file);
+      if (!path)
+        return cb({error: new Error("Invalid path")});
+      //
+      // Add the files
+      opts.formData[options._nameField] = {
+        value: Node.nodeFs.createReadStream(path),
+        options: {
+          filename: options._fileName,
+          contentType: options._fileContentType
+        }
+      };
+    }
+  }
+  else if (opts.headers["Content-Type"] === "application/x-www-form-urlencoded")
+    opts.form = options.params;
+  else {
+    // GET request
+    //
+    // Concatenate options params and url params
+    var posQuery = uri.indexOf("?");
+    if (posQuery > 0) {
+      var qs = Node.querystring.parse(encodeURI(uri.substr(posQuery + 1)));
+      if (options.params) {
+        for (var propertyName in options.params)
+          qs[propertyName] = options.params[propertyName];
+      }
+      opts.qs = qs;
+    }
+    else
+      opts.qs = options.params;
+    opts.useQuerystring = true;
+  }
+  //
+  // For download check file path
+  var downloadError = null;
+  if (download) {
+    // Check path
+    var downloadPath = this.checkPath(true, options._file);
+    if (!downloadPath)
+      return cb({error: new Error("invalid download path")});
+    //
+    // Create stream
+    var writeStream = Node.nodeFs.createWriteStream(downloadPath, {encoding: null});
+    writeStream.once("error", function (error) {
+      downloadError = error;
+    });
+  }
+  //
+  // Make request
+  var res = {};
+  var req = request(opts, function (error, response, body) {
+    // Stop the progress events when the response is complete
+    clearInterval(uploadprogressTimer);
+    //
+    if (error)
+      return cb({error: error});
+    //
+    // Remove bom utf-8
+    if (typeof body === "string" && body.charCodeAt(0) === 65279)
+      body = body.substring(1);
+    //
+    res.body = body;
+    cb(res);
+  });
+  //
+  // Listen to response event
+  req.on("response", function (response) {
+    // Listen to next abort event
+    req.once("abort", function () {
+      cb({error: downloadError || new Error("request aborted")});
+    });
+    //
+    res.status = response.statusCode;
+    //
+    // Download
+    if (download && response.statusCode === 200) {
+      if (downloadError)
+        req.abort();
+      else
+        req.pipe(writeStream);
+    }
+    //
+    // Amount of byte downloaded
+    var byteDownloaded = 0;
+    //
+    // Listen to data response event
+    response.on('data', function (data) {
+      res.headers = response.headers;
+      var totalBytes = response.headers["Content-Length"];
+      //
+      byteDownloaded += data.length;
+      if (url.onDownloadProgress(byteDownloaded, totalBytes) === false) {
+        // Stop response writing
+        req.abort();
+      }
+    });
+  });
+  //
+  // Last value of byte sent
+  var lastByteSent = 0;
+  //
+  // Upload progress handler
+  var uploadprogressTimer = setInterval(function () {
+    var byteTotal;
+    var byteSent;
+    if (req.req) {
+      if (upload)
+        byteTotal = options._fileSize;
+      else
+        byteTotal = req.req._headers["Content-Length"];
+      byteSent = Math.min(req.req.connection._bytesDispatched, byteTotal);
+    }
+    else
+      clearInterval(uploadprogressTimer);
+    //
+    // If the information is not avaible, stop the event
+    if (byteTotal === undefined)
+      return clearInterval(uploadprogressTimer);
+    //
+    // If the values have not changed, they are not notified
+    if (lastByteSent === byteSent)
+      return;
+    //
+    // Check if the upload was interrupted
+    var abort = (url.onUploadProgress(byteSent, byteTotal) === false);
+    lastByteSent = byteSent;
+    //
+    // In these cases, stops the event
+    if (req._ended || abort)
+      clearInterval(uploadprogressTimer);
+    //
+    if (abort)
+      req.abort();
+  }, 250);
+};
+
+
+/**
+ * Put a local file on the other side file system (local/remote)
+ * @param {File} localFile
+ * @param {File} dstFile
+ * @param {function} cb
+ */
+Node.NodeDriver.prototype.put = function (localFile, dstFile, cb)
+{
+  if (!dstFile)
+    return cb(new Error("Destination file cannot be null"));
+  //
+  var done = function (error) {
+    localFile.close(function (result, remoteError) {
+      dstFile.close(function (result, dstError) {
+        cb(error || remoteError || dstError);
+      });
+    });
+  };
+  //
+  var readChunk = function (length, offset, create, callback) {
+    // Read chunk
+    localFile.read(length, offset, function (res, err) {
+      if (err)
+        return callback(err);
+      //
+      var result = {};
+      result.chunk = res;
+      result.create = create;
+      //
+      // Write current chunk
+      writeChunk(result, function (writeError) {
+        if (writeError)
+          return callback(writeError);
+        //
+        // Check if I need to read the next chunk
+        if (!res || res.byteLength !== length)
+          return callback();
+        else // Read next chunk
+          readChunk(length, offset + length, false, callback);
+      });
+    });
+  };
+  //
+  var writeChunk = function (content, callback) {
+    // Check if dstFile needs to be created
+    if (content.create) {
+      dstFile.create(undefined, function (createRes, createErr) {
+        if (createErr)
+          return callback(createErr);
+        //
+        // Write chunk into dstFile
+        dstFile.write(content.chunk, undefined, undefined, undefined, function (writeRes, writeErr) {
+          callback(writeErr);
+        });
+      });
+    }
+    else {
+      // Write chunk into dstFile
+      dstFile.write(content.chunk, undefined, undefined, undefined, function (writeRes, writeErr) {
+        callback(writeErr);
+      });
+    }
+  };
+  //
+  // Open remote file
+  localFile.open(function (res, err) {
+    if (err)
+      return done(err);
+    //
+    // Start reading and writing chunk by chunk (256 KB is size of a chunk)
+    readChunk(1024 * 256, 0, true, done);
+  }.bind(this));
+};
+
+
 /*
- * Deserialize File/Directory
+ * Deserialize File/Directory/Url
  * @param {Object} obj
  */
 Node.NodeDriver.prototype.deserializeObject = function (obj) {
@@ -908,7 +1228,7 @@ Node.NodeDriver.prototype.onMessage = function (msg, callback)
   for (var i = 0; i < msg.args.length; i++) {
     var arg = msg.args[i];
     //
-    // Deserialize arguments of type File/Directory
+    // Deserialize arguments of type File/Directory/Url
     if (arg && typeof arg === "object" && arg._t)
       argsArray.push(this.deserializeObject(arg));
     else if (arg && arg instanceof Buffer) // Get ArrayBuffer from Buffer
