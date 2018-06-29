@@ -894,7 +894,7 @@ Node.NodeDriver.prototype.removeDirRecursive = function (directory, cb)
  */
 Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
 {
-  options = Object.assign({}, options);
+  options = Object.assign({responseType: "text"}, options);
   //
   var uri = url.url;
   //
@@ -912,7 +912,6 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
   //
   // Create internal request options object
   var opts = {};
-  opts.headers = {};
   //
   switch (method) {
     case "POST":
@@ -921,10 +920,7 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
 
     case "DOWNLOAD":
       download = true;
-      if (options.method === "POST")
-        method = "POST";
-      else
-        method = "GET";
+      method = options.method || "GET";
       break;
 
     case "UPLOAD":
@@ -934,18 +930,15 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
       break;
   }
   //
+  // Check user options
+  if (!options.headers)
+    options.headers = {};
+  //
   // Add an Accept-Encoding header to request compressed content encodings from the server, default true
   opts.gzip = options.hasOwnProperty("gzip") ? options.gzip : true;
   //
-  if (method === "POST") {
-    // If not specified, the post request type is multipart
-    if (options.headers && options.headers["Content-Type"])
-      multiPart = false;
-  }
-  //
   // Get custom headers
-  if (options.headers)
-    opts.headers = options.headers;
+  opts.headers = options.headers;
   //
   // Get eventually values for the autentication
   if (options.authentication)
@@ -955,6 +948,10 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
   if (options.timeOut)
     opts.timeout = options.timeOut;
   //
+  // If not specified, the post request type is multipart
+  if (options.headers["Content-Type"])
+    multiPart = false;
+  //
   opts.method = method;
   opts.uri = uri;
   //
@@ -962,7 +959,7 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
   if (options.body) {
     if (typeof options.bodyType === "string")
       opts.headers["Content-Type"] = options.bodyType;
-    else if (options.headers && !options.headers["Content-Type"])
+    else if (!options.headers["Content-Type"])
       opts.headers["Content-Type"] = "application/octet-stream";
     //
     // Types allowed for the custom body are: string and ArrayBuffer, but you can pass an object to
@@ -1040,6 +1037,10 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
     });
   }
   //
+  // Set response as buffer
+  if (download || options.responseType === "arraybuffer")
+    opts.encoding = null;
+  //
   // Make request
   var res = {};
   var req = request(opts, function (error, response, body) {
@@ -1053,7 +1054,7 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
     if (typeof body === "string" && body.charCodeAt(0) === 65279)
       body = body.substring(1);
     //
-    res.body = body;
+    res.body = (body instanceof Buffer ? body.buffer : body);
     cb(res);
   });
   //
