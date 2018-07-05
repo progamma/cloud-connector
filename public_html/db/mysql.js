@@ -38,7 +38,7 @@ Node.MySQL.prototype._openConnection = function (callback)
   // Open connection
   this.pool.getConnection(function (err, connection) {
     // Stop auto closure and return the connection from pool
-    if (connection.closeTimer) {
+    if (connection && connection.closeTimer) {
       clearTimeout(connection.closeTimer);
       delete connection.closeTimer;
     }
