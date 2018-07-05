@@ -46,7 +46,7 @@ Installing a Cloud Connector on the database server is the database itself to op
 - Run `node cloudServer.js` to start the connector.
 
 ## Notes
-Currently Cloud Connector doesn't support legacy authentication scheme option on MySQL 8.
+Currently Cloud Connector doesn't support the legacy authentication scheme on MySQL 8.
 
 ## Installation as a service
 
