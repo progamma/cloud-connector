@@ -16,7 +16,7 @@ Installing a Cloud Connector on the database server is the database itself to op
 - Enter information about the application servers to connect to the database and you want to expose.
   - In the section `remoteServers` are listened the urls of application servers to which you want connect (example https://myserver:8080).
   - In the section `remoteUserNames` are listened the username of Instant Developer IDE to which you want connect (example johnsmith).
-  - In the section `datamodels` are listened the databases that you want expose. You can list multiple databases. Each type of database (Oracle, Postgres, SQLServer ) has specific connection parameters.
+  - In the section `datamodels` are listened the databases that you want expose. You can list multiple databases. Each type of database (Oracle, Postgres, SQLServer, MySQL) has specific connection parameters.
   - In the section `fileSystems` are listened the directory paths that you want expose.
   - In the section `plugins` are listened the classes that you can create inside the `public_html\plugins` folder and use as plugins. 
   Cloud Connector has a built-in plugin: ActiveDirectory. If you want to use it you have to add an object to this section similar to:
@@ -44,6 +44,9 @@ Installing a Cloud Connector on the database server is the database itself to op
   `$ npm update`
 
 - Run `node cloudServer.js` to start the connector.
+
+## Notes
+Currently Cloud Connector doesn't support legacy authentication scheme option on MySQL 8.
 
 ## Installation as a service
 
