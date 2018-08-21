@@ -10,7 +10,7 @@ Installing a Cloud Connector on the database server is the database itself to op
 
 ## Installation and configuration
 
-- Install [node.js](https://nodejs.org) v 6.2.1 on the machine where you can connect to database that you want expose.
+- Install [node.js](https://nodejs.org) v 6.10.2 on the machine where you can connect to database that you want expose.
 - Unzip the content of zip file where you prefer.
 - Rename the file `public_html\config_example.json` as `config.json` and open it.
 - Enter information about the application servers to connect to the database and you want to expose.
