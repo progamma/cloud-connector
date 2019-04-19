@@ -33,7 +33,7 @@ Node.SQLServer.prototype = new Node.DataModel();
 Node.SQLServer.prototype._openConnection = function (callback)
 {
   this.initPool(function (err) {
-    return callback({}, err);
+    callback({}, err);
   });
 };
 
@@ -46,7 +46,7 @@ Node.SQLServer.prototype.initPool = function (callback) {
   if (this.pool)
     return callback();
   //
-  this.pool = new mssql.Connection(this.connectionOptions);
+  this.pool = new mssql.ConnectionPool(this.connectionOptions);
   this.pool.connect(callback);
 };
 
@@ -107,22 +107,23 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
     if (result) {
       if (!command) {
         // Serialize rows
-        for (var i = 0; i < result.length; i++) {
+        for (var i = 0; i < result.recordset.length; i++) {
           var row = [];
           rs.rows.push(row);
           if (i === 0)
-            rs.cols = Object.keys(result[0]);
+            rs.cols = Object.keys(result.recordset[0]);
           for (var j = 0; j < rs.cols.length; j++)
-            row.push(Node.DataModel.convertValue(result[i][rs.cols[j]]));
+            row.push(Node.DataModel.convertValue(result.recordset[i][rs.cols[j]]));
         }
       }
       else {
         // Serialize extra info
-        for (var i = result.length - 1; i >= 0; i--) {
-          if (!rs.hasOwnProperty("rowsAffected") && result[i][0].hasOwnProperty("RowsAffected"))
-            rs.rowsAffected = result[i][0].RowsAffected;
-          if (!rs.hasOwnProperty("insertId") && result[i][0].hasOwnProperty("Counter"))
-            rs.insertId = result[i][0].Counter;
+        for (var i = result.recordsets.length - 1; i >= 0; i--) {
+          var row = result.recordsets[i][0];
+          if (!rs.hasOwnProperty("rowsAffected") && row.hasOwnProperty("RowsAffected"))
+            rs.rowsAffected = row.RowsAffected;
+          if (!rs.hasOwnProperty("insertId") && row.hasOwnProperty("Counter"))
+            rs.insertId = row.Counter;
         }
       }
     }

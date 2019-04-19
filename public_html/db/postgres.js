@@ -34,7 +34,8 @@ Node.Postgres.prototype._openConnection = function (callback)
 {
   // Convert bigserial + bigint (both with typeId = 20) to integer:
   pg.types.setTypeParser(20, parseInt);
-  pg.connect(this.connectionOptions, function (err, client, done) {
+  this.pool = this.pool || new pg.Pool(this.connectionOptions);
+  this.pool.connect(function (err, client, done) {
     if (err) {
       done();
       return callback(null, err);
