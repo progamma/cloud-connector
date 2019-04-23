@@ -116,6 +116,7 @@ Node.Server.prototype.connect = function ()
       msg.cbid = data.cbid;
     msg.data = {};
     msg.data.name = this.parent.name;
+    data.server = this;
     if (data.dm) {
       var dm = this.parent.dataModelByName(data.dm);
       if (!dm) {
@@ -129,7 +130,6 @@ Node.Server.prototype.connect = function ()
       }
       else {
         // Ask the datamodel
-        data.server = this;
         dm.onMessage(data, function (result, error) {
           // If command has a callback send response
           if (data.cbid) {
@@ -220,9 +220,7 @@ Node.Server.prototype.connect = function ()
   this.socket.on("disconnect", function () {
     this.parent.log("INFO", "Disconnect to " + this.serverUrl);
     //
-    // Notify to all datamodels that a server is disconnected
-    for (var i = 0; i < this.parent.datamodels.length; i++)
-      this.parent.datamodels[i].serverDisconnected(this);
+    this.parent.onServerDisconnected(this);
   }.bind(this));
   //
   this.socket.on("indeError", function (data) {

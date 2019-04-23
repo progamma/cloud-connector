@@ -95,6 +95,15 @@ Node.Plugin.prototype.destroyObject = function (obj, callback)
 };
 
 
+/**
+ * Notified when a server disconnects
+ * @param {Node.Server} server - server disconnected
+ */
+Node.Plugin.prototype.onServerDisconnected = function (server)
+{
+};
+
+
 // export module for node
 if (module)
   module.exports = Node.Plugin;

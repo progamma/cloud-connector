@@ -306,7 +306,8 @@ Node.NodeDriver.prototype.write = function (file, data, offset, size, position, 
     file.encoding = file.encoding || "utf-8";
     //
     file.wstream.write(data, file.encoding, function (err) {
-      file.wstream.removeAllListeners("error");
+      if (file.wstream)
+        file.wstream.removeAllListeners("error");
       cb(err);
     });
   }
@@ -327,7 +328,8 @@ Node.NodeDriver.prototype.write = function (file, data, offset, size, position, 
     //
     // Write buffer
     file.wstream.write(buffer, function (error) {
-      file.wstream.removeAllListeners("error");
+      if (file.wstream)
+        file.wstream.removeAllListeners("error");
       cb(error);
     });
     //
@@ -1230,8 +1232,11 @@ Node.NodeDriver.prototype.onMessage = function (msg, callback)
     var arg = msg.args[i];
     //
     // Deserialize arguments of type File/Directory/Url
-    if (arg && typeof arg === "object" && arg._t)
-      argsArray.push(this.deserializeObject(arg));
+    if (arg && typeof arg === "object" && arg._t) {
+      var obj = this.deserializeObject(arg);
+      obj.server = msg.server;
+      argsArray.push(obj);
+    }
     else if (arg && arg instanceof Buffer) // Get ArrayBuffer from Buffer
       argsArray.push(new Uint8Array(arg).buffer);
     else
@@ -1241,6 +1246,26 @@ Node.NodeDriver.prototype.onMessage = function (msg, callback)
   //
   // Call function
   this[msg.cmd].apply(this, argsArray);
+};
+
+
+/**
+ * Notified when a server disconnects
+ * @param {Node.Server} server - server disconnected
+ */
+Node.NodeDriver.prototype.onServerDisconnected = function (server)
+{
+  // Close all opened files
+  var filesOpened = Object.keys(this.files);
+  for (var i = 0; i < filesOpened.length; i++) {
+    var f = this.files[filesOpened[i]];
+    if (f.server === server) {
+      f.close(function (error) {
+        if (error)
+          this.parent.log("ERROR", "Error closing file '" + f.path + "': " + error);
+      }.bind(this));
+    }
+  }
 };
 
 
