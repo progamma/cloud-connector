@@ -236,11 +236,12 @@ Node.DataModel.prototype.ping = function (msg, callback)
 
 
 /**
- * Close all connections opened to a server
+ * Notified when a server disconnects
  * @param {Node.Server} server - server disconnected
  */
-Node.DataModel.prototype.serverDisconnected = function (server)
+Node.DataModel.prototype.onServerDisconnected = function (server)
 {
+  // Close all pending connections to that server
   var cids = Object.keys(this.connections);
   for (var i = 0; i < cids.length; i++) {
     if (this.connections[cids[i]].server === server) {

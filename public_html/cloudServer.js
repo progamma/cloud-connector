@@ -303,6 +303,25 @@ Node.CloudServer.prototype.getPluginByName = function (pluginName)
 };
 
 
+/**
+ * Notified when a server disconnects
+ * @param {Server} server
+ */
+Node.CloudServer.prototype.onServerDisconnected = function (server)
+{
+  // Notify to all datamodels that a server is disconnected
+  for (var i = 0; i < this.datamodels.length; i++)
+    this.datamodels[i].onServerDisconnected(server);
+  //
+  // Notify to all filesystems that a server is disconnected
+  for (var i = 0; i < this.fileSystems.length; i++)
+    this.fileSystems[i].onServerDisconnected(server);
+  //
+  // Notify to all plugins that a server is disconnected
+  for (var i = 0; i < this.plugins.length; i++)
+    this.plugins[i].onServerDisconnected(server);
+};
+
 
 // Start the server
 new Node.CloudServer().start();
