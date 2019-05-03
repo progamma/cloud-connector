@@ -297,7 +297,7 @@ Node.NodeDriver.prototype.write = function (file, data, offset, size, position, 
   if (!data)
     return cb(new Error("No data to write"));
   //
-  if (!(data instanceof ArrayBuffer) && typeof data !== "string")
+  if (!(data instanceof ArrayBuffer) && !(data instanceof Buffer) && typeof data !== "string")
     data = JSON.stringify(data);
   //
   // Checks if param data is an array buffer or a string
@@ -855,9 +855,7 @@ Node.NodeDriver.prototype.zipDirectory = function (directory, zipFile, cb)
       archive.pipe(output);
       //
       // Add to archive the folder to compress
-      archive.glob(path + "/**/*");
-      archive.finalize();
-      //
+      archive.glob("**/*", {cwd: path}).finalize();
     });
   });
   //
