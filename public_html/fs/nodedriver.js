@@ -5,7 +5,7 @@
  */
 
 
-/* global ArrayBuffer, module */
+/* global ArrayBuffer, Buffer, module */
 
 var Node = Node || {};
 
@@ -225,7 +225,7 @@ Node.NodeDriver.prototype.read = function (file, length, offset, cb)
   file.rstream = Node.nodeFs.createReadStream(path, opts);
   //
   // I create the buffer where the bytes read will be placed on
-  var buf = new Buffer(length || 1024);
+  var buf = Buffer.alloc(length || 1024);
   var bytesRead = 0;
   //
   // Listen to next error event
@@ -238,7 +238,7 @@ Node.NodeDriver.prototype.read = function (file, length, offset, cb)
     // Check if buffer is large enough
     if (buf.length < bytesRead + chunk.length) {
       // Enlarge buffer
-      var bufTmp = new Buffer(Math.max(buf.length, chunk.length) * 2);
+      var bufTmp = Buffer.alloc(Math.max(buf.length, chunk.length) * 2);
       buf.copy(bufTmp);
       buf = bufTmp;
     }
@@ -323,7 +323,7 @@ Node.NodeDriver.prototype.write = function (file, data, offset, size, position, 
     if (!offset || offset < 0)
       offset = 0;
     //
-    var buffer = new Buffer(new Uint8Array(data));
+    var buffer = Buffer.from(new Uint8Array(data));
     buffer.slice(offset, offset + size);
     //
     // Write buffer
@@ -665,7 +665,9 @@ Node.NodeDriver.prototype.dirExists = function (directory, cb)
   // Check the validity of the path (reading)
   var path = this.checkPath(directory);
   //
-  Node.nodeFs.exists(path, cb);
+  Node.nodeFs.access(path, function (err) {
+    cb(!err);
+  });
 };
 
 
@@ -686,8 +688,8 @@ Node.NodeDriver.prototype.copyDir = function (srcDir, dstDir, cb)
   var dstPath = this.checkPath(dstDir);
   //
   // Check if source directory exists
-  Node.nodeFs.exists(srcPath, function (exists) {
-    if (!exists)
+  Node.nodeFs.access(srcPath, function (err) {
+    if (err)
       return cb(new Error("Directory " + srcDir.path + " doesn't exist"));
     //
     // Use fs extra to copy the entire directory
@@ -823,8 +825,8 @@ Node.NodeDriver.prototype.zipDirectory = function (directory, zipFile, cb)
   };
   //
   // Check for existence of directory
-  Node.nodeFs.exists(path, function (exists) {
-    if (!exists)
+  Node.nodeFs.access(path, function (err) {
+    if (err)
       return cb(new Error("Directory doesn't exist"));
     //
     // Create the write stream
