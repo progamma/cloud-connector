@@ -38,6 +38,8 @@ Node.Server.prototype.connect = function ()
   var opt = {};
   opt.forceNew = true;
   opt.reconnection = true;
+  opt.reconnectionDelay = 30000;
+  opt.reconnectionDelayMax = 50000;
   opt.timeout = 30000;
   this.socket = Node.io(this.serverUrl, opt);
   //
