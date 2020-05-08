@@ -11,7 +11,9 @@
         "host": "{hostname}",
         "database": "{databaseName}",
         "user": "{username}",
-        "password": "{password}"
+        "password": "{password}",
+        "connectionTimeoutMillis": 30000,
+        "max": 100
       }
     },
     {
@@ -22,7 +24,11 @@
         "server": "{hostname}",
         "database": "{databaseName}",
         "user": "{username}",
-        "password": "{password}"
+        "password": "{password}",
+        "connectionTimeout": 30000,
+        "pool": {
+          "max": 100
+        }
       }
     },
     {
@@ -33,7 +39,8 @@
       "connectionOptions": {
         "connectString": "{hostname/databaseName}",
         "user": "{username}",
-        "password": "{password}"
+        "password": "{password}",
+        "poolMax": 100
       }
     },
     {
@@ -41,11 +48,13 @@
       "class": "MySQL",
       "APIKey": "00000000-0000-0000-0000-000000000000",
       "connectionOptions": {
-        "server": "{hostname}",
+        "host": "{hostname}",
         "database": "{databaseName}",
         "user": "{username}",
         "password": "{password}",
-        "connectionLimit": 10
+        "connectionLimit": 100,
+        "connectTimeout": 30000,
+        "acquireTimeout": 30000
       }
     }
   ],
