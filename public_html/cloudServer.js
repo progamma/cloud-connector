@@ -103,6 +103,9 @@ Node.CloudServer.prototype.loadConfig = function ()
     this.createServers(config);
     //
     this.log("INFO", "Configuration loaded with success");
+    //
+    // Resave the config because the passwords have been encrypted
+    Node.fs.writeFileSync("config.json", JSON.stringify(config), {encoding: "utf8"});
   }
   catch (e) {
     this.log("ERROR", "Error parsing the configuration: " + e,
@@ -181,6 +184,7 @@ Node.CloudServer.prototype.createDataModels = function (config)
     return;
   //
   // Create all connections
+  Node.Utils = require("./utils");
   for (var i = 0; i < config.datamodels.length; i++) {
     var db = config.datamodels[i];
     //
@@ -188,9 +192,25 @@ Node.CloudServer.prototype.createDataModels = function (config)
     try {
       Node[db.class] = require("./db/" + db.class.toLowerCase());
       //
+      // Try to decrypt password
+      if (db.connectionOptions.password) {
+        try {
+          db.connectionOptions.password = Node.Utils.decrypt(db.connectionOptions.password);
+        }
+        catch (e) {
+        }
+      }
+      //
       // Create datamodel from config
       var dbobj = new Node[db.class](this, db);
       this.datamodels.push(dbobj);
+      //
+      // Encrypt the password
+      if (db.connectionOptions.password) {
+        db.connectionOptions = Object.assign({}, db.connectionOptions);
+        db.connectionOptions.password = Node.Utils.encrypt(db.connectionOptions.password);
+
+      }
     }
     catch (e) {
       this.log("ERROR", "Error creating datamodel " + db.name + ": " + e,
