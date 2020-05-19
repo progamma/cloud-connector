@@ -133,6 +133,9 @@ Node.Server.prototype.connect = function ()
       else {
         // Ask the datamodel
         dm.onMessage(data, function (result, error) {
+          if (error)
+            this.parent.log("ERROR", "Error executing '" + data.cmd + "': " + error.toString());
+          //
           // If command has a callback send response
           if (data.cbid) {
             if (error)
@@ -161,6 +164,9 @@ Node.Server.prototype.connect = function ()
       }
       else {
         fs.onMessage(data, function (result, error) {
+          if (error)
+            this.parent.log("ERROR", "Error executing '" + data.cmd + "': " + error.toString());
+          //
           // If command has a callback send response
           if (data.cbid) {
             Array.prototype.slice.apply(arguments).forEach(function (a, i) {
@@ -192,6 +198,9 @@ Node.Server.prototype.connect = function ()
       }
       else {
         plugin.onMessage(data, function (result, error) {
+          if (error)
+            this.parent.log("ERROR", "Error executing '" + data.cmd + "': " + error.toString());
+          //
           // If command has a callback send response
           if (data.cbid) {
             Array.prototype.slice.apply(arguments).forEach(function (a, i) {
