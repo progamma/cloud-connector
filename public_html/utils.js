@@ -79,6 +79,39 @@ Node.Utils.base64ToBuffer = function (base64) {
 };
 
 
+Node.Utils.algorithm = "aes-256-cbc";
+Node.Utils.key = Buffer.from([30, 109, 66, 153, 47, 66, 187, 238, 218, 5, 30, 168, 33, 238, 88, 86, 95, 253, 56, 134, 228, 52, 99, 22, 251, 177, 232, 174, 238, 220, 29, 126]);
+Node.Utils.iv = Buffer.from([157, 22, 24, 132, 59, 136, 219, 139, 49, 175, 15, 214, 90, 102, 202, 4]);
+
+/**
+ * Encrypt a text
+ * @param {String} text to encrypt
+ */
+Node.Utils.encrypt = function (text)
+{
+  let crypto = require("crypto");
+  let cipher = crypto.createCipheriv(Node.Utils.algorithm, Buffer.from(Node.Utils.key), Node.Utils.iv);
+  let encrypted = cipher.update(text);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  return encrypted.toString("hex");
+};
+
+
+/**
+ * Decrypt a text
+ * @param {String} text to decrypt
+ */
+Node.Utils.decrypt = function (text)
+{
+  let crypto = require("crypto");
+  let encryptedText = Buffer.from(text, "hex");
+  let decipher = crypto.createDecipheriv(Node.Utils.algorithm, Buffer.from(Node.Utils.key), Node.Utils.iv);
+  let decrypted = decipher.update(encryptedText);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  return decrypted.toString();
+};
+
+
 //export module for node
 if (module)
   module.exports = Node.Utils;
