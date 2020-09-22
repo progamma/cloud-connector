@@ -72,22 +72,10 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
 {
   var sql = msg.sql;
   //
-  // Detect type of command
-  var command = "";
-  if (sql.toLowerCase().indexOf("update ") !== -1)
-    command = "update";
-  else if (sql.toLowerCase().indexOf("delete ") !== -1)
-    command = "delete";
-  else if (sql.toLowerCase().indexOf("insert into ") !== -1)
-    command = "insert";
-  //
-  // For INSERT, UPDATE and DELETE append another statement for info
   var req = new mssql.Request(conn.transaction || this.pool);
-  if (command) {
+  if (sql.toLowerCase().indexOf("insert into ") !== -1) {
     req.multiple = true;
-    sql += "; select @@rowcount as RowsAffected";
-    if (command === "insert")
-      sql += "; select @@identity as Counter";
+    sql += "; select @@identity as Counter";
   }
   //
   // Add input parameters
@@ -101,31 +89,22 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
       return callback(null, error);
     //
     var rs = {};
-    rs.cols = [];
-    rs.rows = [];
-    //
-    if (result) {
-      if (!command) {
-        // Serialize rows
-        for (var i = 0; i < result.recordset.length; i++) {
-          var row = [];
-          rs.rows.push(row);
-          if (i === 0)
-            rs.cols = Object.keys(result.recordset[0]);
-          for (var j = 0; j < rs.cols.length; j++)
-            row.push(Node.DataModel.convertValue(result.recordset[i][rs.cols[j]]));
-        }
+    if (result.recordset && !req.multiple) {
+      // Serialize rows
+      rs.cols = Object.keys(result.recordset.columns);
+      rs.rows = [];
+      for (var i = 0; i < result.recordset.length; i++) {
+        var row = [];
+        rs.rows.push(row);
+        for (var j = 0; j < rs.cols.length; j++)
+          row.push(Node.DataModel.convertValue(result.recordset[i][rs.cols[j]]));
       }
-      else {
-        // Serialize extra info
-        for (var i = result.recordsets.length - 1; i >= 0; i--) {
-          var row = result.recordsets[i][0];
-          if (!rs.hasOwnProperty("rowsAffected") && row.hasOwnProperty("RowsAffected"))
-            rs.rowsAffected = row.RowsAffected;
-          if (!rs.hasOwnProperty("insertId") && row.hasOwnProperty("Counter"))
-            rs.insertId = row.Counter;
-        }
-      }
+    }
+    else {
+      // Serialize extra info
+      rs.rowsAffected = result.rowsAffected[0];
+      if (result.recordset)
+        rs.insertId = result.recordset && result.recordsets[0][0].Counter;
     }
     callback(rs);
   });
