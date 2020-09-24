@@ -105,7 +105,7 @@ Node.CloudServer.prototype.loadConfig = function ()
     this.log("INFO", "Configuration loaded with success");
     //
     // Resave the config because the passwords have been encrypted
-    Node.fs.writeFileSync("config.json", JSON.stringify(config), {encoding: "utf8"});
+    Node.fs.writeFileSync("config.json", JSON.stringify(config, null, 2), {encoding: "utf8"});
   }
   catch (e) {
     this.log("ERROR", "Error parsing the configuration: " + e,
