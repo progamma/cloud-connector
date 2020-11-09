@@ -159,7 +159,7 @@ Node.DataModel.prototype.execute = function (msg, callback)
  * Convert a value
  * @param {Object} value
  */
-Node.DataModel.convertValue = function (value)
+Node.DataModel.prototype.convertValue = function (value)
 {
   if (value instanceof Buffer)
     return {type: "buffer", data: value.toString("base64")};
