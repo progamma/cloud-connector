@@ -32,16 +32,26 @@ Node.Postgres.prototype = new Node.DataModel();
  */
 Node.Postgres.prototype._openConnection = function (callback)
 {
-  // Convert bigserial + bigint (both with typeId = 20) to integer:
-  pg.types.setTypeParser(20, parseInt);
+  // Bigserial and bigint -> integer
+  pg.types.setTypeParser(pg.types.builtins.INT8, parseInt);
+  //
+  // Date, time and datetime -> string
+  let parseDate = function (val) {
+    return val;
+  };
+  pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, parseDate);
+  pg.types.setTypeParser(pg.types.builtins.DATE, parseDate);
+  pg.types.setTypeParser(pg.types.builtins.TIME, parseDate);
+  pg.types.setTypeParser(pg.types.builtins.TIMETZ, parseDate);
+  pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, parseDate);
+//  pg.types.setTypeParser(pg.types.builtins.TIMESTAMPTZ, parseDate);
+  //
   this.pool = this.pool || new pg.Pool(this.connectionOptions);
   this.pool.connect(function (err, client, done) {
-    if (err) {
+    if (err && done)
       done();
-      return callback(null, err);
-    }
     //
-    callback({conn: client, done: done});
+    callback({conn: client, done: done}, err);
   });
 };
 
@@ -84,7 +94,7 @@ Node.Postgres.prototype._execute = function (conn, msg, callback)
         var colname = result.fields[j].name;
         if (i === 0)
           rs.cols.push(colname);
-        row.push(Node.Postgres.convertValue(result.rows[i][colname], result.fields[j].dataTypeID));
+        row.push(this.convertValue(result.rows[i][colname], result.fields[j]));
       }
     }
     //
@@ -95,36 +105,7 @@ Node.Postgres.prototype._execute = function (conn, msg, callback)
         rs.insertId = result.rows[0].counter;
     }
     callback(rs);
-  });
-};
-
-
-/**
- * Convert a value
- * @param {Object} value
- * @param {Integer} datatype
- */
-Node.Postgres.convertValue = function (value, datatype)
-{
-  if (value === null)
-    return value;
-  //
-  switch (datatype) {
-    case 701:  // float
-    case 790:  // money
-    case 1700: // numeric
-      return parseFloat(value);
-
-    case 1082: // date
-      var v = value.getFullYear() + "-";
-      v += (value.getMonth() + 1 < 10 ? "0" : "") + (value.getMonth() + 1) + "-";
-      v += (value.getDate() < 10 ? "0" : "") + value.getDate();
-      return v;
-
-    case 1184: // timestamp with time zone
-      return value.toISOString();
-  }
-  return Node.DataModel.convertValue(value);
+  }.bind(this));
 };
 
 

@@ -20,6 +20,9 @@ Node.MySQL = function (parent, config)
 {
   this.moduleName = "mysql";
   Node.DataModel.call(this, parent, config);
+  //
+  // Date, time and datetime -> string
+  this.connectionOptions.dateStrings = true;
 };
 
 // Make Node.MySQL extend Node.DataModel
@@ -92,7 +95,7 @@ Node.MySQL.prototype._execute = function (conn, msg, callback)
           rs.cols = Object.keys(result[i]);
         //
         for (var j = 0; j < rs.cols.length; j++)
-          row.push(Node.MySQL.convertValue(result[i][rs.cols[j]], md[j].type));
+          row.push(this.convertValue(result[i][rs.cols[j]], md[j]));
       }
       //
       // Serialize extra info
@@ -100,29 +103,7 @@ Node.MySQL.prototype._execute = function (conn, msg, callback)
       rs.insertId = result.insertId;
     }
     callback(rs);
-  });
-};
-
-
-/**
- * Convert a value
- * @param {Object} value
- * @param {Integer} datatype
- */
-Node.MySQL.convertValue = function (value, datatype)
-{
-  if (value === null)
-    return value;
-  //
-  // Date
-  if (datatype === 10) {
-    var v = value.getFullYear() + "-";
-    v += (value.getMonth() + 1 < 10 ? "0" : "") + (value.getMonth() + 1) + "-";
-    v += (value.getDate() < 10 ? "0" : "") + value.getDate();
-    return v;
-  }
-  //
-  return Node.DataModel.convertValue(value);
+  }.bind(this));
 };
 
 

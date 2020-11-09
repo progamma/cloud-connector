@@ -20,6 +20,10 @@ Node.SQLServer = function (parent, config)
 {
   this.moduleName = "mssql";
   Node.DataModel.call(this, parent, config);
+  //
+  // Date parsed with local timezone
+  this.connectionOptions.options = this.connectionOptions.options || {};
+  this.connectionOptions.options.useUTC = false;
 };
 
 // Make Node.SQLServer extend Node.DataModel
@@ -97,7 +101,7 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
         var row = [];
         rs.rows.push(row);
         for (var j = 0; j < rs.cols.length; j++)
-          row.push(Node.DataModel.convertValue(result.recordset[i][rs.cols[j]]));
+          row.push(this.convertValue(result.recordset[i][rs.cols[j]], result.recordset.columns[rs.cols[j]]));
       }
     }
     else {
@@ -107,7 +111,56 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
         rs.insertId = result.recordset && result.recordsets[0][0].Counter;
     }
     callback(rs);
-  });
+  }.bind(this));
+};
+
+
+/**
+ * Convert a value
+ * @param {Object} value
+ * @param {Object} colDef
+ */
+Node.SQLServer.prototype.convertValue = function (value, colDef)
+{
+  if (value instanceof Date) {
+    switch (colDef.type) {
+      case mssql.DATE:
+      {
+        let v = value.getFullYear() + "-";
+        v += (value.getMonth() + 1).toString().padStart(2, "0") + "-";
+        v += value.getDate().toString().padStart(2, "0");
+        return v;
+      }
+
+      case mssql.TIME:
+      {
+        let v = value.getHours().toString().padStart(2, "0") + ":";
+        v += value.getMinutes().toString().padStart(2, "0") + ":";
+        v += value.getSeconds().toString().padStart(2, "0") + ".";
+        v += value.getMilliseconds().toString().padStart(3, "0");
+        return v;
+      }
+
+      case mssql.DATETIME:
+      case mssql.DATETIME2:
+      case mssql.SMALLDATETIME:
+      {
+        let v = value.getFullYear() + "-";
+        v += (value.getMonth() + 1).toString().padStart(2, "0") + "-";
+        v += value.getDate().toString().padStart(2, "0") + " ";
+        v += value.getHours().toString().padStart(2, "0") + ":";
+        v += value.getMinutes().toString().padStart(2, "0") + ":";
+        v += value.getSeconds().toString().padStart(2, "0") + ".";
+        v += value.getMilliseconds().toString().padStart(3, "0");
+        return v;
+      }
+
+      case mssql.DATETIMEOFFSET:
+        return value.toISOString();
+    }
+  }
+  //
+  return Node.DataModel.prototype.convertValue.call(this, value);
 };
 
 

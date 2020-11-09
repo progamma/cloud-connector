@@ -35,8 +35,12 @@ Node.Oracle.prototype.loadModule = function ()
   if (!Node.DataModel.prototype.loadModule.call(this))
     return false;
   //
+  // Blob -> buffer
   oracledb.fetchAsBuffer = [oracledb.BLOB];
+  //
+  // Date, time and datetime -> string
   oracledb.fetchAsString = [oracledb.CLOB];
+  oracledb.extendedMetaData = true;
   //
   if (this.maxRows)
     oracledb.maxRows = this.maxRows;
@@ -131,7 +135,7 @@ Node.Oracle.prototype._execute = function (conn, msg, callback)
           if (i === 0)
             rs.cols.push(colname);
           //
-          row.push(Node.Oracle.convertValue(result.rows[i][colname]));
+          row.push(this.convertValue(result.rows[i][colname], result.metaData[j]));
         }
       }
     }
@@ -142,19 +146,42 @@ Node.Oracle.prototype._execute = function (conn, msg, callback)
       rs.insertId = (result.outBinds ? result.outBinds.counter : null);
     }
     callback(rs);
-  });
+  }.bind(this));
 };
 
 
 /**
  * Convert a value
  * @param {Object} value
+ * @param {Object} colDef
  */
-Node.Oracle.convertValue = function (value)
+Node.Oracle.prototype.convertValue = function (value, colDef)
 {
-  if (value instanceof Date)
-    return value.toISOString();
-  return Node.DataModel.convertValue(value);
+  if (value instanceof Date) {
+    switch (colDef.dbType) {
+      case oracledb.DB_TYPE_DATE:
+      {
+        let v = value.getFullYear() + "-";
+        v += (value.getMonth() + 1).toString().padStart(2, "0") + "-";
+        v += value.getDate().toString().padStart(2, "0") + " ";
+        v += value.getHours().toString().padStart(2, "0") + ":";
+        v += value.getMinutes().toString().padStart(2, "0") + ":";
+        v += value.getSeconds().toString().padStart(2, "0") + ".";
+        v += value.getMilliseconds().toString().padStart(3, "0");
+        if (v.startsWith("1970-01-01 "))
+          return v.substring(11);
+        else if (v.endsWith("00:00:00.000"))
+          return v.substring(0, 10);
+        else
+          return v;
+      }
+
+      case oracledb.DB_TYPE_TIMESTAMP_TZ:
+        return value.toISOString();
+    }
+  }
+  //
+  return Node.DataModel.prototype.convertValue.call(this, value);
 };
 
 
