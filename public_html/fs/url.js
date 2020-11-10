@@ -35,7 +35,7 @@ Node.Url = function (fs, url)
 Node.Url.prototype.get = function (options, cb)
 {
   // If requested, change method
-  var method = "GET";
+  let method = "GET";
   if (options && options.method)
     method = options.method;
   //
@@ -120,7 +120,7 @@ Node.Url.prototype.download = function (file, options, cb)
 {
   // Create object file if it doesn't exist
   if (!file) {
-    var path = "tempDownloadedFile";
+    let path = "tempDownloadedFile";
     if (Node.utils)
       path = Node.utils.generateUID36();
     file = this.fs.file(path, Node.FS.internalType.temp);
@@ -129,7 +129,7 @@ Node.Url.prototype.download = function (file, options, cb)
     this.type = file.type;
   //
   // Set internal request options
-  var _options = {};
+  let _options = {};
   if (options)
     _options = options;
   _options._file = file;

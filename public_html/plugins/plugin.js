@@ -20,7 +20,7 @@ Node.Plugin = function (parent, config)
 {
   this.parent = parent;
   //
-  for (var k in config)
+  for (let k in config)
     this[k] = config[k];
   //
   this.instances = {};
@@ -41,7 +41,7 @@ Node.Plugin.prototype.deserializeObject = function (obj) {
   if (obj.instanceIndex && this.instances[obj.instanceIndex])
     return this.instances[obj.instanceIndex];
   //
-  var instance = new Node[obj._t](this, obj);
+  let instance = new Node[obj._t](this, obj);
   this.instances[obj.instanceIndex] = instance;
   //
   return instance;
@@ -60,7 +60,7 @@ Node.Plugin.prototype.onMessage = function (msg, callback)
       msg.args.push(callback);
       //
       // Deserialize instance
-      var caller, applyCaller;
+      let caller, applyCaller;
       if (typeof msg.obj === "object") {
         caller = this.deserializeObject(msg.obj);
         applyCaller = caller;

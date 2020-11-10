@@ -36,14 +36,14 @@ Node.ActiveDirectory.prototype = new Node.Plugin();
  */
 Node.ActiveDirectory.prototype.exec = function (cid, args)
 {
-  var ad = new Node.AD(this.config);
+  let ad = new Node.AD(this.config);
   //
-  var argsArray = [];
-  for (var i = 0; i < args.length - 1; i++)
+  let argsArray = [];
+  for (let i = 0; i < args.length - 1; i++)
     argsArray.push(args[i]);
   //
-  var cb = args[args.length - 1];
-  var newCb = function (err, res) {
+  let cb = args[args.length - 1];
+  let newCb = function (err, res) {
     cb(res, err);
   };
   argsArray.push(newCb);

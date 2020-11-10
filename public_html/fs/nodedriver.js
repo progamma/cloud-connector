@@ -48,7 +48,7 @@ Node.NodeDriver.prototype = new Node.FS();
 Node.NodeDriver.prototype.checkPath = function (obj)
 {
   // Absolute path
-  var path = [this.path, obj.path].join("/");
+  let path = [this.path, obj.path].join("/");
   //
   // Remove final slash
   if (path.endsWith("/"))
@@ -70,7 +70,7 @@ Node.NodeDriver.prototype.createFile = function (file, cb)
     return cb(new Error("Permission denied"));
   //
   // Check the validity of the path (writing)
-  var path = this.checkPath(file);
+  let path = this.checkPath(file);
   //
   // Object of type write stream used to write
   file.wstream = Node.nodeFs.createWriteStream(path, {encoding: file.encoding});
@@ -98,7 +98,7 @@ Node.NodeDriver.prototype.createFile = function (file, cb)
 Node.NodeDriver.prototype.openFile = function (file, cb)
 {
   // Check the validity of the path (reading)
-  var fullPath = this.checkPath(file);
+  let fullPath = this.checkPath(file);
   //
   // Object of type read stream used to read
   file.rstream = Node.nodeFs.createReadStream(fullPath, {encoding: file.encoding});
@@ -130,7 +130,7 @@ Node.NodeDriver.prototype.openFileForAppend = function (file, cb)
     return cb(new Error("Permission denied"));
   //
   // Check the validity of the path (wiriting)
-  var path = this.checkPath(file);
+  let path = this.checkPath(file);
   //
   // Object of type write stream used to write (setting the append flag)
   file.wstream = Node.nodeFs.createWriteStream(path, {flags: "a", encoding: file.encoding});
@@ -183,7 +183,7 @@ Node.NodeDriver.prototype.close = function (file, cb)
 Node.NodeDriver.prototype.fileExists = function (file, cb)
 {
   // Check the validity of the path (reading)
-  var path = this.checkPath(file);
+  let path = this.checkPath(file);
   //
   // Check stats of file
   Node.nodeFs.stat(path, function (err, stats) {
@@ -202,7 +202,7 @@ Node.NodeDriver.prototype.fileExists = function (file, cb)
 Node.NodeDriver.prototype.read = function (file, length, offset, cb)
 {
   // Check the validity of the path (reading)
-  var path = this.checkPath(file);
+  let path = this.checkPath(file);
   //
   // Check that the file is opened (reading)
   if (!file.rstream)
@@ -210,7 +210,7 @@ Node.NodeDriver.prototype.read = function (file, length, offset, cb)
   //
   // Setting the correct limit: if length or offset are null take respectively the current position of the
   // reader and the position of the last byte of the file
-  var opts = {};
+  let opts = {};
   if (typeof offset === "number")
     opts.start = offset;
   else if (file.rspos)
@@ -225,8 +225,8 @@ Node.NodeDriver.prototype.read = function (file, length, offset, cb)
   file.rstream = Node.nodeFs.createReadStream(path, opts);
   //
   // I create the buffer where the bytes read will be placed on
-  var buf = Buffer.alloc(length || 1024);
-  var bytesRead = 0;
+  let buf = Buffer.alloc(length || 1024);
+  let bytesRead = 0;
   //
   // Listen to next error event
   file.rstream.once("error", function (error) {
@@ -238,7 +238,7 @@ Node.NodeDriver.prototype.read = function (file, length, offset, cb)
     // Check if buffer is large enough
     if (buf.length < bytesRead + chunk.length) {
       // Enlarge buffer
-      var bufTmp = Buffer.alloc(Math.max(buf.length, chunk.length) * 2);
+      let bufTmp = Buffer.alloc(Math.max(buf.length, chunk.length) * 2);
       buf.copy(bufTmp);
       buf = bufTmp;
     }
@@ -266,7 +266,7 @@ Node.NodeDriver.prototype.read = function (file, length, offset, cb)
 Node.NodeDriver.prototype.readAll = function (file, cb)
 {
   // Check the validity of the path (reading)
-  var path = this.checkPath(file);
+  let path = this.checkPath(file);
   //
   // Read content
   Node.nodeFs.readFile(path, {encoding: file.encoding || "utf-8"}, function (err, content) {
@@ -323,7 +323,7 @@ Node.NodeDriver.prototype.write = function (file, data, offset, size, position, 
     if (!offset || offset < 0)
       offset = 0;
     //
-    var buffer = Buffer.from(new Uint8Array(data));
+    let buffer = Buffer.from(new Uint8Array(data));
     buffer.slice(offset, offset + size);
     //
     // Write buffer
@@ -353,17 +353,17 @@ Node.NodeDriver.prototype.copyFile = function (file, newFile, cb)
     return cb(new Error("Permission denied"));
   //
   // Check that the relative paths are valid and I get absolute paths
-  var oldFullPath = this.checkPath(file);
+  let oldFullPath = this.checkPath(file);
   //
-  var newFullPath = this.checkPath(newFile);
+  let newFullPath = this.checkPath(newFile);
   //
   // Check the file existence
   this.fileExists(file, function (exists) {
     if (!exists)
       return cb(new Error("Error: file to copy doesn't exist"));
     //
-    var cbCalled = false;
-    var done = function (err) {
+    let cbCalled = false;
+    let done = function (err) {
       if (cbCalled)
         return;
       //
@@ -372,8 +372,8 @@ Node.NodeDriver.prototype.copyFile = function (file, newFile, cb)
     };
     //
     // Create reader and writer streams
-    var rs = Node.nodeFs.createReadStream(oldFullPath, {encoding: null});
-    var ws = Node.nodeFs.createWriteStream(newFullPath, {encoding: null});
+    let rs = Node.nodeFs.createReadStream(oldFullPath, {encoding: null});
+    let ws = Node.nodeFs.createWriteStream(newFullPath, {encoding: null});
     //
     // Listen to error and close events
     rs.on("error", done);
@@ -399,9 +399,9 @@ Node.NodeDriver.prototype.renameObject = function (obj, newName, cb)
     return cb(new Error("Permission denied"));
   //
   // Check that the relative paths are valid and I get absolute paths
-  var path = this.checkPath(obj);
+  let path = this.checkPath(obj);
   //
-  var newPath = path.substring(0, path.lastIndexOf("/") + 1) + newName;
+  let newPath = path.substring(0, path.lastIndexOf("/") + 1) + newName;
   //
   // Rename
   Node.nodeFs.rename(path, newPath, cb);
@@ -416,7 +416,7 @@ Node.NodeDriver.prototype.renameObject = function (obj, newName, cb)
 Node.NodeDriver.prototype.fileLength = function (file, cb)
 {
   // Check the validity of the path (reading)
-  var path = this.checkPath(file);
+  let path = this.checkPath(file);
   //
   // Get the size
   Node.nodeFs.stat(path, function (err, stats) {
@@ -436,7 +436,7 @@ Node.NodeDriver.prototype.fileLength = function (file, cb)
 Node.NodeDriver.prototype.fileDateTime = function (file, cb)
 {
   // Check the validity of the path (reading)
-  var path = this.checkPath(file);
+  let path = this.checkPath(file);
   //
   // Get the date
   Node.nodeFs.stat(path, function (err, stats) {
@@ -460,7 +460,7 @@ Node.NodeDriver.prototype.deleteFile = function (file, cb)
     return cb(new Error("Permission denied"));
   //
   // Check the validity of the path (writing)
-  var path = this.checkPath(file);
+  let path = this.checkPath(file);
   //
   // Remove
   Node.nodeFs.unlink(path, cb);
@@ -479,11 +479,11 @@ Node.NodeDriver.prototype.zipFile = function (file, zipFile, cb)
   if (this.permissions === Node.FS.permissions.read)
     return cb(new Error("Permission denied"));
   //
-  var path = this.checkPath(file);
-  var zipPath = this.checkPath(zipFile);
+  let path = this.checkPath(file);
+  let zipPath = this.checkPath(zipFile);
   //
-  var cbCalled = false;
-  var done = function (err) {
+  let cbCalled = false;
+  let done = function (err) {
     if (cbCalled)
       return;
     //
@@ -492,10 +492,10 @@ Node.NodeDriver.prototype.zipFile = function (file, zipFile, cb)
   };
   //
   // Create the write stream
-  var output = Node.nodeFs.createWriteStream(zipPath);
+  let output = Node.nodeFs.createWriteStream(zipPath);
   //
   // Create the archive object
-  var archive = Node.archiver('zip');
+  let archive = Node.archiver('zip');
   //
   // Listen to next error event
   output.once("error", function (err) {
@@ -516,7 +516,7 @@ Node.NodeDriver.prototype.zipFile = function (file, zipFile, cb)
     // Push data into the archive
     archive.pipe(output);
     //
-    var input = Node.nodeFs.createReadStream(path);
+    let input = Node.nodeFs.createReadStream(path);
     //
     // Listen to error event
     input.on("error", function (err) {
@@ -526,13 +526,13 @@ Node.NodeDriver.prototype.zipFile = function (file, zipFile, cb)
     // Listen to error event
     input.on("open", function () {
       // Get the file name
-      var sepPath = file.path.split("/");
+      let sepPath = file.path.split("/");
       archive.append(input, {name: sepPath[sepPath.length - 1]}).finalize();
     });
   });
   //
   // Function that deletes the new zip file (if there is an error)
-  var deleteVoidZip = function (err) {
+  let deleteVoidZip = function (err) {
     archive.finalize();
     Node.nodeFs.unlink(zipPath, function (err1) {
       done(err || err1);
@@ -554,9 +554,9 @@ Node.NodeDriver.prototype.unzip = function (file, directory, cb)
     return cb(new Error("Permission denied"));
   //
   // Check the validity of the path (writing)
-  var zipPath = this.checkPath(file);
+  let zipPath = this.checkPath(file);
   //
-  var dirPath = this.checkPath(directory);
+  let dirPath = this.checkPath(directory);
   //
   // Create the parent directory
   Node.fsExtra.mkdirs(dirPath, function (err) {
@@ -568,7 +568,7 @@ Node.NodeDriver.prototype.unzip = function (file, directory, cb)
       if (err)
         return cb(err);
       //
-      var ok = false;
+      let ok = false;
       zipfile.readEntry();
       //
       // For each file/directory
@@ -594,7 +594,7 @@ Node.NodeDriver.prototype.unzip = function (file, directory, cb)
                 return cb(err);
               //
               // Extract the files
-              var output = Node.nodeFs.createWriteStream(dirPath + "/" + entry.fileName);
+              let output = Node.nodeFs.createWriteStream(dirPath + "/" + entry.fileName);
               //
               // Listen to open output event
               output.on("open", function () {
@@ -648,7 +648,7 @@ Node.NodeDriver.prototype.mkDir = function (directory, cb)
     return cb(new Error("Permission denied"));
   //
   // Check the validity of the path (writing)
-  var path = this.checkPath(directory);
+  let path = this.checkPath(directory);
   //
   // Use fs extra to create even the parent hierarchy
   Node.fsExtra.mkdirs(path, cb);
@@ -663,7 +663,7 @@ Node.NodeDriver.prototype.mkDir = function (directory, cb)
 Node.NodeDriver.prototype.dirExists = function (directory, cb)
 {
   // Check the validity of the path (reading)
-  var path = this.checkPath(directory);
+  let path = this.checkPath(directory);
   //
   Node.nodeFs.access(path, function (err) {
     cb(!err);
@@ -684,8 +684,8 @@ Node.NodeDriver.prototype.copyDir = function (srcDir, dstDir, cb)
     return cb(new Error("Permission denied"));
   //
   // Check that the relative paths are valid and I get absolute paths
-  var srcPath = this.checkPath(srcDir);
-  var dstPath = this.checkPath(dstDir);
+  let srcPath = this.checkPath(srcDir);
+  let dstPath = this.checkPath(dstDir);
   //
   // Check if source directory exists
   Node.nodeFs.access(srcPath, function (err) {
@@ -712,20 +712,20 @@ Node.NodeDriver.prototype.copyDir = function (srcDir, dstDir, cb)
 Node.NodeDriver.prototype.readDirectory = function (directory, depth, cb)
 {
   // Check the validity of the path (reading)
-  var path = this.checkPath(directory);
+  let path = this.checkPath(directory);
   //
   // Set default depth to 0
   depth = depth || 0;
   //
   // Array of files/directory objects
-  var content = [];
+  let content = [];
   //
   // Array of directories yet to be examined
-  var dir = [];
+  let dir = [];
   dir.push({depth: 0, path: path});
   //
   // Recursive core
-  var readDirRecursive = function (entries, content, cb) {
+  let readDirRecursive = function (entries, content, cb) {
     // No directory unexplored: end of recursion
     if (!entries.length)
       return cb(content);
@@ -743,10 +743,10 @@ Node.NodeDriver.prototype.readDirectory = function (directory, depth, cb)
       if (err)
         return cb(null, err);
       //
-      for (var i = 0; i < files.length; i++) {
+      for (let i = 0; i < files.length; i++) {
         // Add the element to the content array
         content = content.concat(entries[0].path + "/" + files[i]);
-        var stats = Node.nodeFs.statSync(entries[0].path + "/" + files[i]);
+        let stats = Node.nodeFs.statSync(entries[0].path + "/" + files[i]);
         //
         // if the element is a directory,i add it to the array of folders to be scanned
         if (stats.isDirectory())
@@ -764,7 +764,7 @@ Node.NodeDriver.prototype.readDirectory = function (directory, depth, cb)
   readDirRecursive(dir, content, function (files, err) {
     if (err)
       return cb(null, err);
-    var content = [];
+    let content = [];
     //
     // Empty directory
     if (files.length < 1)
@@ -772,7 +772,7 @@ Node.NodeDriver.prototype.readDirectory = function (directory, depth, cb)
     //
     files.sort();
     //
-    var index = path.split("/").length - (directory.path === "" ? 0 : directory.path.split("/").length);
+    let index = path.split("/").length - (directory.path === "" ? 0 : directory.path.split("/").length);
     //
     // async for each
     Node.async.concat(files, function (files, cb) {
@@ -781,10 +781,10 @@ Node.NodeDriver.prototype.readDirectory = function (directory, depth, cb)
           return cb(null, err);
         //
         // adds to array an object (file or folder)
-        var relativePath = files.split("/").slice(index);
+        let relativePath = files.split("/").slice(index);
         relativePath = relativePath.join("/");
         //
-        var object;
+        let object;
         if (stats.isFile())
           object = {path: relativePath, type: "file"};
         else
@@ -812,11 +812,11 @@ Node.NodeDriver.prototype.zipDirectory = function (directory, zipFile, cb)
   if (this.permissions === Node.FS.permissions.read)
     return cb(new Error("Permission denied"));
   //
-  var path = this.checkPath(directory);
-  var zipPath = this.checkPath(zipFile);
+  let path = this.checkPath(directory);
+  let zipPath = this.checkPath(zipFile);
   //
-  var cbCalled = false;
-  var done = function (err) {
+  let cbCalled = false;
+  let done = function (err) {
     if (cbCalled)
       return;
     //
@@ -830,10 +830,10 @@ Node.NodeDriver.prototype.zipDirectory = function (directory, zipFile, cb)
       return cb(new Error("Directory doesn't exist"));
     //
     // Create the write stream
-    var output = Node.nodeFs.createWriteStream(zipPath);
+    let output = Node.nodeFs.createWriteStream(zipPath);
     //
     // Create the archive object
-    var archive = Node.archiver("zip");
+    let archive = Node.archiver("zip");
     //
     // Listen to next error event
     output.once("error", function (err) {
@@ -860,7 +860,7 @@ Node.NodeDriver.prototype.zipDirectory = function (directory, zipFile, cb)
   });
   //
   // Function that deletes the new zip file (if there is an error)
-  var deleteVoidZip = function (err) {
+  let deleteVoidZip = function (err) {
     Node.nodeFs.unlink(zipPath, function (err1) {
       done(err || err1);
     });
@@ -880,7 +880,7 @@ Node.NodeDriver.prototype.removeDirRecursive = function (directory, cb)
     return cb(new Error("Permission denied"));
   //
   // Check the validity of the path (writing)
-  var path = this.checkPath(directory);
+  let path = this.checkPath(directory);
   //
   // Use fs extra to remove the directory and its content
   Node.fsExtra.rmrf(path, cb);
@@ -898,22 +898,22 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
 {
   options = Object.assign({responseType: "text"}, options);
   //
-  var uri = url.url;
+  let uri = url.url;
   //
   // Multipart request
-  var multiPart = false;
+  let multiPart = false;
   //
   // Download
-  var download = false;
+  let download = false;
   //
   // Upload
-  var upload = false;
+  let upload = false;
   //
   // Node module variable
-  var request = require("request");
+  let request = require("request");
   //
   // Create internal request options object
-  var opts = {};
+  let opts = {};
   //
   switch (method) {
     case "POST":
@@ -990,7 +990,7 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
     // File section (only fot the upload)
     if (upload) {
       // Check if the path of file is valid
-      var path = this.checkPath(false, options._file);
+      let path = this.checkPath(false, options._file);
       if (!path)
         return cb({error: new Error("Invalid path")});
       //
@@ -1010,11 +1010,11 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
     // GET request
     //
     // Concatenate options params and url params
-    var posQuery = uri.indexOf("?");
+    let posQuery = uri.indexOf("?");
     if (posQuery > 0) {
-      var qs = Node.querystring.parse(encodeURI(uri.substr(posQuery + 1)));
+      let qs = Node.querystring.parse(encodeURI(uri.substr(posQuery + 1)));
       if (options.params) {
-        for (var propertyName in options.params)
+        for (let propertyName in options.params)
           qs[propertyName] = options.params[propertyName];
       }
       opts.qs = qs;
@@ -1025,15 +1025,15 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
   }
   //
   // For download check file path
-  var downloadError = null;
+  let downloadError;
   if (download) {
     // Check path
-    var downloadPath = this.checkPath(true, options._file);
+    let downloadPath = this.checkPath(true, options._file);
     if (!downloadPath)
       return cb({error: new Error("invalid download path")});
     //
     // Create stream
-    var writeStream = Node.nodeFs.createWriteStream(downloadPath, {encoding: null});
+    let writeStream = Node.nodeFs.createWriteStream(downloadPath, {encoding: null});
     writeStream.once("error", function (error) {
       downloadError = error;
     });
@@ -1044,8 +1044,8 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
     opts.encoding = null;
   //
   // Make request
-  var res = {};
-  var req = request(opts, function (error, response, body) {
+  let res = {};
+  let req = request(opts, function (error, response, body) {
     // Stop the progress events when the response is complete
     clearInterval(uploadprogressTimer);
     //
@@ -1078,12 +1078,12 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
     }
     //
     // Amount of byte downloaded
-    var byteDownloaded = 0;
+    let byteDownloaded = 0;
     //
     // Listen to data response event
     response.on('data', function (data) {
       res.headers = response.headers;
-      var totalBytes = response.headers["Content-Length"];
+      let totalBytes = response.headers["Content-Length"];
       //
       byteDownloaded += data.length;
       if (url.onDownloadProgress(byteDownloaded, totalBytes) === false) {
@@ -1094,12 +1094,12 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
   });
   //
   // Last value of byte sent
-  var lastByteSent = 0;
+  let lastByteSent = 0;
   //
   // Upload progress handler
-  var uploadprogressTimer = setInterval(function () {
-    var byteTotal;
-    var byteSent;
+  let uploadprogressTimer = setInterval(function () {
+    let byteTotal;
+    let byteSent;
     if (req.req) {
       if (upload)
         byteTotal = options._fileSize;
@@ -1119,7 +1119,7 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
       return;
     //
     // Check if the upload was interrupted
-    var abort = (url.onUploadProgress(byteSent, byteTotal) === false);
+    let abort = (url.onUploadProgress(byteSent, byteTotal) === false);
     lastByteSent = byteSent;
     //
     // In these cases, stops the event
@@ -1143,7 +1143,7 @@ Node.NodeDriver.prototype.put = function (localFile, dstFile, cb)
   if (!dstFile)
     return cb(new Error("Destination file cannot be null"));
   //
-  var done = function (error) {
+  let done = function (error) {
     localFile.close(function (result, remoteError) {
       dstFile.close(function (result, dstError) {
         cb(error || remoteError || dstError);
@@ -1151,13 +1151,13 @@ Node.NodeDriver.prototype.put = function (localFile, dstFile, cb)
     });
   };
   //
-  var readChunk = function (length, offset, create, callback) {
+  let readChunk = function (length, offset, create, callback) {
     // Read chunk
     localFile.read(length, offset, function (res, err) {
       if (err)
         return callback(err);
       //
-      var result = {};
+      let result = {};
       result.chunk = res;
       result.create = create;
       //
@@ -1175,7 +1175,7 @@ Node.NodeDriver.prototype.put = function (localFile, dstFile, cb)
     });
   };
   //
-  var writeChunk = function (content, callback) {
+  let writeChunk = function (content, callback) {
     // Check if dstFile needs to be created
     if (content.create) {
       dstFile.create(undefined, function (createRes, createErr) {
@@ -1226,14 +1226,14 @@ Node.NodeDriver.prototype.deserializeObject = function (obj) {
  */
 Node.NodeDriver.prototype.onMessage = function (msg, callback)
 {
-  var argsArray = [];
+  let argsArray = [];
   //
-  for (var i = 0; i < msg.args.length; i++) {
-    var arg = msg.args[i];
+  for (let i = 0; i < msg.args.length; i++) {
+    let arg = msg.args[i];
     //
     // Deserialize arguments of type File/Directory/Url
     if (arg && typeof arg === "object" && arg._t) {
-      var obj = this.deserializeObject(arg);
+      let obj = this.deserializeObject(arg);
       obj.server = msg.server;
       argsArray.push(obj);
     }
@@ -1256,9 +1256,9 @@ Node.NodeDriver.prototype.onMessage = function (msg, callback)
 Node.NodeDriver.prototype.onServerDisconnected = function (server)
 {
   // Close all opened files
-  var filesOpened = Object.keys(this.files);
-  for (var i = 0; i < filesOpened.length; i++) {
-    var f = this.files[filesOpened[i]];
+  let filesOpened = Object.keys(this.files);
+  for (let i = 0; i < filesOpened.length; i++) {
+    let f = this.files[filesOpened[i]];
     if (f.server === server) {
       f.close(function (error) {
         if (error)

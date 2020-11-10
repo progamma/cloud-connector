@@ -74,17 +74,17 @@ Node.SQLServer.prototype._closeConnection = function (conn, callback)
  */
 Node.SQLServer.prototype._execute = function (conn, msg, callback)
 {
-  var sql = msg.sql;
+  let sql = msg.sql;
   //
-  var req = new mssql.Request(conn.transaction || this.pool);
+  let req = new mssql.Request(conn.transaction || this.pool);
   if (sql.toLowerCase().indexOf("insert into ") !== -1) {
     req.multiple = true;
     sql += "; select @@identity as Counter";
   }
   //
   // Add input parameters
-  var parameters = msg.pars || [];
-  for (var i = 0; i < parameters.length; i++)
+  let parameters = msg.pars || [];
+  for (let i = 0; i < parameters.length; i++)
     req.input("P" + (i + 1), parameters[i]);
   //
   // Execute the statement
@@ -92,15 +92,15 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
     if (error)
       return callback(null, error);
     //
-    var rs = {};
+    let rs = {};
     if (result.recordset && !req.multiple) {
       // Serialize rows
       rs.cols = Object.keys(result.recordset.columns);
       rs.rows = [];
-      for (var i = 0; i < result.recordset.length; i++) {
-        var row = [];
+      for (let i = 0; i < result.recordset.length; i++) {
+        let row = [];
         rs.rows.push(row);
-        for (var j = 0; j < rs.cols.length; j++)
+        for (let j = 0; j < rs.cols.length; j++)
           row.push(this.convertValue(result.recordset[i][rs.cols[j]], result.recordset.columns[rs.cols[j]]));
       }
     }
@@ -171,7 +171,7 @@ Node.SQLServer.prototype.convertValue = function (value, colDef)
  */
 Node.SQLServer.prototype._beginTransaction = function (conn, callback)
 {
-  var tr = new mssql.Transaction(this.pool);
+  let tr = new mssql.Transaction(this.pool);
   tr.begin(function (error) {
     callback(tr, error);
   });

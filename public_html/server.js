@@ -35,7 +35,7 @@ Node.Server.prototype.connect = function ()
 {
   this.parent.log("INFO", "Try to connect to " + this.serverUrl);
   //
-  var opt = {};
+  let opt = {};
   opt.forceNew = true;
   opt.reconnection = true;
   opt.reconnectionDelay = 30000;
@@ -47,13 +47,13 @@ Node.Server.prototype.connect = function ()
     this.parent.log("INFO", "Connected to " + this.serverUrl);
     //
     // Send list of databases supported by this connector
-    var msg = {};
+    let msg = {};
     msg.type = Node.Server.messageTypes.init;
     msg.data = {};
     msg.data.name = this.parent.name;
     msg.data.dmlist = [];
-    for (var i = 0; i < this.parent.datamodels.length; i++) {
-      var dm = {};
+    for (let i = 0; i < this.parent.datamodels.length; i++) {
+      let dm = {};
       dm.name = this.parent.datamodels[i].name;
       dm.class = this.parent.datamodels[i].class;
       dm.key = this.parent.datamodels[i].APIKey;
@@ -62,8 +62,8 @@ Node.Server.prototype.connect = function ()
     //
     // Send list of file systems supported by this connector
     msg.data.fslist = [];
-    for (var i = 0; i < this.parent.fileSystems.length; i++) {
-      var fs = {};
+    for (let i = 0; i < this.parent.fileSystems.length; i++) {
+      let fs = {};
       fs.name = this.parent.fileSystems[i].name;
       fs.path = this.parent.fileSystems[i].path;
       fs.permissions = this.parent.fileSystems[i].permissions;
@@ -73,8 +73,8 @@ Node.Server.prototype.connect = function ()
     //
     // Send list of plugins supported by this connector
     msg.data.pluginslist = [];
-    for (var i = 0; i < this.parent.plugins.length; i++) {
-      var plugin = {};
+    for (let i = 0; i < this.parent.plugins.length; i++) {
+      let plugin = {};
       plugin.name = this.parent.plugins[i].name;
       plugin.class = this.parent.plugins[i].class;
       plugin.key = this.parent.plugins[i].APIKey;
@@ -89,7 +89,7 @@ Node.Server.prototype.connect = function ()
   }.bind(this));
   //
   this.socket.on("cloudServerMsg", function (data) {
-    var startTime = new Date();
+    let startTime = new Date();
     this.parent.log("INFO", "Server onMessage: " + JSON.stringify(data, function (k, v) {
       if (k === "args") {
         return v.map(function (value) {
@@ -104,7 +104,7 @@ Node.Server.prototype.connect = function ()
     }));
     //
     // Compose the message of response
-    var msg = {};
+    let msg = {};
     msg.type = Node.Server.messageTypes.response;
     if (data.sid)
       msg.sid = data.sid;
@@ -120,7 +120,7 @@ Node.Server.prototype.connect = function ()
     msg.data.name = this.parent.name;
     data.server = this;
     if (data.dm) {
-      var dm = this.parent.dataModelByName(data.dm);
+      let dm = this.parent.dataModelByName(data.dm);
       if (!dm) {
         this.parent.log("ERROR", "datamodel '" + data.dm + "' not found");
         //
@@ -152,7 +152,7 @@ Node.Server.prototype.connect = function ()
     }
     else if (data.fs) {
       msg.fs = true;
-      var fs = this.parent.getFileSystemByName(data.fs);
+      let fs = this.parent.getFileSystemByName(data.fs);
       if (!fs) {
         this.parent.log("ERROR", "file system '" + data.fs + "' not found");
         //
@@ -186,7 +186,7 @@ Node.Server.prototype.connect = function ()
     }
     else if (data.plugin) {
       msg.plugin = true;
-      var plugin = this.parent.getPluginByName(data.plugin);
+      let plugin = this.parent.getPluginByName(data.plugin);
       if (!plugin) {
         this.parent.log("ERROR", "plugin '" + data.plugin + "' not found");
         //
