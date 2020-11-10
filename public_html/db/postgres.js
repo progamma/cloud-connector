@@ -77,21 +77,21 @@ Node.Postgres.prototype._closeConnection = function (conn, callback)
 Node.Postgres.prototype._execute = function (conn, msg, callback)
 {
   // Execute the statement
-  var parameters = msg.pars || [];
+  let parameters = msg.pars || [];
   conn.conn.query(msg.sql, parameters, function (error, result) {
     if (error)
       return callback(null, error);
     //
-    var rs = {};
+    let rs = {};
     rs.cols = [];
     rs.rows = [];
     //
     // Serialize rows
-    for (var i = 0; i < result.rows.length; i++) {
-      var row = [];
+    for (let i = 0; i < result.rows.length; i++) {
+      let row = [];
       rs.rows.push(row);
-      for (var j = 0; j < result.fields.length; j++) {
-        var colname = result.fields[j].name;
+      for (let j = 0; j < result.fields.length; j++) {
+        let colname = result.fields[j].name;
         if (i === 0)
           rs.cols.push(colname);
         row.push(this.convertValue(result.rows[i][colname], result.fields[j]));

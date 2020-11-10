@@ -23,11 +23,11 @@ Node.Utils.bufferToBase64 = function (buffer) {
   if (module)
     return new Buffer(buffer).toString("base64");
   //
-  var base64 = "";
-  var bytes = new Uint8Array(buffer);
-  var len = bytes.length;
-  var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  for (var i = 0; i < len; i += 3) {
+  let base64 = "";
+  let bytes = new Uint8Array(buffer);
+  let len = bytes.length;
+  let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  for (let i = 0; i < len; i += 3) {
     base64 += chars[bytes[i] >> 2];
     base64 += chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
     base64 += chars[((bytes[i + 1] & 15) << 2) | (bytes[i + 2] >> 6)];
@@ -49,26 +49,26 @@ Node.Utils.bufferToBase64 = function (buffer) {
  * See https://www.npmjs.com/package/base64-arraybuffer
  */
 Node.Utils.base64ToBuffer = function (base64) {
-  var bufferLength = base64.length * 0.75;
+  let bufferLength = base64.length * 0.75;
   if (base64[base64.length - 1] === "=") {
     bufferLength--;
     if (base64[base64.length - 2] === "=")
       bufferLength--;
   }
   //
-  var p = 0;
-  var len = base64.length;
-  var arraybuffer = new ArrayBuffer(bufferLength);
-  var bytes = new Uint8Array(arraybuffer);
-  var lookup = new Uint8Array(256);
-  var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  for (var i = 0; i < chars.length; i++)
+  let p = 0;
+  let len = base64.length;
+  let arraybuffer = new ArrayBuffer(bufferLength);
+  let bytes = new Uint8Array(arraybuffer);
+  let lookup = new Uint8Array(256);
+  let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  for (let i = 0; i < chars.length; i++)
     lookup[chars.charCodeAt(i)] = i;
-  for (var i = 0; i < len; i += 4) {
-    var encoded1 = lookup[base64.charCodeAt(i)];
-    var encoded2 = lookup[base64.charCodeAt(i + 1)];
-    var encoded3 = lookup[base64.charCodeAt(i + 2)];
-    var encoded4 = lookup[base64.charCodeAt(i + 3)];
+  for (let i = 0; i < len; i += 4) {
+    let encoded1 = lookup[base64.charCodeAt(i)];
+    let encoded2 = lookup[base64.charCodeAt(i + 1)];
+    let encoded3 = lookup[base64.charCodeAt(i + 2)];
+    let encoded4 = lookup[base64.charCodeAt(i + 3)];
     //
     bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
     bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);

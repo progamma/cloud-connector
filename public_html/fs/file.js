@@ -53,7 +53,7 @@ Object.defineProperties(Node.File.prototype, {
  */
 Node.File.prototype.getDebugInfo = function ()
 {
-  var info = {};
+  let info = {};
   info._class = "File";
   info.path = this.path;
   return info;
@@ -171,7 +171,7 @@ Node.File.prototype.write = function (data, offset, size, position, cb)
  */
 Node.File.prototype.copy = function (newPath, cb)
 {
-  var newFile = this.fs.file(newPath);
+  let newFile = this.fs.file(newPath);
   this.fs.copyFile(this, newFile, function (err) {
     cb(newFile, err);
   });
@@ -213,7 +213,7 @@ Node.File.prototype.length = function (cb)
 Node.File.prototype.extension = function (cb)
 {
   // Get only the file name
-  var fileName = this.path.replace(/^.*(\\|\/|\:)/, "");
+  let fileName = this.path.replace(/^.*(\\|\/|\:)/, "");
   //
   /* jshint ignore:start */
   if (fileName.length)
@@ -253,7 +253,7 @@ Node.File.prototype.remove = function (cb)
  */
 Node.File.prototype.zip = function (cb)
 {
-  var zipFile = this.fs.file(this.path + ".zip");
+  let zipFile = this.fs.file(this.path + ".zip");
   this.fs.zipFile(this, zipFile, function (err) {
     cb(zipFile, err);
   });
@@ -267,7 +267,7 @@ Node.File.prototype.zip = function (cb)
  */
 Node.File.prototype.unzip = function (path, cb)
 {
-  var unzipDir = this.fs.directory(path);
+  let unzipDir = this.fs.directory(path);
   this.fs.unzip(this, unzipDir, function (err) {
     cb(unzipDir, err);
   });

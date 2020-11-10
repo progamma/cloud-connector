@@ -45,7 +45,7 @@ Node.Logger.prototype.init = function ()
  */
 Node.Logger.prototype.log = function (level, message, data)
 {
-  var logString = JSON.stringify({level: level, message: message, /*date: new Date(),*/ data: data});
+  let logString = JSON.stringify({level: level, message: message, /*date: new Date(),*/ data: data});
   //
   console.log(logString);
   /*

@@ -81,20 +81,20 @@ Node.MySQL.prototype._execute = function (conn, msg, callback)
     if (error)
       return callback(null, error);
     //
-    var rs = {};
+    let rs = {};
     rs.cols = [];
     rs.rows = [];
     //
     if (result) {
       // Serialize rows
-      for (var i = 0; i < result.length; i++) {
-        var row = [];
+      for (let i = 0; i < result.length; i++) {
+        let row = [];
         rs.rows.push(row);
         //
         if (i === 0)
           rs.cols = Object.keys(result[i]);
         //
-        for (var j = 0; j < rs.cols.length; j++)
+        for (let j = 0; j < rs.cols.length; j++)
           row.push(this.convertValue(result[i][rs.cols[j]], md[j]));
       }
       //

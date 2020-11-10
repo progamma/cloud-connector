@@ -25,7 +25,7 @@ Node.FS = function (parent, config)
 {
   this.parent = parent;
   //
-  for (var k in config)
+  for (let k in config)
     this[k] = config[k];
   //
   // Set default permissions
@@ -81,8 +81,8 @@ Node.FS.normalizePath = function (path)
   if (path.startsWith("../resources"))
     return path;
   //
-  var parts = path.split("/");
-  for (var i = 0; i < parts.length; i++) {
+  let parts = path.split("/");
+  for (let i = 0; i < parts.length; i++) {
     switch (parts[i]) {
       case ".":
         parts.splice(i, 1);

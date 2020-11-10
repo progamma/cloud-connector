@@ -17,7 +17,7 @@ Node.DataModel = function (parent, config)
   this.parent = parent;
   this.connections = {};
   //
-  for (var k in config)
+  for (let k in config)
     this[k] = config[k];
 };
 
@@ -114,7 +114,7 @@ Node.DataModel.prototype.openConnection = function (msg, callback)
  */
 Node.DataModel.prototype.closeConnection = function (msg, callback)
 {
-  var conn = this.connections[msg.cid];
+  let conn = this.connections[msg.cid];
   if (!conn)
     return callback();
   //
@@ -132,7 +132,7 @@ Node.DataModel.prototype.closeConnection = function (msg, callback)
  */
 Node.DataModel.prototype.execute = function (msg, callback)
 {
-  var conn = this.connections[msg.cid];
+  let conn = this.connections[msg.cid];
   if (!conn)
     return callback(null, new Error("Connection closed"));
   //
@@ -144,7 +144,7 @@ Node.DataModel.prototype.execute = function (msg, callback)
     });
   }
   //
-  var startTime = new Date();
+  let startTime = new Date();
   this._execute(conn, msg, function (rs, error) {
     if (error)
       return callback(null, error);
@@ -174,7 +174,7 @@ Node.DataModel.prototype.convertValue = function (value)
  */
 Node.DataModel.prototype.beginTransaction = function (msg, callback)
 {
-  var conn = this.connections[msg.cid];
+  let conn = this.connections[msg.cid];
   if (!conn)
     return callback(null, new Error("Connection closed"));
   //
@@ -195,7 +195,7 @@ Node.DataModel.prototype.beginTransaction = function (msg, callback)
  */
 Node.DataModel.prototype.commitTransaction = function (msg, callback)
 {
-  var conn = this.connections[msg.cid];
+  let conn = this.connections[msg.cid];
   if (!conn)
     return callback(null, new Error("Connection closed"));
   //
@@ -213,7 +213,7 @@ Node.DataModel.prototype.commitTransaction = function (msg, callback)
  */
 Node.DataModel.prototype.rollbackTransaction = function (msg, callback)
 {
-  var conn = this.connections[msg.cid];
+  let conn = this.connections[msg.cid];
   if (!conn)
     return callback(null, new Error("Connection closed"));
   //
@@ -242,8 +242,8 @@ Node.DataModel.prototype.ping = function (msg, callback)
 Node.DataModel.prototype.onServerDisconnected = function (server)
 {
   // Close all pending connections to that server
-  var cids = Object.keys(this.connections);
-  for (var i = 0; i < cids.length; i++) {
+  let cids = Object.keys(this.connections);
+  for (let i = 0; i < cids.length; i++) {
     if (this.connections[cids[i]].server === server) {
       this.closeConnection({cid: cids[i]}, function (result, error) {
         if (error)

@@ -105,33 +105,33 @@ Node.Oracle.prototype._closeConnection = function (conn, callback)
 Node.Oracle.prototype._execute = function (conn, msg, callback)
 {
   // Execute the statement
-  var options = {outFormat: oracledb.OBJECT, autoCommit: !conn.transaction};
-  var bindParams = {};
+  let options = {outFormat: oracledb.OBJECT, autoCommit: !conn.transaction};
+  let bindParams = {};
   //
   // Set output parameter for read value of counter field
   if (msg.ct)
     bindParams.counter = {type: oracledb.NUMBER, dir: oracledb.BIND_OUT};
   //
   // Add input parameters
-  var parameters = msg.pars || [];
-  for (var i = 0; i < parameters.length; i++)
+  let parameters = msg.pars || [];
+  for (let i = 0; i < parameters.length; i++)
     bindParams["P" + (i + 1)] = parameters[i];
   //
   conn.conn.execute(msg.sql, bindParams, options, function (error, result) {
     if (error)
       return callback(null, error);
     //
-    var rs = {};
+    let rs = {};
     rs.cols = [];
     rs.rows = [];
     //
     if (result.rows) {
       // Serialize rows
-      for (var i = 0; i < result.rows.length; i++) {
-        var row = [];
+      for (let i = 0; i < result.rows.length; i++) {
+        let row = [];
         rs.rows.push(row);
-        for (var j = 0; j < result.metaData.length; j++) {
-          var colname = result.metaData[j].name;
+        for (let j = 0; j < result.metaData.length; j++) {
+          let colname = result.metaData[j].name;
           if (i === 0)
             rs.cols.push(colname);
           //

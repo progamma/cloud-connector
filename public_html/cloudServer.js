@@ -57,13 +57,13 @@ Node.CloudServer.prototype.log = function (level, message, data)
  */
 Node.CloudServer.serverForUser = function (username, callback)
 {
-  var options = {hostname: "console.instantdevelopercloud.com",
+  let options = {hostname: "console.instantdevelopercloud.com",
     path: "/CCC/?mode=rest&cmd=serverURL&user=" + username,
     method: "GET"
   };
   //
-  var req = Node.https.request(options, function (res) {
-    var data = "";
+  let req = Node.https.request(options, function (res) {
+    let data = "";
     res.on("data", function (chunk) {
       data = data + chunk;
     });
@@ -86,7 +86,7 @@ Node.CloudServer.serverForUser = function (username, callback)
  */
 Node.CloudServer.prototype.loadConfig = function ()
 {
-  var file = Node.fs.readFileSync("config.json", {encoding: "utf8"});
+  let file = Node.fs.readFileSync("config.json", {encoding: "utf8"});
   //
   // If the read is successful the variable "file" contains the content of config.json
   if (!file)
@@ -94,7 +94,7 @@ Node.CloudServer.prototype.loadConfig = function ()
             {source: "Node.CloudServer.prototype.loadConfig"});
   //
   try {
-    var config = JSON.parse(file);
+    let config = JSON.parse(file);
     this.name = config.name;
     //
     this.createDataModels(config);
@@ -121,16 +121,16 @@ Node.CloudServer.prototype.loadConfig = function ()
 Node.CloudServer.prototype.createServers = function (config)
 {
   // First attach app servers
-  for (var i = 0; i < config.remoteServers.length; i++)
+  for (let i = 0; i < config.remoteServers.length; i++)
     this.createServer(config.remoteServers[i]);
   //
   // Next, attach "IDE" servers
-  for (var i = 0; i < config.remoteUserNames.length; i++) {
-    var uname = config.remoteUserNames[i];
+  for (let i = 0; i < config.remoteUserNames.length; i++) {
+    let uname = config.remoteUserNames[i];
     //
     // Handled formats: http://domain, http://domain@username, username
     if (uname.startsWith("http://") || uname.startsWith("https://")) {
-      var parts = uname.split("@");
+      let parts = uname.split("@");
       this.createServer(parts[0], parts[1]);
     }
     else
@@ -148,7 +148,7 @@ Node.CloudServer.prototype.createServer = function (srvUrl, username)
 {
   if (srvUrl) {
     // Create the server and connect it
-    var cli = new Node.Server(this, srvUrl);
+    let cli = new Node.Server(this, srvUrl);
     //
     // Set ideUserName without organization
     if (username)
@@ -185,8 +185,8 @@ Node.CloudServer.prototype.createDataModels = function (config)
   //
   // Create all connections
   Node.Utils = require("./utils");
-  for (var i = 0; i < config.datamodels.length; i++) {
-    var db = config.datamodels[i];
+  for (let i = 0; i < config.datamodels.length; i++) {
+    let db = config.datamodels[i];
     //
     // Import local module
     try {
@@ -202,7 +202,7 @@ Node.CloudServer.prototype.createDataModels = function (config)
       }
       //
       // Create datamodel from config
-      var dbobj = new Node[db.class](this, db);
+      let dbobj = new Node[db.class](this, db);
       this.datamodels.push(dbobj);
       //
       // Encrypt the password
@@ -230,15 +230,15 @@ Node.CloudServer.prototype.createFileSystems = function (config)
     return;
   //
   // Create all connections
-  for (var i = 0; i < config.fileSystems.length; i++) {
-    var fs = config.fileSystems[i];
+  for (let i = 0; i < config.fileSystems.length; i++) {
+    let fs = config.fileSystems[i];
     //
     // Import local module
     try {
       Node.NodeDriver = require("./fs/nodedriver");
       //
       // Create file system from config
-      var fsobj = new Node.NodeDriver(this, fs);
+      let fsobj = new Node.NodeDriver(this, fs);
       this.fileSystems.push(fsobj);
     }
     catch (e) {
@@ -259,15 +259,15 @@ Node.CloudServer.prototype.createPlugins = function (config)
     return;
   //
   // Create all connections
-  for (var i = 0; i < config.plugins.length; i++) {
-    var plugin = config.plugins[i];
+  for (let i = 0; i < config.plugins.length; i++) {
+    let plugin = config.plugins[i];
     //
     // Import local module
     try {
       Node[plugin.class] = require("./plugins/" + plugin.class.toLowerCase() + "/index");
       //
       // Create datamodel from config
-      var pluginobj = new Node[plugin.class](this, plugin);
+      let pluginobj = new Node[plugin.class](this, plugin);
       this.plugins.push(pluginobj);
     }
     catch (e) {
@@ -285,8 +285,8 @@ Node.CloudServer.prototype.createPlugins = function (config)
 Node.CloudServer.prototype.dataModelByName = function (dmname)
 {
   // Get the right datamodel
-  for (var i = 0; i < this.datamodels.length; i++) {
-    var dm = this.datamodels[i];
+  for (let i = 0; i < this.datamodels.length; i++) {
+    let dm = this.datamodels[i];
     if (dm.name === dmname)
       return dm;
   }
@@ -300,8 +300,8 @@ Node.CloudServer.prototype.dataModelByName = function (dmname)
 Node.CloudServer.prototype.getFileSystemByName = function (fsname)
 {
   // Get the right file system
-  for (var i = 0; i < this.fileSystems.length; i++) {
-    var fs = this.fileSystems[i];
+  for (let i = 0; i < this.fileSystems.length; i++) {
+    let fs = this.fileSystems[i];
     if (fs.name === fsname)
       return fs;
   }
@@ -315,8 +315,8 @@ Node.CloudServer.prototype.getFileSystemByName = function (fsname)
 Node.CloudServer.prototype.getPluginByName = function (pluginName)
 {
   // Get the right plugin
-  for (var i = 0; i < this.plugins.length; i++) {
-    var plugin = this.plugins[i];
+  for (let i = 0; i < this.plugins.length; i++) {
+    let plugin = this.plugins[i];
     if (plugin.name === pluginName)
       return plugin;
   }
@@ -330,15 +330,15 @@ Node.CloudServer.prototype.getPluginByName = function (pluginName)
 Node.CloudServer.prototype.onServerDisconnected = function (server)
 {
   // Notify to all datamodels that a server is disconnected
-  for (var i = 0; i < this.datamodels.length; i++)
+  for (let i = 0; i < this.datamodels.length; i++)
     this.datamodels[i].onServerDisconnected(server);
   //
   // Notify to all filesystems that a server is disconnected
-  for (var i = 0; i < this.fileSystems.length; i++)
+  for (let i = 0; i < this.fileSystems.length; i++)
     this.fileSystems[i].onServerDisconnected(server);
   //
   // Notify to all plugins that a server is disconnected
-  for (var i = 0; i < this.plugins.length; i++)
+  for (let i = 0; i < this.plugins.length; i++)
     this.plugins[i].onServerDisconnected(server);
 };
 

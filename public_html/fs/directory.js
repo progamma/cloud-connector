@@ -50,7 +50,7 @@ Object.defineProperties(Node.Directory.prototype, {
  */
 Node.Directory.prototype.getDebugInfo = function ()
 {
-  var info = {};
+  let info = {};
   info._class = "Directory";
   info.path = this.path;
   return info;
@@ -104,7 +104,7 @@ Node.Directory.prototype.rename = function (newName, cb)
  */
 Node.Directory.prototype.copy = function (newPath, cb)
 {
-  var newDir = this.fs.directory(newPath);
+  let newDir = this.fs.directory(newPath);
   this.fs.copyDir(this, newDir, function (err) {
     cb(newDir, err);
   });
@@ -127,7 +127,7 @@ Node.Directory.prototype.list = function (depth, cb) {
  */
 Node.Directory.prototype.zip = function (cb)
 {
-  var zipFile = this.fs.file(this.path + ".zip");
+  let zipFile = this.fs.file(this.path + ".zip");
   this.fs.zipDirectory(this, zipFile, function (err) {
     cb(zipFile, err);
   });
