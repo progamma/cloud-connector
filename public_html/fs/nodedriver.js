@@ -29,6 +29,7 @@ Node.NodeDriver = function (parent, config)
     Node.fsExtra = require("fs.extra"); //license and detail: https://www.npmjs.com/package/fs.extra
     Node.archiver = require("archiver"); //license and detail: https://github.com/ctalkington/node-archiver
     Node.yauzl = require("yauzl"); //license and detail: https://github.com/thejoshwolfe/yauzl
+    Node.File = require("./file");
   }
   //
   // Files opened
