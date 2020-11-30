@@ -68,9 +68,18 @@ Node.File.prototype.getDebugInfo = function ()
 Node.File.prototype.create = function (encoding, cb)
 {
   // String containing the encoding of the file, null only for binary files
-  this.encoding = encoding;
+  this.encoding = encoding || this.encoding;
   this.fs.createFile(this, function (err) {
-    cb(null, err);
+    if (err)
+      return cb(null, err);
+    //
+    if (this.encoding !== "utf-8")
+      return cb();
+    //
+    // Write utf-8 BOM
+    this.write("\ufeff", null, null, null, function (err) {
+      cb(null, err);
+    });
   });
 };
 
@@ -105,7 +114,9 @@ Node.File.prototype.append = function (cb)
  */
 Node.File.prototype.close = function (cb)
 {
-  this.fs.close(this, cb);
+  this.fs.close(this, function (err) {
+    cb(null, err);
+  });
 };
 
 
@@ -180,18 +191,27 @@ Node.File.prototype.copy = function (newPath, cb)
 
 /**
  * Rename a file
- * @param {string} newName
+ * @param {string/File/Directory} newFile
  * @param {function} cb
  */
-Node.File.prototype.rename = function (newName, cb)
+Node.File.prototype.rename = function (newFile, cb)
 {
-  this.fs.renameObject(this, newName, function (err) {
+  if (newFile instanceof Node.Directory)
+    newFile = this.fs.file(newFile.path + "/" + this.name());
+  else if (typeof newFile === "string" && newFile.endsWith("/"))
+    newFile = this.file(newFile + this.name());
+  //
+  this.fs.renameObject(this, newFile, function (err) {
     if (err)
       return cb(null, err);
     //
+    if (typeof newFile === "string")
+      newFile = this.fs.file(this.path.substring(0, this.path.lastIndexOf("/") + 1) + newFile);
+    //
     // I change the path only if the file has been renamed correctly
-    // Takes only the name of the file from the new path
-    this.path = this.path.substring(0, this.path.lastIndexOf("/") + 1) + newName;
+    this.path = newFile.path;
+    //
+    cb();
   }.bind(this));
 };
 
@@ -207,21 +227,29 @@ Node.File.prototype.length = function (cb)
 
 
 /**
- * Return the extension of file (without the dot)
- * @param {function} cb
+ * Return the name of file (with the extension)
  */
-Node.File.prototype.extension = function (cb)
+Node.File.prototype.name = function ()
+{
+  return this.path.replace(/^.*(\\|\/|\:)/, "");
+};
+
+
+/**
+ * Return the extension of file (without the dot)
+ */
+Node.File.prototype.extension = function ()
 {
   // Get only the file name
-  let fileName = this.path.replace(/^.*(\\|\/|\:)/, "");
+  let fileName = this.name();
   //
   /* jshint ignore:start */
   if (fileName.length)
     // Returns only the extension (null for a binary file)
-    cb(fileName.substr((~-fileName.lastIndexOf(".") >>> 0) + 2));
-  else
-    cb("");
+    return fileName.substr((~-fileName.lastIndexOf(".") >>> 0) + 2);
   /* jshint ignore:end */
+  //
+  return "";
 };
 
 

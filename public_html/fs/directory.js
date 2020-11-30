@@ -58,6 +58,15 @@ Node.Directory.prototype.getDebugInfo = function ()
 
 
 /**
+ * Return the name of directory
+ */
+Node.Directory.prototype.name = function ()
+{
+  return this.path.replace(/^.*(\\|\/|\:)/, "");
+};
+
+
+/**
  * Creates the directory physically
  * @param {function} cb
  */
@@ -81,17 +90,24 @@ Node.Directory.prototype.exists = function (cb)
 
 /**
  * Renames the directory
- * @param {string} newName
+ * @param {string/Directory} newDir
  * @param {function} cb
  */
-Node.Directory.prototype.rename = function (newName, cb)
+Node.Directory.prototype.rename = function (newDir, cb)
 {
-  this.fs.renameObject(this, newName, function (err) {
+  if (typeof newDir === "string" && newDir.endsWith("/"))
+    newDir = this.fs.directory(newDir + this.name());
+  //
+  this.fs.renameObject(this, newDir, function (err) {
     if (err)
       return cb(null, err);
     //
+    if (typeof newDir === "string")
+      newDir = this.fs.directory(this.path.substring(0, this.path.lastIndexOf("/") + 1) + newDir);
+    //
     // I change the path only if the file has been renamed correctly
-    this.path = this.path.substring(0, this.path.lastIndexOf("/") + 1) + newName;
+    this.path = newDir.path;
+    //
     cb();
   }.bind(this));
 };
