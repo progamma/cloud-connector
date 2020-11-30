@@ -21,7 +21,7 @@ Node.Url = function (fs, url)
   Node.FS = require("./fs");
   //
   // Url string
-  this.url = url.url;
+  this.url = url;
   //
   this.fs = fs;
 };
@@ -123,7 +123,7 @@ Node.Url.prototype.download = function (file, options, cb)
     let path = "tempDownloadedFile";
     if (Node.utils)
       path = Node.utils.generateUID36();
-    file = this.fs.file(path, Node.FS.internalType.temp);
+    file = this.fs.file(path);
   }
   else
     this.type = file.type;

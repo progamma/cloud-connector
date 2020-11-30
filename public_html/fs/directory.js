@@ -14,16 +14,15 @@ var Node = Node || {};
  * @class Directory
  * Represents a directory object
  * @param {Node.FS} fs
- * @param {Object} dir
+ * @param {String} path
  */
-Node.Directory = function (fs, dir)
+Node.Directory = function (fs, path)
 {
   Node.FS = require("./fs");
-  dir = dir || {};
   //
   // String containing the relative path of the directory
-  this.path = dir.path || "";
-  if (dir.path) {
+  this.path = path || "";
+  if (path) {
     // Remove final slash
     if (this.path.endsWith("/"))
       this.path = this.path.slice(0, -1);

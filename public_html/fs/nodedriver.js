@@ -1218,7 +1218,14 @@ Node.NodeDriver.prototype.deserializeObject = function (obj) {
   if (obj.id && this.files[obj.id])
     return this.files[obj.id];
   //
-  return this[obj._t](obj);
+  switch (obj._t) {
+    case "file":
+      return this.file(obj.path, obj.id);
+    case "directory":
+      return this.directory(obj.path);
+    case "url":
+      return this.url(obj.url);
+  }
 };
 
 
