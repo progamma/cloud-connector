@@ -389,19 +389,22 @@ Node.NodeDriver.prototype.copyFile = function (file, newFile, cb)
 /**
  * Rename a file or directory
  * @param {File/Directory} obj
- * @param {string} newName
+ * @param {File/Directory} newObj
  * @param {function} cb
  */
-Node.NodeDriver.prototype.renameObject = function (obj, newName, cb)
+Node.NodeDriver.prototype.renameObject = function (obj, newObj, cb)
 {
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     return cb(new Error("Permission denied"));
   //
+  // Back compatibility (newObj as name)
+  if (typeof newObj === "string")
+    newObj = this[obj instanceof Node.File ? "file" : "directory"](obj.path.substring(0, obj.path.lastIndexOf("/") + 1) + newObj, obj.type);
+  //
   // Check that the relative paths are valid and I get absolute paths
   let path = this.checkPath(obj);
-  //
-  let newPath = path.substring(0, path.lastIndexOf("/") + 1) + newName;
+  let newPath = this.checkPath(newObj);
   //
   // Rename
   Node.nodeFs.rename(path, newPath, cb);
