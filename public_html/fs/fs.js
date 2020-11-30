@@ -40,27 +40,28 @@ Node.FS.permissions = {
 
 /**
  * Creates a file object with the appropriate driver and path
- * @param {Object} file
+ * @param {String} path
+ * @param {String} id
  */
-Node.FS.prototype.file = function (file)
+Node.FS.prototype.file = function (path, id)
 {
-  return new Node.File(this, file);
+  return new Node.File(this, path, id);
 };
 
 
 /**
  * Creates a directory object with the appropriate driver
- * @param {Object} dir
+ * @param {String} path
  */
-Node.FS.prototype.directory = function (dir)
+Node.FS.prototype.directory = function (path)
 {
-  return new Node.Directory(this, dir);
+  return new Node.Directory(this, path);
 };
 
 
 /**
  * Creates a URL object with the appropriate driver
- * @param {string} url
+ * @param {String} url
  */
 Node.FS.prototype.url = function (url)
 {

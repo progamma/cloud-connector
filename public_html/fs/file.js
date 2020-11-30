@@ -16,23 +16,22 @@ var Node = Node || {};
  * @param {Node.FS} fs
  * @param {Object} file
  */
-Node.File = function (fs, file)
+Node.File = function (fs, path, id)
 {
   Node.FS = require("./fs");
   //
-  file = file || {};
-  if (file.id)
-    this.id = file.id;
-  //
   // String containing the relative path of the file
-  if (file.path)
-    this.path = file.path;
+  if (path)
+    this.path = path;
   //
   this.fs = fs;
   //
   // String containing the encoding of the file, null by default: decided by the user at the time
   // of the creation of the physical file
   this.encoding = null;
+  //
+  if (id)
+    this.id = id;
 };
 
 
