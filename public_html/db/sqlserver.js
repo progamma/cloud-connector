@@ -50,8 +50,18 @@ Node.SQLServer.prototype.initPool = function (callback) {
   if (this.pool)
     return callback();
   //
-  this.pool = new mssql.ConnectionPool(this.connectionOptions);
-  this.pool.connect(callback);
+  let pool = new mssql.ConnectionPool(this.connectionOptions);
+  pool.connect(function (err) {
+    if (err)
+      return callback(null, err);
+    //
+    this.pool = pool;
+    callback();
+  }.bind(this));
+  //
+  pool.on("error", function (err) {
+    delete this.pool;
+  }.bind(this));
 };
 
 
@@ -185,7 +195,9 @@ Node.SQLServer.prototype._beginTransaction = function (conn, callback)
  */
 Node.SQLServer.prototype._commitTransaction = function (conn, callback)
 {
-  conn.transaction.commit(callback);
+  conn.transaction.commit(function (error) {
+    callback(null, error);
+  });
 };
 
 
@@ -196,7 +208,9 @@ Node.SQLServer.prototype._commitTransaction = function (conn, callback)
  */
 Node.SQLServer.prototype._rollbackTransaction = function (conn, callback)
 {
-  conn.transaction.rollback(callback);
+  conn.transaction.rollback(function (error) {
+    callback(null, error);
+  });
 };
 
 
