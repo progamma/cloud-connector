@@ -55,15 +55,9 @@ Node.Oracle.prototype.loadModule = function ()
  */
 Node.Oracle.prototype._openConnection = function (callback)
 {
-  // Open connection
-  this.initPool(function (err) {
-    if (err)
-      return callback(null, err);
-    //
-    this.pool.getConnection(function (err, connection) {
-      callback({conn: connection}, err);
-    });
-  }.bind(this));
+  this.pool.getConnection(function (err, connection) {
+    callback({conn: connection}, err);
+  });
 };
 
 
@@ -71,15 +65,10 @@ Node.Oracle.prototype._openConnection = function (callback)
  * Init the application pool
  * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype.initPool = function (callback) {
-  if (this.pool)
-    return callback();
-  //
+Node.Oracle.prototype._initPool = function (callback) {
   oracledb.createPool(this.connectionOptions, function (error, pool) {
-    if (!error)
-      this.pool = pool;
-    callback(error);
-  }.bind(this));
+    callback(pool, error);
+  });
 };
 
 
