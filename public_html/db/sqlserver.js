@@ -36,9 +36,7 @@ Node.SQLServer.prototype = new Node.DataModel();
  */
 Node.SQLServer.prototype._openConnection = function (callback)
 {
-  this.initPool(function (err) {
-    callback({}, err);
-  });
+  callback({});
 };
 
 
@@ -46,20 +44,13 @@ Node.SQLServer.prototype._openConnection = function (callback)
  * Init the application pool
  * @param {Function} callback - function to be called at the end
  */
-Node.SQLServer.prototype.initPool = function (callback) {
-  if (this.pool)
-    return callback();
-  //
+Node.SQLServer.prototype._initPool = function (callback) {
   let pool = new mssql.ConnectionPool(this.connectionOptions);
-  pool.connect(function (err) {
-    if (err)
-      return callback(null, err);
-    //
-    this.pool = pool;
-    callback();
-  }.bind(this));
+  pool.connect(function (error) {
+    callback(pool, error);
+  });
   //
-  pool.on("error", function (err) {
+  pool.on("error", function (error) {
     delete this.pool;
   }.bind(this));
 };

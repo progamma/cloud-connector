@@ -35,10 +35,6 @@ Node.MySQL.prototype = new Node.DataModel();
  */
 Node.MySQL.prototype._openConnection = function (callback)
 {
-  // Get connection pool
-  this.pool = this.pool || new mysql.createPool(this.connectionOptions);
-  //
-  // Open connection
   this.pool.getConnection(function (err, connection) {
     // Stop auto closure and return the connection from pool
     if (connection && connection.closeTimer) {
@@ -48,6 +44,15 @@ Node.MySQL.prototype._openConnection = function (callback)
     //
     callback({conn: connection}, err);
   }.bind(this));
+};
+
+
+/**
+ * Init the application pool
+ * @param {Function} callback - function to be called at the end
+ */
+Node.MySQL.prototype._initPool = function (callback) {
+  callback(new mysql.createPool(this.connectionOptions));
 };
 
 

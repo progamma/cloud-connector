@@ -86,6 +86,24 @@ Node.DataModel.prototype.loadModule = function ()
 
 
 /**
+ * Init the application pool
+ * @param {Function} callback - function to be called at the end
+ */
+Node.DataModel.prototype.getPool = function (callback) {
+  if (this.pool)
+    return callback();
+  //
+  this._initPool(function (pool, error) {
+    if (error)
+      return callback(null, error);
+    //
+    this.pool = pool;
+    callback();
+  }.bind(this));
+};
+
+
+/**
  * Open the connection to the database
  * @param {Object} msg - message received
  * @param {Function} callback - function to be called at the end
@@ -96,13 +114,18 @@ Node.DataModel.prototype.openConnection = function (msg, callback)
   if (!this.loadModule())
     return callback(null, new Error(this.class + " driver not found.\nInstall \"" + this.moduleName + "\" module and try again"));
   //
-  this._openConnection(function (result, error) {
+  this.getPool(function (result, error) {
     if (error)
       return callback(null, error);
     //
-    this.connections[msg.cid] = result;
-    result.server = msg.server;
-    callback();
+    this._openConnection(function (result, error) {
+      if (error)
+        return callback(null, error);
+      //
+      this.connections[msg.cid] = result;
+      result.server = msg.server;
+      callback();
+    }.bind(this));
   }.bind(this));
 };
 

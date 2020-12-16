@@ -46,13 +46,21 @@ Node.Postgres.prototype._openConnection = function (callback)
   pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, parseDate);
 //  pg.types.setTypeParser(pg.types.builtins.TIMESTAMPTZ, parseDate);
   //
-  this.pool = this.pool || new pg.Pool(this.connectionOptions);
   this.pool.connect(function (err, client, done) {
     if (err && done)
       done();
     //
     callback({conn: client, done: done}, err);
   });
+};
+
+
+/**
+ * Init the application pool
+ * @param {Function} callback - function to be called at the end
+ */
+Node.Postgres.prototype._initPool = function (callback) {
+  callback(new pg.Pool(this.connectionOptions));
 };
 
 
