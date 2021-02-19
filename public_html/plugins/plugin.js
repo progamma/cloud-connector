@@ -49,7 +49,7 @@ Node.Plugin.prototype.deserializeObject = function (obj) {
 
 
 /**
- * Receive a message
+ * Received a message
  * @param {Object} msg
  * @param {Function} callback - for response
  */

@@ -1030,6 +1030,7 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
   //
   // For download check file path
   let downloadError;
+  let writeStream;
   if (download) {
     // Check path
     let downloadPath = this.checkPath(true, options._file);
@@ -1037,7 +1038,7 @@ Node.NodeDriver.prototype.httpRequest = function (url, method, options, cb)
       return cb({error: new Error("invalid download path")});
     //
     // Create stream
-    let writeStream = Node.nodeFs.createWriteStream(downloadPath, {encoding: null});
+    writeStream = Node.nodeFs.createWriteStream(downloadPath, {encoding: null});
     writeStream.once("error", function (error) {
       downloadError = error;
     });

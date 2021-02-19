@@ -34,7 +34,7 @@ Node.DataModel.commandTypes = {
 
 
 /**
- * Recived a message
+ * Received a message
  * @param {Object} msg
  * @param {Function} callback - for response
  */
