@@ -32,9 +32,6 @@ Node.NodeDriver = function (parent, config)
     Node.File = require("./file");
   }
   //
-  // Files opened
-  this.files = {};
-  //
   Node.FS.call(this, parent, config);
 };
 
@@ -1258,26 +1255,6 @@ Node.NodeDriver.prototype.onMessage = function (msg, callback)
   //
   // Call function
   this[msg.cmd].apply(this, argsArray);
-};
-
-
-/**
- * Notified when a server disconnects
- * @param {Node.Server} server - server disconnected
- */
-Node.NodeDriver.prototype.onServerDisconnected = function (server)
-{
-  // Close all opened files
-  let filesOpened = Object.keys(this.files);
-  for (let i = 0; i < filesOpened.length; i++) {
-    let f = this.files[filesOpened[i]];
-    if (f.server === server) {
-      f.close(function (error) {
-        if (error)
-          this.parent.log("ERROR", "Error closing file '" + f.path + "': " + error);
-      }.bind(this));
-    }
-  }
 };
 
 

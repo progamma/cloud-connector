@@ -15,11 +15,25 @@ Node.Utils = function ()
 
 
 /**
+ * Convert an ArrayBuffer to stream
+ * @param {ArrayBuffer} buffer
+ */
+Node.Utils.bufferToStream = function (buffer)
+{
+  let stream = new require('stream').Readable();
+  stream.push(buffer);
+  stream.push(null);
+  return stream;
+};
+
+
+/**
  * Convert an ArrayBuffer to base64 string
  * @param {ArrayBuffer} buffer
  * See https://www.npmjs.com/package/base64-arraybuffer
  */
-Node.Utils.bufferToBase64 = function (buffer) {
+Node.Utils.bufferToBase64 = function (buffer)
+{
   if (module)
     return new Buffer(buffer).toString("base64");
   //
@@ -48,7 +62,8 @@ Node.Utils.bufferToBase64 = function (buffer) {
  * @param {String} base64
  * See https://www.npmjs.com/package/base64-arraybuffer
  */
-Node.Utils.base64ToBuffer = function (base64) {
+Node.Utils.base64ToBuffer = function (base64)
+{
   let bufferLength = base64.length * 0.75;
   if (base64[base64.length - 1] === "=") {
     bufferLength--;

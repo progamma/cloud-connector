@@ -1,6 +1,6 @@
 {
   "name": "CloudConnector",
-  "version": "20.5.0",
+  "version": "21.0.0",
   "dependencies": {
     "archiver": "4.0.1",
     "async": "3.2.0",
@@ -12,6 +12,7 @@
     "querystring": "0.2.0",
     "request": "2.88.2",
     "socket.io-client": "2.3.0",
+    "tar": "6.1.0",
     "yauzl": "2.10.0"
   }
 }

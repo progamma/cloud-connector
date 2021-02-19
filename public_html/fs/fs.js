@@ -5,7 +5,7 @@
  */
 
 
-/* global module */
+/* global module, Promise */
 
 var Node = Node || {};
 
@@ -30,6 +30,9 @@ Node.FS = function (parent, config)
   //
   // Set default permissions
   this.permissions = this.permissions || Node.FS.permissions.read;
+  //
+  // Files opened
+  this.files = {};
 };
 
 Node.FS.permissions = {
@@ -99,6 +102,41 @@ Node.FS.normalizePath = function (path)
   }
   //
   return path;
+};
+
+
+/**
+ * Notified when a server disconnects
+ * @param {Node.Server} server - server disconnected
+ */
+Node.FS.prototype.onServerDisconnected = function (server)
+{
+  // Close all opened files to that server
+  this.disconnect(server).then();
+};
+
+
+/**
+ * Close all opened files
+ * @param {Node.Server} server - server disconnected
+ */
+Node.FS.prototype.disconnect = async function (server)
+{
+  // Close all opened files
+  await Promise.all(Object.keys(this.files).map(async function (fileId) {
+    let f = this.files[fileId];
+    if (server && f.server !== server)
+      return;
+    //
+    await new Promise(function (resolve, reject) {
+      f.close(function (result, error) {
+        if (error)
+          reject(new Error(`Error closing file '${f.path}': ${error}`));
+        else
+          resolve();
+      });
+    });
+  }));
 };
 
 
