@@ -101,6 +101,17 @@ Node.Plugin.prototype.destroyObject = function (obj, callback)
  */
 Node.Plugin.prototype.onServerDisconnected = function (server)
 {
+  // Close all opened files to that server
+  this.disconnect(server).then();
+};
+
+
+/**
+ * Close all opened files
+ * @param {Node.Server} server - server disconnected
+ */
+Node.Plugin.prototype.disconnect = async function (server)
+{
 };
 
 

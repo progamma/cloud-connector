@@ -3,7 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2014
  * All rights reserved
  */
-/* global module, global, Buffer */
+/* global module, global, Buffer, Promise */
 
 var Node = Node || {};
 
@@ -265,15 +265,30 @@ Node.DataModel.prototype.ping = function (msg, callback)
 Node.DataModel.prototype.onServerDisconnected = function (server)
 {
   // Close all pending connections to that server
-  let cids = Object.keys(this.connections);
-  for (let i = 0; i < cids.length; i++) {
-    if (this.connections[cids[i]].server === server) {
-      this.closeConnection({cid: cids[i]}, function (result, error) {
+  this.disconnect(server).then();
+};
+
+
+/**
+ * Close all connections
+ * @param {Node.Server} server - server disconnected
+ */
+Node.DataModel.prototype.disconnect = async function (server)
+{
+  // Close all pending connections
+  await Promise.all(Object.keys(this.connections).map(async function (cbid) {
+    if (server && this.connections[cbid].server !== server)
+      return;
+    //
+    await new Promise(function (resolve, reject) {
+      this.closeConnection({cid: cbid}, function (result, error) {
         if (error)
-          this.parent.log("ERROR", "Error closing connection of datamodel '" + this.name + "': " + error);
+          reject(new Error()`Error closing connection of datamodel ${this.name}': ${error}`);
+        else
+          resolve();
       }.bind(this));
-    }
-  }
+    }.bind(this));
+  }.bind(this)));
 };
 
 
