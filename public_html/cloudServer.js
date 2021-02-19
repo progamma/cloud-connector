@@ -148,11 +148,11 @@ Node.CloudServer.prototype.loadConfig = async function (newConfig)
     throw new Error(`Error parsing the configuration: ${e}\n${e.stack}`);
   }
   //
+  this.configChanged = (this.name !== config.name);
   this.name = config.name;
   if (config.remoteConfigurationKey !== "00000000-0000-0000-0000-000000000000")
     this.remoteConfigurationKey = config.remoteConfigurationKey;
   //
-  this.configChanged = false;
   await this.createDataModels(config);
   await this.createFileSystems(config);
   await this.createPlugins(config);
