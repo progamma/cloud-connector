@@ -668,7 +668,7 @@ Node.CloudServer.prototype.restart = async function (msg)
   if (process.platform === "win32")
     child_process.spawn(`${__dirname}/restart.bat`).unref();
   else {
-    await Node.fs.chmod(`${__dirname}/restart.bat`, 0x777);
+    await Node.fs.chmod(`${__dirname}/restart.bat`, 0o777);
     child_process.spawn("bash", ["-c", `${__dirname}/restart.bat`]).unref();
   }
 };
@@ -720,7 +720,7 @@ Node.CloudServer.prototype.changeCode = async function (msg)
   if (process.platform === "win32")
     await execFile(batch, [], {cwd: __dirname});
   else {
-    await Node.fs.chmod(batch, 0x777);
+    await Node.fs.chmod(batch, 0o777);
     await execFile("bash", ["-c", batch], {cwd: __dirname});
   }
   //
