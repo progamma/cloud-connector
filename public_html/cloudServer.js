@@ -706,8 +706,7 @@ Node.CloudServer.prototype.changeCode = async function (msg)
   //
   // Unpack new source code
   const tar = require("tar");
-  const path = require("path");
-  let unpack = tar.extract({cwd: path.resolve(__dirname + "/../")});
+  let unpack = tar.extract({cwd: __dirname});
   await new Promise((resolve, reject) => {
     unpack.on("close", resolve);
     unpack.on("error", reject);
