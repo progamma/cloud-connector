@@ -1,26 +1,70 @@
 # cloud-connector
 
-A connector for remote databases.
+Il Cloud Connector è uno strumento che permette di connettersi a uno o più database remoti da applicazioni sviluppate con Instant Developer Cloud.
 
-Cloud Connector is a tool that lets you connect to one or more remote databases from applications developed with Instant Developer.
+Normalmente sono le applicazioni che si connettono al database ed è necessario aprire almeno una porta verso il mondo esterno sul database server.
 
-Normally are the applications that connect to the database and you need to open the doors on the database server.
+Con il Cloud Connector installato sul server dove risiede il database, o in un server della stessa rete locale, è il database stesso ad aprire una connessione verso l'applicazione. Questo fa si che non occorra aprire specifiche porte verso l'esterno aumentando di molto la sicurezza.
 
-Installing a Cloud Connector on the database server is the database itself to open a connection to the application not having such open doors on the database server.
+## Installazione
 
-## Installation and configuration
+Per installare il Cloud Connector occorre eseguire le operazioni di seguito descritte:
+- Installare [node.js](https://nodejs.org) v 12.17.0 sul server del database o in un server dal quale è possibile connettersi al database che si desidera esporre.
+- Scaricare il pacchetto di installazione del software di Cloud Connector dal link seguente:
+[https://github.com/progamma/cloud-connector/archive/refs/heads/master.zip](https://github.com/progamma/cloud-connector/archive/refs/heads/master.zip)
+- Decomprimere il contenuto del file zip dove si preferisce.
+- Rinominare il file `public_html\config_example.json` in `config.json` e aprirlo con un editor di testo per impostare i parametri di configurazione.
+- Spostarsi nella directory `public_html` ed eseguire il seguente comando per installare i node_modules:  
+`$ npm update`
+- Se si desidera installare il plug-in ActiveDirectory occorre spostarsi nella directory `public_html\plugins\activedirectory` ed eseguire nuovamente l’installazione dei relativi node_modules:  
+`$ npm update`
+- Eseguire il comando `node cloudServer.js` per far partire il connettore.
 
-- Install [node.js](https://nodejs.org) v 12.17.0 on the machine where you can connect to database that you want expose.
-- Unzip the content of zip file where you prefer.
-- Rename the file `public_html\config_example.json` as `config.json` and open it.
-- Enter information about the application servers to connect to the database and you want to expose.
-  - In the section `remoteServers` are listened the urls of application servers to which you want connect (example https://myserver:8080).
-  - In the section `remoteUserNames` are listened the username of Instant Developer IDE to which you want connect (example johnsmith).
-  - In the section `datamodels` are listened the databases that you want expose. You can list multiple databases. Each type of database (Oracle, Postgres, SQLServer, MySQL) has specific connection parameters.
-  - In the section `fileSystems` are listened the directory paths that you want expose.
-  - In the section `plugins` are listened the classes that you can create inside the `public_html\plugins` folder and use as plugins. 
-  Cloud Connector has a built-in plugin: ActiveDirectory. If you want to use it you have to add an object to this section similar to:
-  
+## Configurazione
+
+La configurazione del Cloud Connector avviene mediante il file config.json che si trova nella directory `public_html`:
+- La sezione principale indica il nome del connettore così come sarà visto dai server di produzione e dai server IDE.
+- Nella sezione `remoteServers` vanno indicati i server di Instant Developer Cloud che devono essere contattati dal Cloud Connector, quelli dove risiedono gli applicativi che utilizzeranno il database.  
+Per esempio:  
+`"remoteServers": [prod1-pro-gamma.instantdevelopercloud.com,prod2-pro-gamma.instantdevelopercloud.com],`
+- Nella sezione `remoteUserNames` devono essere indicati indicati gli utenti dell’IDE di Instant Developer Cloud a cui il Cloud Connector può collegarsi.  
+Per esempio:  
+`"remoteUserNames": ["https://ide1-pro-gamma.instantdevelopercloud.com@paolo-giannelli"],`  
+- Nella `datamodels` devono essere impostate le informazioni di connessione ai database che si vuole esporre. È possibile elencare più database. Ogni tipo di database (Oracle, Postgres, SQLServer, MySQL) ha parametri di connessione specifici.  
+Un esempio di configurazione SQL server è il seguente:
+  ```js
+  "datamodels": [  
+    {  
+      "name": "nwind-db",  
+      "class": "SQLServer",  
+      "APIKey": "00000000-0000-0000-0000-000000000000",  
+      "connectionOptions": {  
+      "server": "127.0.0.1\\SQLEXPRESS",  
+      "database": "nome-database",  
+      "user": "utente",  
+      "password": "password",  
+      "options": {  
+        "useUTC": false  
+      }  
+    }  
+  }],
+  ```
+- Nella sezione `fileSystems` devono essere impostate le informazioni delle directory che si desidera condividere.  
+Un esempio di condivisione è il seguente:
+   ```js
+   "fileSystems": [
+    {
+      "name": "pabloFileSystemTemp",
+      "path": "C:\\Data\\Image",
+      "permissions": "rw",
+      "APIKey": "00000000-0000-0000-0000-000000000000"
+    }
+  ] 
+  ```
+
+ - Nella sezione `plugins` devono essere elencate le classi che sono installate all'interno della directory `public_html\plugins` ed utilizzate come plugin.   
+Cloud Connector ha un plug-in già integrato: ActiveDirectory.  
+Per usarlo occorre aggiungere alla sezione un oggetto simile al seguente:  
     ```js
     {
       "name": "myAD",
@@ -34,36 +78,29 @@ Installing a Cloud Connector on the database server is the database itself to op
       }
     }
     ```
-    
-- Move to `public_html` folder and run this command to install node_modules:
 
-  `$ npm update`
+## Note
+Attualmente Cloud Connector non supporta il `caching_sha2_password` come metodo di autenticazione su MySQL 8. Si consiglia invece di utilizzare il metodo di autenticazione `legacy`.
 
-- If you want to install ActiveDirectory plugin move to `public_html\plugins\activedirectory` and run again:
+## Installazione come servizio
 
-  `$ npm update`
+Per installare il connettore cloud come servizio è possibile utilizzare [pm2](https://github.com/Unitech/pm2).
+PM2 è un gestore del processo di produzione per le applicazioni Node.js con un bilanciatore del carico integrato. Consente di mantenere in vita le applicazioni per sempre, di ricaricarle senza tempi di inattività e di facilitare le comuni attività di amministrazione del sistema.
 
-- Run `node cloudServer.js` to start the connector.
-
-## Notes
-Currently Cloud Connector doesn't support the `caching_sha2_password` authentication method on MySQL 8. It's recommended to use the legacy authentication method instead.
-
-## Installation as a service
-
-For install cloud connector as a service you can use [pm2](https://github.com/Unitech/pm2).
-PM2 is a production process manager for Node.js applications with a built-in load balancer. It allows you to keep applications alive forever, to reload them without downtime and to facilitate common system admin tasks.
-
-For run your cloud connector with pm2 you must run this command:
+Per eseguire il Cloud Connector con pm2 occorre utilizzare questo comando:
 
 `$ pm2 start cloudServer.js`
 
-For save process infomation to run at restart run this command:
+Per salvare le informazioni sul processo da eseguire al riavvio, eseguire questo comando:
 
 `$ pm2 save`
 
-For run pm2 as service you must follow information of this two article:
-- for linux [https://gist.github.com/leommoore/5998406](https://gist.github.com/leommoore/5998406).
-- for windows [https://github.com/Unitech/PM2/issues/1079](https://github.com/Unitech/PM2/issues/1079).
+Per eseguire pm2 come servizio la procedura è diversa a seconda del tipo di server:
+- per Linux [https://gist.github.com/leommoore/5998406](https://gist.github.com/leommoore/5998406).
+- per Windows [https://github.com/Unitech/PM2/issues/1079](https://github.com/Unitech/PM2/issues/1079).
 
-## Remote Configuration
-To allow remote reconfiguration (restart, change of config.js, update of source codes) the `remoteConfigurationKey` attribute must be set in the config.json.
+## Controllo remoto
+ Per consentire la configurazione da remoto (riavvio, modifica di config.js, aggiornamento del software) occorre impostare il parametro `remoteConfigurationKey` nel config.json.  
+   
+## Guida 
+Per maggiori informazioni sul Cloud Connector è possibile leggere questa [guida](https://storage.googleapis.com/inde-downloads/doc/Instant%20Developer%20Cloud%20Connector.pdf).
