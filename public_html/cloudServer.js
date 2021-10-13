@@ -294,6 +294,13 @@ Node.CloudServer.prototype.createDataModel = function (config)
       this.oldDatamodels.splice(i, 1);
       if (d.APIKey !== config.APIKey)
         this.configChanged = true;
+      //
+      // Verify if the password is changed
+      if (JSON.stringify(d.connectionOptions) !== JSON.stringify(config.connectionOptions)) {
+        d.connectionOptions = config.connectionOptions;
+        this.configChanged = true;
+      }
+      //
       return;
     }
   }
