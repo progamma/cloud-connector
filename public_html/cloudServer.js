@@ -196,15 +196,14 @@ Node.CloudServer.prototype.createServers = async function (config)
   //
   // Next, attach "IDE" servers
   for (let i = 0; i < config.remoteUserNames.length; i++) {
+    let url;
     let uname = config.remoteUserNames[i];
     //
     // Handled formats: http://domain, http://domain@username, username
-    if (uname.startsWith("http://") || uname.startsWith("https://")) {
-      let parts = uname.split("@");
-      await this.createServer(parts[0], parts[1]);
-    }
-    else
-      await this.createServer(undefined, uname);
+    if (uname.startsWith("http://") || uname.startsWith("https://"))
+      [url, uname] = uname.split("@");
+    //
+    await this.createServer(url, uname, config.connectionOptions);
   }
   //
   // Disconnect from the remaining servers
@@ -219,8 +218,9 @@ Node.CloudServer.prototype.createServers = async function (config)
  * Start a client
  * @param {String} srvUrl
  * @param {String} username
+ * @param {Object} options
  */
-Node.CloudServer.prototype.createServer = async function (srvUrl, username)
+Node.CloudServer.prototype.createServer = async function (srvUrl, username, options)
 {
   if (username) {
     if (!srvUrl) {
@@ -256,7 +256,7 @@ Node.CloudServer.prototype.createServer = async function (srvUrl, username)
   let s = new Node.Server(this, srvUrl, username);
   this.servers.push(s);
   //
-  s.connect();
+  s.connect(options);
 };
 
 

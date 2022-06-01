@@ -3,6 +3,9 @@
   "remoteServers": ["{applicationUrl1}", "{applicationUrl2}"],
   "remoteUserNames": ["{ideUsername}", "{ideOrganization/IdeUsername}", "{ideUrl@ideUsername}"],
   "remoteConfigurationKey": "00000000-0000-0000-0000-000000000000",
+  "connectionOptions": {
+    "rejectUnauthorized": false
+  },
   "datamodels": [
     {
       "name": "{datamodelName}",
@@ -29,6 +32,11 @@
         "connectionTimeout": 30000,
         "pool": {
           "max": 100
+        },
+        "options": {
+          "useUTC": false,
+          "encrypt": true,
+          "trustServerCertificate": true
         }
       }
     },
