@@ -26,18 +26,20 @@ Node.Server = function (parent, url, username)
 
 /**
  * Connect this client to the given target
+ * @param {Object} options
  */
-Node.Server.prototype.connect = function ()
+Node.Server.prototype.connect = function (options)
 {
   this.parent.log("INFO", `Try to connect to ${this.serverUrl}`);
   //
-  let opt = {};
-  opt.forceNew = true;
-  opt.reconnection = true;
-  opt.reconnectionDelay = 30000;
-  opt.reconnectionDelayMax = 50000;
-  opt.timeout = 30000;
-  this.socket = Node.io(this.serverUrl, opt);
+  options = Object.assign({
+    forceNew: true,
+    reconnection: true,
+    reconnectionDelay: 30000,
+    reconnectionDelayMax: 50000,
+    timeout: 30000
+  }, options);
+  this.socket = Node.io(this.serverUrl, options);
   //
   this.socket.on("connect", function () {
     this.parent.log("INFO", `Connected to ${this.serverUrl}`);
