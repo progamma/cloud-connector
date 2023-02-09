@@ -80,7 +80,7 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
   let req = new mssql.Request(conn.transaction || this.pool);
   if (sql.toLowerCase().indexOf("insert into ") !== -1) {
     req.multiple = true;
-    sql += "; select @@identity as Counter";
+    sql += "; select SCOPE_IDENTITY() as Counter";
   }
   //
   // Add input parameters

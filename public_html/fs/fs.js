@@ -123,13 +123,13 @@ Node.FS.prototype.onServerDisconnected = function (server)
 Node.FS.prototype.disconnect = async function (server)
 {
   // Close all opened files
-  await Promise.all(Object.keys(this.files).map(async function (fileId) {
+  await Promise.all(Object.keys(this.files).map(async fileId => {
     let f = this.files[fileId];
     if (server && f.server !== server)
       return;
     //
     await new Promise(function (resolve, reject) {
-      f.close(function (result, error) {
+      f.close((result, error) => {
         if (error)
           reject(new Error(`Error closing file '${f.path}': ${error}`));
         else
