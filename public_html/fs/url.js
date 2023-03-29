@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2016
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 
@@ -13,8 +13,8 @@ var Node = Node || {};
 /**
  * @class Url
  * Represents an URL object
- * @param {App.FS} fs
- * @param {string} url
+ * @param {Node.FS} fs
+ * @param {String} url
  */
 Node.Url = function (fs, url)
 {
@@ -29,94 +29,84 @@ Node.Url = function (fs, url)
 
 /**
  * Make GET request
- * @param {object} options
- * @param {function} cb
+ * @param {Object} options
  */
-Node.Url.prototype.get = function (options, cb)
+Node.Url.prototype.get = async function (options)
 {
   // If requested, change method
-  let method = "GET";
-  if (options && options.method)
-    method = options.method;
+  let method = options?.method || "GET";
   //
-  this.fs.httpRequest(this, method, options, cb);
+  return await this.fs.httpRequest(this, method, options);
 };
 
 
 /**
  * Make POST request
- * @param {object} options
- * @param {function} cb
+ * @param {Object} options
  */
-Node.Url.prototype.post = function (options, cb)
+Node.Url.prototype.post = async function (options)
 {
-  this.fs.httpRequest(this, "POST", options, cb);
+  return await this.fs.httpRequest(this, "POST", options);
 };
 
 
 /**
  * Make PUT request
- * @param {object} options
- * @param {function} cb
+ * @param {Object} options
  */
-Node.Url.prototype.put = function (options, cb)
+Node.Url.prototype.put = async function (options)
 {
-  this.fs.httpRequest(this, "PUT", options, cb);
+  return await this.fs.httpRequest(this, "PUT", options);
 };
 
 
 /**
  * Make DELETE request
- * @param {object} options
- * @param {function} cb
+ * @param {Object} options
  */
-Node.Url.prototype.delete = function (options, cb)
+Node.Url.prototype.delete = async function (options)
 {
-  this.fs.httpRequest(this, "DELETE", options, cb);
+  return await this.fs.httpRequest(this, "DELETE", options);
 };
 
 
 /**
  * Make PATCH request
- * @param {object} options
- * @param {function} cb
+ * @param {Object} options
  */
-Node.Url.prototype.patch = function (options, cb)
+Node.Url.prototype.patch = async function (options)
 {
-  this.fs.httpRequest(this, "PATCH", options, cb);
+  return await this.fs.httpRequest(this, "PATCH", options);
 };
 
 
 /**
  * Make HEAD request
- * @param {object} options
- * @param {function} cb
+ * @param {Object} options
  */
-Node.Url.prototype.head = function (options, cb)
+Node.Url.prototype.head = async function (options)
 {
-  this.fs.httpRequest(this, "HEAD", options, cb);
+  return await this.fs.httpRequest(this, "HEAD", options);
 };
 
 
 /**
  * Make a request whit custom method
- * @param {string} method
- * @param {object} options
- * @param {function} cb
+ * @param {String} method
+ * @param {Object} options
  */
-Node.Url.prototype.request = function (method, options, cb)
+Node.Url.prototype.request = async function (method, options)
 {
-  this.fs.httpRequest(this, method, options, cb);
+  return await this.fs.httpRequest(this, method, options);
 };
 
 
 /**
  * Download a file
- * @param {object} file
- * @param {object} options
- * @param {function} cb
+ * @param {Object} file
+ * @param {Object} options
  */
-Node.Url.prototype.download = function (file, options, cb)
+Node.Url.prototype.download = async function (file, options)
 {
   // Create object file if it doesn't exist
   if (!file) {
@@ -129,58 +119,49 @@ Node.Url.prototype.download = function (file, options, cb)
     this.type = file.type;
   //
   // Set internal request options
-  let _options = {};
-  if (options)
-    _options = options;
-  _options._file = file;
+  options = Object.assign({_file: file}, options);
   //
   // Make request
-  this.fs.httpRequest(this, "DOWNLOAD", _options, function (response) {
-    if (!response.error) {
-      if (response.publicUrl)
-        file._publicUrl = response.publicUrl;
-      response.file = file;
-    }
-    cb();
-  });
+  this.fs.httpRequest(this, "DOWNLOAD", options);
+  if (!response.error)
+    response.file = file;
+  //
+  return response;
 };
 
 
 /**
  * Upload a file
- * @param {object} file
- * @param {object} options
- * @param {function} cb
+ * @param {Object} file
+ * @param {Object} options
  */
-Node.Url.prototype.upload = function (file, options, cb)
+Node.Url.prototype.upload = async function (file, options)
 {
-  if (!file)
-    return cb({error: new Error("file missing")});
-  //
-  // Set internal request options
-  options = options || {};
-  options._fileName = options.fileName || file.path.substr(file.path.lastIndexOf('/') + 1);
-  options._nameField = options.nameField || "file";
-  options._fileContentType = options.fileContentType || "application/octet-stream";
-  //
-  // Get file size
-  file.length(function (size, err) {
-    if (err)
-      return cb(null, err);
+  try {
+    if (!file)
+      throw new Error("file missing");
     //
-    options._fileSize = size;
-    options._file = file;
+    options = Object.assign({
+      _fileName: options?.fileName || file.path.substr(file.path.lastIndexOf('/') + 1),
+      _nameField: options?.nameField || "file",
+      _fileContentType: options?.fileContentType || "application/octet-stream",
+      _fileSize: await file.length(),
+      _file: file
+    }, options);
     //
     // Make request
-    this.fs.httpRequest(this, "UPLOAD", options, cb);
-  }.bind(this));
+    return await this.fs.httpRequest(this, "UPLOAD", options);
+  }
+  catch (e) {
+    return {error: e};
+  }
 };
 
 
 /**
  * Event fired when the object url sent a chunk bytes while uploading
- * @param {int} bytesSent
- * @param {int} total
+ * @param {Number} bytesSent
+ * @param {Number} total
  */
 Node.Url.prototype.onUploadProgress = function (bytesSent, total)
 {
@@ -190,8 +171,8 @@ Node.Url.prototype.onUploadProgress = function (bytesSent, total)
 
 /**
  * Event fired when the object url sent a chunk bytes while uploading
- * @param {int} bytesTransfered
- * @param {int} total
+ * @param {Number} bytesTransfered
+ * @param {Number} total
  */
 Node.Url.prototype.onDownloadProgress = function (bytesTransfered, total)
 {
@@ -202,4 +183,3 @@ Node.Url.prototype.onDownloadProgress = function (bytesTransfered, total)
 //  export module for node
 if (module)
   module.exports = Node.Url;
-

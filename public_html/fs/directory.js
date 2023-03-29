@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2016
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 
@@ -23,7 +23,9 @@ Node.Directory = function (fs, path)
   // String containing the relative path of the directory
   this.path = path || "";
   if (path) {
-    // Remove final slash
+    // Remove slash
+    if (this.path.startsWith("/"))
+      this.path = this.path.slice(1);
     if (this.path.endsWith("/"))
       this.path = this.path.slice(0, -1);
   }
@@ -39,6 +41,11 @@ Object.defineProperties(Node.Directory.prototype, {
     },
     set: function (newValue) {
       this._path = Node.FS.normalizePath(newValue);
+    }
+  },
+  absolutePath: {
+    get: function () {
+      return this.fs.getAbsolutePath(this);
     }
   }
 });
@@ -67,96 +74,82 @@ Node.Directory.prototype.name = function ()
 
 /**
  * Creates the directory physically
- * @param {function} cb
  */
-Node.Directory.prototype.create = function (cb)
+Node.Directory.prototype.create = async function ()
 {
-  this.fs.mkDir(this, function (err) {
-    cb(null, err);
-  });
+  await this.fs.mkDir(this);
 };
 
 
 /**
  * Checks the existence of the directory
- * @param {function} cb
  */
-Node.Directory.prototype.exists = function (cb)
+Node.Directory.prototype.exists = async function ()
 {
-  this.fs.dirExists(this, cb);
+  return await this.fs.dirExists(this);
 };
 
 
 /**
  * Renames the directory
  * @param {string/Directory} newDir
- * @param {function} cb
  */
-Node.Directory.prototype.rename = function (newDir, cb)
+Node.Directory.prototype.rename = async function (newDir)
 {
   if (typeof newDir === "string" && newDir.endsWith("/"))
     newDir = this.fs.directory(newDir + this.name());
   //
-  this.fs.renameObject(this, newDir, function (err) {
-    if (err)
-      return cb(null, err);
-    //
-    if (typeof newDir === "string")
-      newDir = this.fs.directory(this.path.substring(0, this.path.lastIndexOf("/") + 1) + newDir);
-    //
-    // I change the path only if the file has been renamed correctly
-    this.path = newDir.path;
-    //
-    cb();
-  }.bind(this));
+  await this.fs.renameObject(this, newDir);
+  //
+  if (typeof newDir === "string")
+    newDir = this.fs.directory(this.path.substring(0, this.path.lastIndexOf("/") + 1) + newDir);
+  //
+  // I change the path only if the file has been renamed correctly
+  this.path = newDir.path;
 };
 
 
 /**
  * Copies the entire directory
- * @param {string} newPath
- * @param {function} cb
+ * @param {String} newPath
  */
-Node.Directory.prototype.copy = function (newPath, cb)
+Node.Directory.prototype.copy = async function (newPath)
 {
   let newDir = this.fs.directory(newPath);
-  this.fs.copyDir(this, newDir, function (err) {
-    cb(newDir, err);
-  });
+  await this.fs.copyDir(this, newDir);
+  return newDir;
 };
 
 
 /**
  * Reads the content of directory: returns an array of files and folders
  * @param {Integer} depth
- * @param {function} cb
  */
-Node.Directory.prototype.list = function (depth, cb) {
-  this.fs.readDirectory(this, depth, cb);
+Node.Directory.prototype.list = async function (depth)
+{
+  // Set default depth to 0
+  depth = depth || 0;
+  return await this.fs.readDirectory(this, depth);
 };
 
 
 /**
  * Zip the directory
- * @param {function} cb
  */
-Node.Directory.prototype.zip = function (cb)
+Node.Directory.prototype.zip = async function ()
 {
   let zipFile = this.fs.file(this.path + ".zip");
-  this.fs.zipDirectory(this, zipFile, function (err) {
-    cb(zipFile, err);
-  });
+  await this.fs.zipDirectory(this, zipFile);
+  return zipFile;
 };
 
 
 /**
  * Removes the entire directory
- * @param {function} cb
  */
-Node.Directory.prototype.remove = function (cb) {
-  this.fs.removeDirRecursive(this, function (err) {
-    cb(null, err);
-  });
+Node.Directory.prototype.remove = async function ()
+{
+  await this.fs.removeDirRecursive(this);
 };
 
 

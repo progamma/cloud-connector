@@ -1,19 +1,17 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2016
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 
 
-/* global module, Promise */
+/* global module */
 
 var Node = Node || {};
 
-if (module) {
-  Node.File = require("./file");
-  Node.Directory = require("./directory");
-  Node.Url = require("./url");
-}
+Node.File = require("./file");
+Node.Directory = require("./directory");
+Node.Url = require("./url");
 
 /**
  * @class FS
@@ -109,10 +107,10 @@ Node.FS.normalizePath = function (path)
  * Notified when a server disconnects
  * @param {Node.Server} server - server disconnected
  */
-Node.FS.prototype.onServerDisconnected = function (server)
+Node.FS.prototype.onServerDisconnected = async function (server)
 {
   // Close all opened files to that server
-  this.disconnect(server).then();
+  await this.disconnect(server);
 };
 
 
@@ -123,20 +121,27 @@ Node.FS.prototype.onServerDisconnected = function (server)
 Node.FS.prototype.disconnect = async function (server)
 {
   // Close all opened files
-  await Promise.all(Object.keys(this.files).map(async fileId => {
+  for (let fileId in this.files) {
     let f = this.files[fileId];
     if (server && f.server !== server)
       return;
     //
-    await new Promise(function (resolve, reject) {
-      f.close((result, error) => {
-        if (error)
-          reject(new Error(`Error closing file '${f.path}': ${error}`));
-        else
-          resolve();
-      });
-    });
-  }));
+    try {
+      await f.close();
+    }
+    catch (e) {
+//      throw new Error(`Error closing file '${f.path}': ${error}`);
+    }
+  }
+};
+
+
+/**
+ * Return absolute path
+ * @param {File/Directory} obj
+ */
+Node.FS.prototype.getAbsolutePath = function (obj)
+{
 };
 
 

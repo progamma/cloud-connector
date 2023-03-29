@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2014
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 /* global module, mssql */
@@ -32,38 +32,33 @@ Node.SQLServer.prototype = new Node.DataModel();
 
 /**
  * Open the connection to the database
- * @param {Function} callback - function to be called at the end
  */
-Node.SQLServer.prototype._openConnection = function (callback)
+Node.SQLServer.prototype._openConnection = async function ()
 {
-  callback({});
+  await this.pool.connect();
+  return {};
 };
 
 
 /**
  * Init the application pool
- * @param {Function} callback - function to be called at the end
  */
-Node.SQLServer.prototype._initPool = function (callback) {
+Node.SQLServer.prototype._initPool = async function ()
+{
   let pool = new mssql.ConnectionPool(this.connectionOptions);
-  pool.connect(function (error) {
-    callback(pool, error);
-  });
   //
-  pool.on("error", function (error) {
-    delete this.pool;
-  }.bind(this));
+  pool.on("error", () => delete this.pool);
+  //
+  return pool;
 };
 
 
 /**
  * Close the connection to the database
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.SQLServer.prototype._closeConnection = function (conn, callback)
+Node.SQLServer.prototype._closeConnection = async function (conn)
 {
-  callback();
 };
 
 
@@ -71,14 +66,13 @@ Node.SQLServer.prototype._closeConnection = function (conn, callback)
  * Execute a command on the database
  * @param {Object} conn
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.SQLServer.prototype._execute = function (conn, msg, callback)
+Node.SQLServer.prototype._execute = async function (conn, msg)
 {
   let sql = msg.sql;
   //
   let req = new mssql.Request(conn.transaction || this.pool);
-  if (sql.toLowerCase().indexOf("insert into ") !== -1) {
+  if (sql.toLowerCase().includes("insert into ")) {
     req.multiple = true;
     sql += "; select SCOPE_IDENTITY() as Counter";
   }
@@ -89,30 +83,28 @@ Node.SQLServer.prototype._execute = function (conn, msg, callback)
     req.input("P" + (i + 1), parameters[i]);
   //
   // Execute the statement
-  req.query(sql, function (error, result) {
-    if (error)
-      return callback(null, error);
-    //
-    let rs = {};
-    if (result.recordset && !req.multiple) {
-      // Serialize rows
-      rs.cols = Object.keys(result.recordset.columns);
-      rs.rows = [];
-      for (let i = 0; i < result.recordset.length; i++) {
-        let row = [];
-        rs.rows.push(row);
-        for (let j = 0; j < rs.cols.length; j++)
-          row.push(this.convertValue(result.recordset[i][rs.cols[j]], result.recordset.columns[rs.cols[j]]));
-      }
+  let result = await req.query(sql);
+  //
+  let rs = {};
+  if (result.recordset && !req.multiple) {
+    // Serialize rows
+    rs.cols = Object.keys(result.recordset.columns);
+    rs.rows = [];
+    for (let i = 0; i < result.recordset.length; i++) {
+      let row = [];
+      rs.rows.push(row);
+      for (let j = 0; j < rs.cols.length; j++)
+        row.push(this.convertValue(result.recordset[i][rs.cols[j]], result.recordset.columns[rs.cols[j]]));
     }
-    else {
-      // Serialize extra info
-      rs.rowsAffected = result.rowsAffected[0];
-      if (result.recordset)
-        rs.insertId = result.recordset && result.recordsets[0][0].Counter;
-    }
-    callback(rs);
-  }.bind(this));
+  }
+  else {
+    // Serialize extra info
+    rs.rowsAffected = result.rowsAffected[0];
+    if (result.recordset)
+      rs.insertId = result.recordset && result.recordsets[0][0].Counter;
+  }
+  //
+  return rs;
 };
 
 
@@ -168,40 +160,32 @@ Node.SQLServer.prototype.convertValue = function (value, colDef)
 /**
  * Begin a transaction
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.SQLServer.prototype._beginTransaction = function (conn, callback)
+Node.SQLServer.prototype._beginTransaction = async function (conn)
 {
   let tr = new mssql.Transaction(this.pool);
-  tr.begin(function (error) {
-    callback(tr, error);
-  });
+  await tr.begin();
+  return tr;
 };
 
 
 /**
  * Commit a transaction
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.SQLServer.prototype._commitTransaction = function (conn, callback)
+Node.SQLServer.prototype._commitTransaction = async function (conn)
 {
-  conn.transaction.commit(function (error) {
-    callback(null, error);
-  });
+  await conn.transaction.commit();
 };
 
 
 /**
  * Rollback a transaction
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.SQLServer.prototype._rollbackTransaction = function (conn, callback)
+Node.SQLServer.prototype._rollbackTransaction = async function (conn)
 {
-  conn.transaction.rollback(function (error) {
-    callback(null, error);
-  });
+  await conn.transaction.rollback();
 };
 
 

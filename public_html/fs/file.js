@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2016
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 
@@ -14,7 +14,8 @@ var Node = Node || {};
  * @class File
  * Represents a file object
  * @param {Node.FS} fs
- * @param {Object} file
+ * @param {String} path
+ * @param {String} id
  */
 Node.File = function (fs, path, id)
 {
@@ -43,6 +44,18 @@ Object.defineProperties(Node.File.prototype, {
     set: function (newValue) {
       this._path = Node.FS.normalizePath(newValue);
     }
+  },
+  parentDirectory: {
+    get: function () {
+      let path = this.path.split("/");
+      path.pop();
+      return this.fs.directory(path.join("/"), this.type);
+    }
+  },
+  absolutePath: {
+    get: function () {
+      return this.fs.getAbsolutePath(this);
+    }
   }
 });
 
@@ -61,167 +74,148 @@ Node.File.prototype.getDebugInfo = function ()
 
 /**
  * Creates the file physically (Opens the file and overwrites it)
- * @param {string} encoding
- * @param {function} cb
+ * @param {String} encoding
  */
-Node.File.prototype.create = function (encoding, cb)
+Node.File.prototype.create = async function (encoding)
 {
   // String containing the encoding of the file, null only for binary files
   this.encoding = encoding || this.encoding;
-  this.fs.createFile(this, function (err) {
-    if (err)
-      return cb(null, err);
-    //
-    if (this.encoding !== "utf-8")
-      return cb();
-    //
-    // Write utf-8 BOM
-    this.write("\ufeff", null, null, null, function (err) {
-      cb(null, err);
-    });
-  });
+  await this.fs.createFile(this);
+  //
+  // Write utf-8 BOM
+  if (this.encoding === "utf-8")
+    await this.write("\ufeff");
 };
 
 
 /**
  * Opens the file for reading
- * @param {function} cb
  */
-Node.File.prototype.open = function (cb)
+Node.File.prototype.open = async function ()
 {
-  this.fs.openFile(this, function (err) {
-    cb(null, err);
-  });
+  await this.fs.openFile(this);
 };
 
 
 /**
  * Opens the file to append data
- * @param {function} cb
  */
-Node.File.prototype.append = function (cb)
+Node.File.prototype.append = async function ()
 {
-  this.fs.openFileForAppend(this, function (err) {
-    cb(null, err);
-  });
+  await this.fs.openFileForAppend(this);
 };
 
 
 /**
  * Closes a file
- * @param {function} cb
  */
-Node.File.prototype.close = function (cb)
+Node.File.prototype.close = async function ()
 {
-  this.fs.close(this, function (err) {
-    cb(null, err);
-  });
+  await this.fs.close(this);
 };
 
 
 /**
  * Checks  the existence of the file
- * @param {function} cb
  */
-Node.File.prototype.exists = function (cb)
+Node.File.prototype.exists = async function ()
 {
-  this.fs.fileExists(this, cb);
+  return await this.fs.fileExists(this);
 };
 
 
 /**
  * Reads a block of data, return a node buffer/array buffer
- * @param {int} length
- * @param {int} offset
- * @param {function} cb
+ * @param {Number} length
+ * @param {Number} offset
  */
-Node.File.prototype.read = function (length, offset, cb)
+Node.File.prototype.read = async function (length, offset)
 {
   // The length must be greater than 0, if she's "null" is read up to the end of file
   if (length && length < 1)
-    return cb(null, new Error("Length must be greater than 0"));
+    throw new Error("Length must be greater than 0");
   //
-  this.fs.read(this, length, offset, cb);
+  return await this.fs.read(this, length, offset);
 };
 
 
 /**
  * Read the whole file as text
- * @param {function} cb
  */
-Node.File.prototype.readAll = function (cb)
+Node.File.prototype.readAll = async function ()
 {
-  this.fs.readAll(this, cb);
+  // If not specified the default encoding is utf-8
+  this.encoding = this.encoding || "utf-8";
+  //
+  let data = await this.fs.readAll(this);
+  //
+  // Remove utf-8 BOM
+  if (data.charCodeAt(0) === 65279)
+    data = data.substring(1);
+  //
+  return data;
 };
 
 
 /**
  * Writes the data or the string given
- * @param {string/buffer} data
- * @param {int} offset
- * @param {int} size
- * @param {int} position
- * @param {function} cb
+ * @param {String/Buffer} data
+ * @param {Number} offset
+ * @param {Number} size
+ * @param {Number} position
  */
-Node.File.prototype.write = function (data, offset, size, position, cb)
+Node.File.prototype.write = async function (data, offset, size, position)
 {
+  // If not specified the default encoding is utf-8
+  if (typeof data === "string")
+    this.encoding = this.encoding || "utf-8";
+  //
   // offset: offset relative to the buffer
   // size: number of bytes to write
   // position: position(bytes) of the file from which you start writing
-  this.fs.write(this, data, offset, size, position, function (err) {
-    cb(null, err);
-  });
+  await this.fs.write(this, data, offset, size, position);
 };
 
 
 /**
  * Copy the file
- * @param {string} newPath
- * @param {function} cb
+ * @param {String} newPath
  */
-Node.File.prototype.copy = function (newPath, cb)
+Node.File.prototype.copy = async function (newPath)
 {
   let newFile = this.fs.file(newPath);
-  this.fs.copyFile(this, newFile, function (err) {
-    cb(newFile, err);
-  });
+  await this.fs.copyFile(this, newFile);
+  return newFile;
 };
 
 
 /**
  * Rename a file
- * @param {string/File/Directory} newFile
- * @param {function} cb
+ * @param {String/File/Directory} newFile
  */
-Node.File.prototype.rename = function (newFile, cb)
+Node.File.prototype.rename = async function (newFile)
 {
   if (newFile instanceof Node.Directory)
     newFile = this.fs.file(newFile.path + "/" + this.name());
   else if (typeof newFile === "string" && newFile.endsWith("/"))
     newFile = this.file(newFile + this.name());
   //
-  this.fs.renameObject(this, newFile, function (err) {
-    if (err)
-      return cb(null, err);
-    //
-    if (typeof newFile === "string")
-      newFile = this.fs.file(this.path.substring(0, this.path.lastIndexOf("/") + 1) + newFile);
-    //
-    // I change the path only if the file has been renamed correctly
-    this.path = newFile.path;
-    //
-    cb();
-  }.bind(this));
+  await this.fs.renameObject(this, newFile);
+  //
+  if (typeof newFile === "string")
+    newFile = this.fs.file(this.path.substring(0, this.path.lastIndexOf("/") + 1) + newFile);
+  //
+  // I change the path only if the file has been renamed correctly
+  this.path = newFile.path;
 };
 
 
 /**
  * Return the file size (in bytes)
- * @param {function} cb
  */
-Node.File.prototype.length = function (cb)
+Node.File.prototype.length = async function ()
 {
-  this.fs.fileLength(this, cb);
+  return await this.fs.fileLength(this);
 };
 
 
@@ -254,50 +248,42 @@ Node.File.prototype.extension = function ()
 
 /**
  * Return the last modified file date
- * @param {function} cb
  */
-Node.File.prototype.dateTime = function (cb)
+Node.File.prototype.dateTime = async function ()
 {
-  this.fs.fileDateTime(this, cb);
+  return await this.fs.fileDateTime(this);
 };
 
 
 /**
  * Deletes the file
- * @param {function} cb
  */
-Node.File.prototype.remove = function (cb)
+Node.File.prototype.remove = async function ()
 {
-  this.fs.deleteFile(this, function (err) {
-    cb(null, err);
-  });
+  await this.fs.deleteFile(this);
 };
 
 
 /**
  * Zip the file
- * @param {function} cb
  */
-Node.File.prototype.zip = function (cb)
+Node.File.prototype.zip = async function ()
 {
   let zipFile = this.fs.file(this.path + ".zip");
-  this.fs.zipFile(this, zipFile, function (err) {
-    cb(zipFile, err);
-  });
+  await this.fs.zipFile(this, zipFile);
+  return zipFile;
 };
 
 
 /**
  * Unzip the archive
- * @param {string} path
- * @param {function} cb
+ * @param {String} path
  */
-Node.File.prototype.unzip = function (path, cb)
+Node.File.prototype.unzip = async function (path)
 {
   let unzipDir = this.fs.directory(path);
-  this.fs.unzip(this, unzipDir, function (err) {
-    cb(unzipDir, err);
-  });
+  await this.fs.unzip(this, unzipDir);
+  return unzipDir;
 };
 
 
