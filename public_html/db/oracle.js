@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2014
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 /* global module, oracledb */
@@ -51,37 +51,29 @@ Node.Oracle.prototype.loadModule = function ()
 
 /**
  * Open the connection to the database
- * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype._openConnection = function (callback)
+Node.Oracle.prototype._openConnection = async function ()
 {
-  this.pool.getConnection(function (err, connection) {
-    callback({conn: connection}, err);
-  });
+  return await this.pool.getConnection();
 };
 
 
 /**
  * Init the application pool
- * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype._initPool = function (callback) {
-  oracledb.createPool(this.connectionOptions, function (error, pool) {
-    callback(pool, error);
-  });
+Node.Oracle.prototype._initPool = async function ()
+{
+  return await oracledb.createPool(this.connectionOptions);
 };
 
 
 /**
  * Close the connection to the database
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype._closeConnection = function (conn, callback)
+Node.Oracle.prototype._closeConnection = async function (conn)
 {
-  conn.conn.release(function (error) {
-    callback(null, error);
-  });
+  await conn.close();
 };
 
 
@@ -89,9 +81,8 @@ Node.Oracle.prototype._closeConnection = function (conn, callback)
  * Execute a command on the database
  * @param {Object} conn
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype._execute = function (conn, msg, callback)
+Node.Oracle.prototype._execute = async function (conn, msg)
 {
   // Execute the statement
   let options = {outFormat: oracledb.OBJECT, autoCommit: !conn.transaction};
@@ -106,36 +97,35 @@ Node.Oracle.prototype._execute = function (conn, msg, callback)
   for (let i = 0; i < parameters.length; i++)
     bindParams["P" + (i + 1)] = parameters[i];
   //
-  conn.conn.execute(msg.sql, bindParams, options, function (error, result) {
-    if (error)
-      return callback(null, error);
-    //
-    let rs = {};
-    rs.cols = [];
-    rs.rows = [];
-    //
-    if (result.rows) {
-      // Serialize rows
-      for (let i = 0; i < result.rows.length; i++) {
-        let row = [];
-        rs.rows.push(row);
-        for (let j = 0; j < result.metaData.length; j++) {
-          let colname = result.metaData[j].name;
-          if (i === 0)
-            rs.cols.push(colname);
-          //
-          row.push(this.convertValue(result.rows[i][colname], result.metaData[j]));
-        }
+  let result = await conn.execute(msg.sql, bindParams, options);
+  //
+  let rs = {
+    cols: [],
+    rows: []
+  };
+  //
+  if (result.rows) {
+    // Serialize rows
+    for (let i = 0; i < result.rows.length; i++) {
+      let row = [];
+      rs.rows.push(row);
+      for (let j = 0; j < result.metaData.length; j++) {
+        let colname = result.metaData[j].name;
+        if (i === 0)
+          rs.cols.push(colname);
+        //
+        row.push(this.convertValue(result.rows[i][colname], result.metaData[j]));
       }
     }
-    //
-    // Serialize extra info
-    if (result) {
-      rs.rowsAffected = result.rowsAffected;
-      rs.insertId = (result.outBinds ? result.outBinds.counter : null);
-    }
-    callback(rs);
-  }.bind(this));
+  }
+  //
+  // Serialize extra info
+  if (result) {
+    rs.rowsAffected = result.rowsAffected;
+    rs.insertId = (result.outBinds ? result.outBinds.counter : null);
+  }
+  //
+  return rs;
 };
 
 
@@ -177,33 +167,30 @@ Node.Oracle.prototype.convertValue = function (value, colDef)
 /**
  * Begin a transaction
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype._beginTransaction = function (conn, callback)
+Node.Oracle.prototype._beginTransaction = async function (conn)
 {
-  callback(true);
+  return true;
 };
 
 
 /**
  * Commit a transaction
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype._commitTransaction = function (conn, callback)
+Node.Oracle.prototype._commitTransaction = async function (conn)
 {
-  conn.conn.commit(callback);
+  await conn.commit();
 };
 
 
 /**
  * Rollback a transaction
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.Oracle.prototype._rollbackTransaction = function (conn, callback)
+Node.Oracle.prototype._rollbackTransaction = async function (conn)
 {
-  conn.conn.rollback(callback);
+  await conn.rollback();
 };
 
 

@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2016
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 

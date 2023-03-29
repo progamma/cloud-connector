@@ -1,12 +1,11 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2014
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 /* global process, Promise, __dirname */
 
 var Node = Node || {};
-
 // Import global modules
 Node.fs = require("fs").promises;
 Node.https = require("https");
@@ -54,14 +53,17 @@ Node.CloudServer.prototype.start = async function ()
   catch (ex) {
     this.log("ERROR", ex.message);
   }
+  //
+  process.on("uncaughtException", e => console.error("uncaughtException", e));
+  process.on("unhandledRejection", e => console.error("unhandledRejection", e));
 };
 
 
 /**
  * Logs a message
- * @param {string} level
- * @param {string} message
- * @param {object} data
+ * @param {String} level
+ * @param {String} message
+ * @param {Object} data
  */
 Node.CloudServer.prototype.log = function (level, message, data)
 {
@@ -81,12 +83,10 @@ Node.CloudServer.serverForUser = async function (username)
       method: "GET"
     };
     //
-    let req = Node.https.request(options, function (res) {
+    let req = Node.https.request(options, res => {
       let data = "";
-      res.on("data", function (chunk) {
-        data = data + chunk;
-      });
-      res.on("end", function () {
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => {
         if (res.statusCode !== 200)
           reject(data);
         else
@@ -120,12 +120,12 @@ Node.CloudServer.prototype.loadConfig = async function (newConfig)
   let config;
   try {
     Node.Utils = require("./utils");
-    config = JSON.parse(file, function (k, v) {
+    config = JSON.parse(file, (k, v) => {
       if (typeof v !== "string")
         return v;
       //
       // Replace environment variables
-      let res = v.split("%").map(function (v, i) {
+      let res = v.split("%").map((v, i) => {
         if (i % 2 && v in process.env)
           return process.env[v];
         else
@@ -162,7 +162,7 @@ Node.CloudServer.prototype.loadConfig = async function (newConfig)
   this.log("INFO", "Configuration loaded with success");
   //
   // Reparse the config for mantain the environment variables
-  config = JSON.parse(file, function (k, v) {
+  config = JSON.parse(file, (k, v) => {
     if (typeof v !== "string" || k !== "password" || !v)
       return v;
     //
@@ -191,13 +191,12 @@ Node.CloudServer.prototype.createServers = async function (config)
   this.oldServers = this.servers.slice();
   //
   // First attach app servers
-  for (let i = 0; i < config.remoteServers.length; i++)
-    await this.createServer(config.remoteServers[i]);
+  for (let s of config.remoteServers)
+    await this.createServer(s);
   //
   // Next, attach "IDE" servers
-  for (let i = 0; i < config.remoteUserNames.length; i++) {
+  for (let uname of config.remoteUserNames) {
     let url;
-    let uname = config.remoteUserNames[i];
     //
     // Handled formats: http://domain, http://domain@username, username
     if (uname.startsWith("http://") || uname.startsWith("https://"))
@@ -207,9 +206,7 @@ Node.CloudServer.prototype.createServers = async function (config)
   }
   //
   // Disconnect from the remaining servers
-  this.oldServers.forEach(function (s) {
-    s.disconnect();
-  });
+  this.oldServers.forEach(s => s.disconnect());
   delete this.oldServers;
 };
 
@@ -268,15 +265,14 @@ Node.CloudServer.prototype.createDataModels = async function (config)
 {
   this.oldDatamodels = this.datamodels.slice();
   //
-  if (config.datamodels)
-    config.datamodels.forEach(this.createDataModel.bind(this));
+  config.datamodels?.forEach(dm => this.createDataModel(dm));
   //
   // Disconnect from the remaining datamodels
-  await Promise.all(this.oldDatamodels.map(async function (d) {
+  for (let d of this.oldDatamodels) {
     this.configChanged = true;
     await d.disconnect();
     this.log("INFO", `Datamodel '${d.name}' removed`);
-  }.bind(this)));
+  }
   delete this.oldDatamodels;
 };
 
@@ -330,15 +326,14 @@ Node.CloudServer.prototype.createFileSystems = async function (config)
 {
   this.oldFileSystems = this.fileSystems.slice();
   //
-  if (config.fileSystems)
-    config.fileSystems.forEach(this.createFileSystem.bind(this));
+  config.fileSystems?.forEach(fs => this.createFileSystem(fs));
   //
   // Disconnect from the remaining fileSytems
-  await Promise.all(this.oldFileSystems.map(async function (f) {
+  for (let fs of this.oldFileSystems) {
     this.configChanged = true;
-    await f.disconnect();
-    this.log("INFO", `FileSystem '${f.name}' removed`);
-  }.bind(this)));
+    await fs.disconnect();
+    this.log("INFO", `FileSystem '${fs.name}' removed`);
+  }
   delete this.oldFileSystems;
 };
 
@@ -385,15 +380,14 @@ Node.CloudServer.prototype.createPlugins = async function (config)
 {
   this.oldPlugins = this.plugins.slice();
   //
-  if (config.plugins)
-    config.plugins.forEach(this.createPlugin.bind(this));
+  config.plugins?.forEach(p => this.createPlugin(p));
   //
   // Disconnect from the remaining plugins
-  await Promise.all(this.oldPlugins.map(async function (p) {
+  for (let p of this.oldPlugins) {
     this.configChanged = true;
     await p.disconnect();
     this.log("INFO", `Plugin '${p.name}' removed`);
-  }.bind(this)));
+  }
   delete this.oldPlugins;
 };
 
@@ -417,7 +411,7 @@ Node.CloudServer.prototype.createPlugin = function (config)
   //
   try {
     // Import local module
-    Node[config.class] = require("./plugins/" + config.class.toLowerCase() + "/index");
+    Node[config.class] = require(`./plugins/${config.class.toLowerCase()}/index`);
   }
   catch (e) {
     this.log("ERROR", `Error creating plugin ${config.name}: ${e}`,
@@ -476,7 +470,7 @@ Node.CloudServer.prototype.onServerConnected = function (server)
   msg.data.version = require("./package.json").version;
   msg.data.nodeVersion = process.version;
   msg.data.hostname = require("os").hostname();
-  msg.data.dmlist = this.datamodels.map(function (def) {
+  msg.data.dmlist = this.datamodels.map(def => {
     return {
       name: def.name,
       "class": def.class,
@@ -485,7 +479,7 @@ Node.CloudServer.prototype.onServerConnected = function (server)
   });
   //
   // Send list of file systems supported by this connector
-  msg.data.fslist = this.fileSystems.map(function (def) {
+  msg.data.fslist = this.fileSystems.map(def => {
     return {
       name: def.name,
       path: def.path,
@@ -495,7 +489,7 @@ Node.CloudServer.prototype.onServerConnected = function (server)
   });
   //
   // Send list of plugins supported by this connector
-  msg.data.pluginslist = this.plugins.map(function (def) {
+  msg.data.pluginslist = this.plugins.map(def => {
     return {
       name: def.name,
       "class": def.class,
@@ -511,19 +505,19 @@ Node.CloudServer.prototype.onServerConnected = function (server)
  * Notified when a server disconnects
  * @param {Server} server
  */
-Node.CloudServer.prototype.onServerDisconnected = function (server)
+Node.CloudServer.prototype.onServerDisconnected = async function (server)
 {
   // Notify to all datamodels that a server is disconnected
-  for (let i = 0; i < this.datamodels.length; i++)
-    this.datamodels[i].onServerDisconnected(server);
+  for (let dm of this.datamodels)
+    await dm.onServerDisconnected(server);
   //
   // Notify to all filesystems that a server is disconnected
-  for (let i = 0; i < this.fileSystems.length; i++)
-    this.fileSystems[i].onServerDisconnected(server);
+  for (let fs of this.fileSystems)
+    await fs.onServerDisconnected(server);
   //
   // Notify to all plugins that a server is disconnected
-  for (let i = 0; i < this.plugins.length; i++)
-    this.plugins[i].onServerDisconnected(server);
+  for (let p of this.plugins)
+    await p.onServerDisconnected(server);
 };
 
 
@@ -532,96 +526,66 @@ Node.CloudServer.prototype.onServerDisconnected = function (server)
  * @param {Server} server
  * @param {Object} data
  */
-Node.CloudServer.prototype.onServerMessage = function (server, data)
+Node.CloudServer.prototype.onServerMessage = async function (server, data)
 {
-  let done = function (result, error) {
-    if (error) {
-      error = error.message || error.toString();
-      this.log("ERROR", `Error executing '${data.cmd}': ${error}`);
-    }
-    //
-    if (!data.cbid)
-      return;
-    //
-    if (error)
-      msg.data.error = error;
-    else
-      msg.data.result = result;
-    server.sendMessage(msg);
-  }.bind(this);
-  //
   let startTime = new Date();
   //
   // Compose the message of response
-  let msg = {};
-  msg.type = Node.CloudServer.messageTypes.response;
-  msg.sid = data.sid;
-  msg.dmid = data.dmid;
-  msg.appid = data.appid;
-  msg.cbid = data.cbid;
-  msg.data = {};
-  msg.data.name = this.name;
+  let msg = {
+    type: Node.CloudServer.messageTypes.response,
+    sid: data.sid,
+    dmid: data.dmid,
+    appid: data.appid,
+    cbid: data.cbid,
+    data: {
+      name: this.name
+    }
+  };
   data.server = server;
-  if (data.dm) {
-    let dm = this.dataModelByName(data.dm);
-    if (!dm)
-      return done(null, new Error(`Datamodel '${data.dm}' not found`));
-    //
-    // Ask the datamodel
-    dm.onMessage(data, function (result, error) {
-      if (error)
-        return done(null, error);
+  try {
+    let result;
+    if (data.dm) {
+      let dm = this.dataModelByName(data.dm);
+      if (!dm)
+        throw new Error(`Datamodel '${data.dm}' not found`);
       //
-      if (result && result.times)
+      // Ask the datamodel
+      result = await dm.onMessage(data);
+      if (result?.times)
         result.times.cc = (new Date()).getTime() - startTime.getTime();
+    }
+    else if (data.fs) {
+      msg.fs = true;
+      let fs = this.getFileSystemByName(data.fs);
+      if (!fs)
+        throw new Error(`File system '${data.fs}' not found`);
       //
-      done(result);
-    });
-  }
-  else if (data.fs) {
-    msg.fs = true;
-    let fs = this.getFileSystemByName(data.fs);
-    if (!fs)
-      return done(null, new Error(`File system '${data.fs}' not found`));
+      result = await fs.onMessage(data);
+    }
+    else if (data.plugin) {
+      msg.plugin = true;
+      let plugin = this.getPluginByName(data.plugin);
+      if (!plugin)
+        throw new Error(`Plugin '${data.plugin}' not found`);
+      //
+      result = await plugin.onMessage(data);
+    }
+    else if (data.app) {
+      msg.app = true;
+      result = await this.onMessage(data);
+    }
+    else
+      throw new Error(`Command '${data.cmd}' unknown`);
     //
-    fs.onMessage(data, function (result, error) {
-      Array.prototype.slice.apply(arguments).forEach(function (a, i) {
-        if (a instanceof Error) {
-          error = a;
-          result = null;
-        }
-      });
-      //
-      done(result, error);
-    });
+    msg.data.result = result;
   }
-  else if (data.plugin) {
-    msg.plugin = true;
-    let plugin = this.getPluginByName(data.plugin);
-    if (!plugin)
-      return done(null, new Error(`Plugin '${data.plugin}' not found`));
-    //
-    plugin.onMessage(data, function (result, error) {
-      Array.prototype.slice.apply(arguments).forEach(function (a, i) {
-        if (a instanceof Error) {
-          error = a;
-          result = null;
-        }
-      });
-      //
-      done(result, error);
-    });
+  catch (e) {
+    e = e.message || e.toString();
+    this.log("ERROR", `Error executing '${data.cmd}': ${e}`);
+    msg.data.error = e;
   }
-  else if (data.app) {
-    msg.app = true;
-    this.onMessage(data)
-            .then(done)
-            .catch(function (error) {
-              done(null, error);
-            });
-  }
-  else
-    done(null, new Error(`Command '${data.cmd}' unknown`));
+  //
+  server.sendMessage(msg);
 };
 
 

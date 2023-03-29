@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2014
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 /* global module, Buffer */
@@ -41,15 +41,15 @@ Node.Server.prototype.connect = function (options)
   }, options);
   this.socket = Node.io(this.serverUrl, options);
   //
-  this.socket.on("connect", function () {
+  this.socket.on("connect", () => {
     this.parent.log("INFO", `Connected to ${this.serverUrl}`);
     this.parent.onServerConnected(this);
-  }.bind(this));
+  });
   //
-  this.socket.on("cloudServerMsg", function (data) {
-    this.parent.log("INFO", "Server onMessage: " + JSON.stringify(data, function (k, v) {
+  this.socket.on("cloudServerMsg", data => {
+    this.parent.log("INFO", "Server onMessage: " + JSON.stringify(data, (k, v) => {
       if (k === "args" && v) {
-        return v.map(function (value) {
+        return v.map(value => {
           if (value instanceof Buffer)
             return "<Buffer length " + value.length + ">";
           else
@@ -59,25 +59,25 @@ Node.Server.prototype.connect = function (options)
       else
         return v;
     }));
-    this.parent.onServerMessage(this, data);
-  }.bind(this));
+    this.parent.onServerMessage(this, data).then();
+  });
   //
-  this.socket.on("connect_error", function (error) {
+  this.socket.on("connect_error", error => {
     this.parent.log("ERROR", `Connect error to ${this.serverUrl}: ${error}`);
-  }.bind(this));
+  });
   //
-  this.socket.on("connect_timeout", function () {
+  this.socket.on("connect_timeout", () => {
     this.parent.log("ERROR", `Connect timeout to ${this.serverUrl}`);
-  }.bind(this));
+  });
   //
-  this.socket.on("disconnect", function () {
+  this.socket.on("disconnect", () => {
     this.parent.log("INFO", `Disconnect to ${this.serverUrl}`);
-    this.parent.onServerDisconnected(this);
-  }.bind(this));
+    this.parent.onServerDisconnected(this).then();
+  });
   //
-  this.socket.on("indeError", function (data) {
+  this.socket.on("indeError", data => {
     this.parent.log("INFO", `IndeError from ${this.serverUrl}: ${data.msg}`);
-  }.bind(this));
+  });
 };
 
 

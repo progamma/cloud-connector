@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2016
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 
@@ -34,7 +34,7 @@ Node.ActiveDirectory.prototype = new Node.Plugin();
  * @param {type} cid
  * @param {type} args
  */
-Node.ActiveDirectory.prototype.exec = function (cid, args)
+Node.ActiveDirectory.prototype.exec = async function (cid, args)
 {
   let ad = new Node.AD(this.config);
   //
@@ -42,178 +42,161 @@ Node.ActiveDirectory.prototype.exec = function (cid, args)
   for (let i = 0; i < args.length - 1; i++)
     argsArray.push(args[i]);
   //
-  let cb = args[args.length - 1];
-  let newCb = function (err, res) {
-    cb(res, err);
-  };
-  argsArray.push(newCb);
-  //
-  ad[cid].apply(ad, argsArray);
+  return await new Promise((resolve, reject) => {
+    argsArray.push((err, res) => err ? reject(err) : resolve(res));
+    ad[cid].apply(ad, argsArray);
+  });
 };
 
 
 /**
  * Execute authentication using username and password
- * @param {String} username
- * @param {String} password
- * @param {Function} callback
+ * @param {String} username The username to authenticate
+ * @param {String} password The password to use for authentication
  */
-Node.ActiveDirectory.authenticate = function (username, password, callback)
+Node.ActiveDirectory.authenticate = async function (username, password)
 {
-  this.exec("authenticate", arguments);
+  return await this.exec("authenticate", [username, password]);
 };
 
 
 /**
  * Return true if username is member of groupName
- * @param {Object} options
- * @param {String} username
- * @param {String} groupName
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }
+ * @param {String} username The username to check for membership
+ * @param {String} groupName The group to check for membership
  */
-Node.ActiveDirectory.isUserMemberOf = function (options, username, groupName, callback)
+Node.ActiveDirectory.isUserMemberOf = async function (options, username, groupName)
 {
-  this.exec("isUserMemberOf", arguments);
+  return await this.exec("isUserMemberOf", [options, username, groupName]);
 };
 
 
 /**
  * Perform a generic search and return both groups and users that match the specified filter
- * @param {Object} options
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }. Optionally, if only a string is provided, then the string is assumed to be an LDAP filter
  */
-Node.ActiveDirectory.find = function (options, callback)
+Node.ActiveDirectory.find = async function (options)
 {
-  this.exec("find", arguments);
+  return await this.exec("find", [options]);
 };
 
 
 /**
  * Find a user by given username
- * @param {Object} options
- * @param {String} username
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }
+ * @param {String} username The username to retrieve information about. Optionally can pass in the distinguishedName (dn) of the user to retrieve
  */
-Node.ActiveDirectory.findUser = function (options, username, callback)
+Node.ActiveDirectory.findUser = async function (options, username)
 {
-  this.exec("findUser", arguments);
+  return await this.exec("findUser", [options, username]);
 };
 
 
 /**
  * Find a group by given groupName
- * @param {Object} options
- * @param {String} groupName
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }
+ * @param {String} groupName The group (cn) to retrieve information about. Optionally can pass in the distinguishedName (dn) of the group to retrieve
  */
-Node.ActiveDirectory.findGroup = function (options, groupName, callback)
+Node.ActiveDirectory.findGroup = async function (options, groupName)
 {
-  this.exec("findGroup", arguments);
+  return await this.exec("findGroup", [options, groupName]);
 };
 
 
 /**
  * Find users that match the specified filter
- * @param {Object} options
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }. Optionally, if only a string is provided, then the string is assumed to be an LDAP filter that will be appended as the last parameter in the default LDAP filter
  */
-Node.ActiveDirectory.findUsers = function (options, callback)
+Node.ActiveDirectory.findUsers = async function (options)
 {
-  this.exec("findUsers", arguments);
+  return await this.exec("findUsers", [options]);
 };
 
 
 /**
  * Find groups that match the specified filter
- * @param {Object} options
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }. Optionally, if only a string is provided, then the string is assumed to be an LDAP filter that will be appended as the last parameter in the default LDAP filter
  */
-Node.ActiveDirectory.findGroups = function (options, callback)
+Node.ActiveDirectory.findGroups = async function (options)
 {
-  this.exec("findGroups", arguments);
+  return await this.exec("findGroups", [options]);
 };
 
 
 /**
  * Return true if groupName exists
- * @param {Object} options
- * @param {String} groupName
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }
+ * @param {String} groupName The group to check to see if it exists
  */
-Node.ActiveDirectory.groupExists = function (options, groupName, callback)
+Node.ActiveDirectory.groupExists = async function (options, groupName)
 {
-  this.exec("groupExists", arguments);
+  return await this.exec("groupExists", [options, groupName]);
 };
 
 
 /**
  * Return true if username exists
- * @param {Object} options
- * @param {String} username
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }
+ * @param {String} username The username to check to see if it exits
  */
-Node.ActiveDirectory.userExists = function (options, username, callback)
+Node.ActiveDirectory.userExists = async function (options, username)
 {
-  this.exec("userExists", arguments);
+  return await this.exec("userExists", [options, username]);
 };
 
 
 /**
  * Get all of the groups that groupName is a member of
- * @param {Object} options
- * @param {String} groupName
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }
+ * @param {String} groupName The group to retrieve membership information about
  */
-Node.ActiveDirectory.getGroupMembershipForGroup = function (options, groupName, callback)
+Node.ActiveDirectory.getGroupMembershipForGroup = async function (options, groupName)
 {
-  this.exec("getGroupMembershipForGroup", arguments);
+  return await this.exec("getGroupMembershipForGroup", [options, groupName]);
 };
 
 
 /**
  * Get all of the groups that username belongs to
- * @param {Object} options
- * @param {String} username
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }
+ * @param {String} username The username to retrieve membership information about
  */
-Node.ActiveDirectory.getGroupMembershipForUser = function (options, username, callback)
+Node.ActiveDirectory.getGroupMembershipForUser = async function (options, username)
 {
-  this.exec("getGroupMembershipForUser", arguments);
+  return await this.exec("getGroupMembershipForUser", [options, username]);
 };
 
 
 /**
  * Get all of the users that belong to groupName
- * @param {Object} options
- * @param {String} groupName
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }
+ * @param {String} groupName The name of the group to retrieve membership from
  */
-Node.ActiveDirectory.getUsersForGroup = function (options, groupName, callback)
+Node.ActiveDirectory.getUsersForGroup = async function (options, groupName)
 {
-  this.exec("getUsersForGroup", arguments);
+  return await this.exec("getUsersForGroup", [options, groupName]);
 };
 
 
 /**
  * Get the root DSE for the specified url
- * @param {String} url
- * @param {Object} attributes
- * @param {Function} callback
+ * @param {String} url The url to retrieve the root DSE for
+ * @param {Array} [attributes] The optional list of attributes to retrieve. Returns all if not specified
  */
-Node.ActiveDirectory.getRootDSE = function (url, attributes, callback)
+Node.ActiveDirectory.getRootDSE = async function (url, attributes)
 {
-  this.exec("getRootDSE", arguments);
+  return await this.exec("getRootDSE", [url, attributes]);
 };
 
 
 /**
  * Get items in the active directory recycle bin
- * @param {Object} options
- * @param {Function} callback
+ * @param {Object} [options] Optional LDAP query string parameters to execute. { scope: '', filter: '', attributes: [ '', '', ... ], sizeLimit: 0, timelimit: 0 }. Optionally, if only a string is provided, then the string is assumed to be an LDAP filter.
  */
-Node.ActiveDirectory.findDeletedObjects = function (options, callback)
+Node.ActiveDirectory.findDeletedObjects = async function (options)
 {
-  this.exec("findDeletedObjects", arguments);
+  return await this.exec("findDeletedObjects", [options]);
 };
 
 

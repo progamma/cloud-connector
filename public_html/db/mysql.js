@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2014
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 /* global module, mysql */
@@ -31,46 +31,42 @@ Node.MySQL.prototype = new Node.DataModel();
 
 /**
  * Open the connection to the database
- * @param {Function} callback - function to be called at the end
  */
-Node.MySQL.prototype._openConnection = function (callback)
+Node.MySQL.prototype._openConnection = async function ()
 {
-  this.pool.getConnection(function (err, connection) {
-    // Stop auto closure and return the connection from pool
-    if (connection && connection.closeTimer) {
-      clearTimeout(connection.closeTimer);
-      delete connection.closeTimer;
-    }
-    //
-    callback({conn: connection}, err);
-  }.bind(this));
+  return await new Promise((resolve, reject) => {
+    this.pool.getConnection((error, connection) => {
+      // Stop auto closure and return the connection from pool
+      if (connection && connection.closeTimer) {
+        clearTimeout(connection.closeTimer);
+        delete connection.closeTimer;
+      }
+      //
+      error ? reject(error) : resolve(connection);
+    });
+  });
 };
 
 
 /**
  * Init the application pool
- * @param {Function} callback - function to be called at the end
  */
-Node.MySQL.prototype._initPool = function (callback) {
-  callback(new mysql.createPool(this.connectionOptions));
+Node.MySQL.prototype._initPool = async function ()
+{
+  return new mysql.createPool(this.connectionOptions);
 };
 
 
 /**
  * Close the connection to the database
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.MySQL.prototype._closeConnection = function (conn, callback)
+Node.MySQL.prototype._closeConnection = async function (conn)
 {
-  conn.conn.release();
+  conn.release();
   //
   // Program closure of connection
-  conn.conn.closeTimer = setTimeout(function () {
-    conn.conn.destroy();
-  }, 30000);
-  //
-  callback();
+  conn.closeTimer = setTimeout(() => conn.destroy(), 30000);
 };
 
 
@@ -78,49 +74,51 @@ Node.MySQL.prototype._closeConnection = function (conn, callback)
  * Execute a command on the database
  * @param {Object} conn
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.MySQL.prototype._execute = function (conn, msg, callback)
+Node.MySQL.prototype._execute = async function (conn, msg)
 {
-  conn.conn.query(msg.sql, msg.pars, function (error, result, md) {
-    if (error)
-      return callback(null, error);
-    //
-    let rs = {};
-    rs.cols = [];
-    rs.rows = [];
-    //
-    if (result) {
-      // Serialize rows
-      for (let i = 0; i < result.length; i++) {
-        let row = [];
-        rs.rows.push(row);
+  return await new Promise((resolve, reject) => {
+    conn.query(msg.sql, msg.pars, (error, result, md) => {
+      if (error)
+        return reject(error);
+      //
+      let rs = {
+        cols: [],
+        rows: []
+      };
+      //
+      if (result) {
+        // Serialize rows
+        for (let i = 0; i < result.length; i++) {
+          let row = [];
+          rs.rows.push(row);
+          //
+          if (i === 0)
+            rs.cols = Object.keys(result[i]);
+          //
+          for (let j = 0; j < rs.cols.length; j++)
+            row.push(this.convertValue(result[i][rs.cols[j]], md[j]));
+        }
         //
-        if (i === 0)
-          rs.cols = Object.keys(result[i]);
-        //
-        for (let j = 0; j < rs.cols.length; j++)
-          row.push(this.convertValue(result[i][rs.cols[j]], md[j]));
+        // Serialize extra info
+        rs.rowsAffected = result.affectedRows;
+        rs.insertId = result.insertId;
       }
       //
-      // Serialize extra info
-      rs.rowsAffected = result.affectedRows;
-      rs.insertId = result.insertId;
-    }
-    callback(rs);
-  }.bind(this));
+      resolve(rs);
+    });
+  });
 };
 
 
 /**
  * Begin a transaction
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.MySQL.prototype._beginTransaction = function (conn, callback)
+Node.MySQL.prototype._beginTransaction = async function (conn)
 {
-  conn.conn.beginTransaction(function (error) {
-    callback(null, error);
+  return await new Promise((resolve, reject) => {
+    conn.beginTransaction(error => error ? reject(error) : resolve());
   });
 };
 
@@ -128,22 +126,24 @@ Node.MySQL.prototype._beginTransaction = function (conn, callback)
 /**
  * Commit a transaction
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.MySQL.prototype._commitTransaction = function (conn, callback)
+Node.MySQL.prototype._commitTransaction = async function (conn)
 {
-  conn.conn.commit(callback);
+  return await new Promise((resolve, reject) => {
+    conn.commit(error => error ? reject(error) : resolve());
+  });
 };
 
 
 /**
  * Rollback a transaction
  * @param {Object} conn
- * @param {Function} callback - function to be called at the end
  */
-Node.MySQL.prototype._rollbackTransaction = function (conn, callback)
+Node.MySQL.prototype._rollbackTransaction = async function (conn)
 {
-  conn.conn.rollback(callback);
+  return await new Promise((resolve, reject) => {
+    conn.rollback(error => error ? reject(error) : resolve());
+  });
 };
 
 

@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2014
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 /* global module, global, Buffer, Promise */
@@ -36,34 +36,33 @@ Node.DataModel.commandTypes = {
 /**
  * Received a message
  * @param {Object} msg
- * @param {Function} callback - for response
  */
-Node.DataModel.prototype.onMessage = function (msg, callback)
+Node.DataModel.prototype.onMessage = async function (msg)
 {
   switch (msg.cmd) {
     case Node.DataModel.commandTypes.open:
-      this.openConnection(msg, callback);
+      await this.openConnection(msg);
       break;
     case Node.DataModel.commandTypes.close:
-      this.closeConnection(msg, callback);
+      await this.closeConnection(msg);
       break;
     case Node.DataModel.commandTypes.execute:
-      this.execute(msg, callback);
+      return await this.execute(msg);
       break;
     case Node.DataModel.commandTypes.begin:
-      this.beginTransaction(msg, callback);
+      await this.beginTransaction(msg);
       break;
     case Node.DataModel.commandTypes.commit:
-      this.commitTransaction(msg, callback);
+      await this.commitTransaction(msg);
       break;
     case Node.DataModel.commandTypes.rollback:
-      this.rollbackTransaction(msg, callback);
+      await this.rollbackTransaction(msg);
       break;
     case Node.DataModel.commandTypes.ping:
-      this.ping(msg, callback);
+      this.ping(msg);
       break;
     default:
-      callback(null, new Error("Command '" + msg.type + "' not supported"));
+      throw new Error(`Command '${msg.type}' not supported`);
       break;
   }
 };
@@ -87,94 +86,75 @@ Node.DataModel.prototype.loadModule = function ()
 
 /**
  * Init the application pool
- * @param {Function} callback - function to be called at the end
  */
-Node.DataModel.prototype.getPool = function (callback) {
+Node.DataModel.prototype.getPool = async function ()
+{
   if (this.pool)
-    return callback();
+    return;
   //
-  this._initPool(function (pool, error) {
-    if (error)
-      return callback(null, error);
-    //
-    this.pool = pool;
-    callback();
-  }.bind(this));
+  this.pool = await this._initPool();
 };
 
 
 /**
  * Open the connection to the database
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.DataModel.prototype.openConnection = function (msg, callback)
+Node.DataModel.prototype.openConnection = async function (msg)
 {
   // Load module
   if (!this.loadModule())
-    return callback(null, new Error(this.class + " driver not found.\nInstall \"" + this.moduleName + "\" module and try again"));
+    throw new Error(`${this.class} driver not found.\nInstall "${this.moduleName}" module and try again`);
   //
-  this.getPool(function (result, error) {
-    if (error)
-      return callback(null, error);
-    //
-    this._openConnection(function (result, error) {
-      if (error)
-        return callback(null, error);
-      //
-      this.connections[msg.cid] = result;
-      result.server = msg.server;
-      callback();
-    }.bind(this));
-  }.bind(this));
+  await this.getPool();
+  //
+  this.connections[msg.cid] = await this._openConnection();
+  this.connections[msg.cid].server = msg.server;
 };
 
 
 /**
  * Close the connection to the database
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.DataModel.prototype.closeConnection = function (msg, callback)
+Node.DataModel.prototype.closeConnection = async function (msg)
 {
   let conn = this.connections[msg.cid];
   if (!conn)
-    return callback();
+    return;
   //
-  this._closeConnection(conn, function (result, error) {
+  try {
+    await this._closeConnection(conn);
+  }
+  catch (e) {
+    throw e;
+  }
+  finally {
     delete this.connections[msg.cid];
-    callback(null, error);
-  }.bind(this));
+  }
 };
 
 
 /**
  * Execute a command on the database
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.DataModel.prototype.execute = function (msg, callback)
+Node.DataModel.prototype.execute = async function (msg)
 {
   let conn = this.connections[msg.cid];
   if (!conn)
-    return callback(null, new Error("Connection closed"));
+    throw new Error("Connection closed");
   //
   // Deserialize some parameters
-  if (msg.pars) {
-    msg.pars.forEach(function (p, i) {
-      if (p && typeof p === "object" && p.type === "buffer", p.data)
-        msg.pars[i] = Buffer.from(p.data, "base64");
-    });
-  }
+  msg.pars?.forEach((p, i) => {
+    if (p && typeof p === "object" && p.type === "buffer", p.data)
+      msg.pars[i] = Buffer.from(p.data, "base64");
+  });
   //
   let startTime = new Date();
-  this._execute(conn, msg, function (rs, error) {
-    if (error)
-      return callback(null, error);
-    //
-    rs.times = {qry: (new Date()).getTime() - startTime.getTime()};
-    callback(rs);
-  });
+  let rs = await this._execute(conn, msg);
+  rs.times = {qry: (new Date()).getTime() - startTime.getTime()};
+  return rs;
 };
 
 
@@ -193,68 +173,67 @@ Node.DataModel.prototype.convertValue = function (value)
 /**
  * Begin a transaction
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.DataModel.prototype.beginTransaction = function (msg, callback)
+Node.DataModel.prototype.beginTransaction = async function (msg)
 {
   let conn = this.connections[msg.cid];
   if (!conn)
-    return callback(null, new Error("Connection closed"));
+    throw new Error("Connection closed");
   //
-  this._beginTransaction(conn, function (tr, error) {
-    if (error)
-      return callback(null, error);
-    //
-    conn.transaction = tr;
-    callback();
-  });
+  conn.transaction = await this._beginTransaction(conn);
 };
 
 
 /**
  * Commit a transaction
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.DataModel.prototype.commitTransaction = function (msg, callback)
+Node.DataModel.prototype.commitTransaction = async function (msg)
 {
   let conn = this.connections[msg.cid];
   if (!conn)
-    return callback(null, new Error("Connection closed"));
+    throw new Error("Connection closed");
   //
-  this._commitTransaction(conn, function (error) {
+  try {
+    await this._commitTransaction(conn);
+  }
+  catch (e) {
+    throw e;
+  }
+  finally {
     delete conn.transaction;
-    callback(null, error);
-  });
+  }
 };
 
 
 /**
  * Rollback a transaction
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.DataModel.prototype.rollbackTransaction = function (msg, callback)
+Node.DataModel.prototype.rollbackTransaction = async function (msg)
 {
   let conn = this.connections[msg.cid];
   if (!conn)
-    return callback(null, new Error("Connection closed"));
+    throw new Error("Connection closed");
   //
-  this._rollbackTransaction(conn, function (error) {
+  try {
+    await this._rollbackTransaction(conn);
+  }
+  catch (e) {
+    throw e;
+  }
+  finally {
     delete conn.transaction;
-    callback(null, error);
-  });
+  }
 };
 
 
 /**
  * Do nothing
  * @param {Object} msg - message received
- * @param {Function} callback - function to be called at the end
  */
-Node.DataModel.prototype.ping = function (msg, callback)
+Node.DataModel.prototype.ping = function (msg)
 {
-  callback();
 };
 
 
@@ -262,10 +241,10 @@ Node.DataModel.prototype.ping = function (msg, callback)
  * Notified when a server disconnects
  * @param {Node.Server} server - server disconnected
  */
-Node.DataModel.prototype.onServerDisconnected = function (server)
+Node.DataModel.prototype.onServerDisconnected = async function (server)
 {
   // Close all pending connections to that server
-  this.disconnect(server).then();
+  await this.disconnect(server);
 };
 
 
@@ -276,19 +255,17 @@ Node.DataModel.prototype.onServerDisconnected = function (server)
 Node.DataModel.prototype.disconnect = async function (server)
 {
   // Close all pending connections
-  await Promise.all(Object.keys(this.connections).map(async function (cbid) {
-    if (server && this.connections[cbid].server !== server)
+  for (let cid in this.connections) {
+    if (server && this.connections[cid].server !== server)
       return;
     //
-    await new Promise(function (resolve, reject) {
-      this.closeConnection({cid: cbid}, function (result, error) {
-        if (error)
-          reject(new Error()`Error closing connection of datamodel ${this.name}': ${error}`);
-        else
-          resolve();
-      }.bind(this));
-    }.bind(this));
-  }.bind(this)));
+    try {
+      await this.closeConnection({cid});
+    }
+    catch (e) {
+      throw new Error(`Error closing connection of datamodel ${this.name}': ${e}`);
+    }
+  }
 };
 
 

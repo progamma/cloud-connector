@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2016
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 
@@ -37,7 +37,8 @@ Node.Plugin.msgTypes = {
  * Deserialize an object
  * @param {Object} obj
  */
-Node.Plugin.prototype.deserializeObject = function (obj) {
+Node.Plugin.prototype.deserializeObject = function (obj)
+{
   if (obj.instanceIndex && this.instances[obj.instanceIndex])
     return this.instances[obj.instanceIndex];
   //
@@ -51,14 +52,11 @@ Node.Plugin.prototype.deserializeObject = function (obj) {
 /**
  * Received a message
  * @param {Object} msg
- * @param {Function} callback - for response
  */
-Node.Plugin.prototype.onMessage = function (msg, callback)
+Node.Plugin.prototype.onMessage = async function (msg)
 {
   switch (msg.type) {
     case Node.Plugin.msgTypes.callMethod:
-      msg.args.push(callback);
-      //
       // Deserialize instance
       let caller, applyCaller;
       if (typeof msg.obj === "object") {
@@ -69,14 +67,13 @@ Node.Plugin.prototype.onMessage = function (msg, callback)
         caller = require("./" + msg.obj.toLowerCase() + "/index");
         applyCaller = this;
       }
-
       //
       // Call function
-      caller[msg.cmd].apply(applyCaller, msg.args);
+      return await caller[msg.cmd].apply(applyCaller, msg.args);
       break;
 
     case Node.Plugin.msgTypes.destroyObject:
-      this.destroyObject(msg.obj, callback);
+      await this.destroyObject(msg.obj);
       break;
   }
 };
@@ -85,13 +82,10 @@ Node.Plugin.prototype.onMessage = function (msg, callback)
 /**
  * Destroy an object
  * @param {Object} obj
- * @param {Function} callback - for response
  */
-Node.Plugin.prototype.destroyObject = function (obj, callback)
+Node.Plugin.prototype.destroyObject = async function (obj)
 {
   delete this.instances[obj.instanceIndex];
-  //
-  callback();
 };
 
 
@@ -99,10 +93,10 @@ Node.Plugin.prototype.destroyObject = function (obj, callback)
  * Notified when a server disconnects
  * @param {Node.Server} server - server disconnected
  */
-Node.Plugin.prototype.onServerDisconnected = function (server)
+Node.Plugin.prototype.onServerDisconnected = async function (server)
 {
   // Close all opened files to that server
-  this.disconnect(server).then();
+  await this.disconnect(server);
 };
 
 

@@ -1,6 +1,6 @@
 /*
- * Instant Developer Next
- * Copyright Pro Gamma Spa 2000-2014
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
 /* global module */
@@ -8,7 +8,7 @@
 var Node = Node || {};
 
 // Import global modules
-Node.fs = require("fs");
+// Node.fs = require("fs");
 
 /**
  * Class Logger
@@ -39,13 +39,13 @@ Node.Logger.prototype.init = function ()
 
 /**
  * Logs a message
- * @param {string} level
- * @param {string} message
- * @param {object} data
+ * @param {String} level
+ * @param {String} message
+ * @param {Object} data
  */
 Node.Logger.prototype.log = function (level, message, data)
 {
-  let logString = JSON.stringify({level: level, message: message, /*date: new Date(),*/ data: data});
+  let logString = JSON.stringify({level, message, /*date: new Date(),*/ data});
   //
   console.log(logString);
   /*
