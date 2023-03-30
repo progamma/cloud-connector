@@ -736,7 +736,9 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
         // Listen to data response event
         response.on('data', data => {
           res.headers = response.headers;
-          let totalBytes = response.headers["Content-Length"];
+          let totalBytes = response.headers["content-length"];
+          if (totalBytes)
+            totalBytes = parseInt(totalBytes);
           //
           byteDownloaded += data.length;
           if (url.onDownloadProgress(byteDownloaded, totalBytes) === false) {
@@ -757,7 +759,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
           if (upload)
             byteTotal = options._fileSize;
           else
-            byteTotal = req.req._headers["Content-Length"];
+            byteTotal = req.req.getHeader("Content-Length");
           byteSent = Math.min(req.req.connection._bytesDispatched, byteTotal);
         }
         else
