@@ -3,7 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global process, Promise, __dirname */
+/* global process, child_process, Promise, __dirname */
 
 var Node = Node || {};
 // Import global modules
@@ -614,7 +614,6 @@ Node.CloudServer.prototype.onMessage = async function (msg)
 
     default:
       throw new Error(`Command '${msg.type}' unknown`);
-      break;
   }
 };
 

@@ -48,7 +48,6 @@ Node.DataModel.prototype.onMessage = async function (msg)
       break;
     case Node.DataModel.commandTypes.execute:
       return await this.execute(msg);
-      break;
     case Node.DataModel.commandTypes.begin:
       await this.beginTransaction(msg);
       break;
@@ -63,7 +62,6 @@ Node.DataModel.prototype.onMessage = async function (msg)
       break;
     default:
       throw new Error(`Command '${msg.type}' not supported`);
-      break;
   }
 };
 

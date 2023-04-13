@@ -122,7 +122,7 @@ Node.Url.prototype.download = async function (file, options)
   options = Object.assign({_file: file}, options);
   //
   // Make request
-  this.fs.httpRequest(this, "DOWNLOAD", options);
+  let response = await this.fs.httpRequest(this, "DOWNLOAD", options);
   if (!response.error)
     response.file = file;
   //
