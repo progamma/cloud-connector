@@ -634,7 +634,7 @@ Node.CloudServer.prototype.restart = async function (msg)
   }
   //
   // Execute restart batch in another process
-  child_process = require("child_process");
+  let child_process = require("child_process");
   if (process.platform === "win32")
     child_process.spawn(`${__dirname}/restart.bat`).unref();
   else {
@@ -684,8 +684,8 @@ Node.CloudServer.prototype.changeCode = async function (msg)
   });
   //
   // Update node_modules
-  const util = require('util');
-  const execFile = util.promisify(require('child_process').execFile);
+  const util = require("util");
+  const execFile = util.promisify(require("child_process").execFile);
   let batch = `${__dirname}/update_node_modules.bat`;
   if (process.platform === "win32")
     await execFile(batch, [], {cwd: __dirname});
