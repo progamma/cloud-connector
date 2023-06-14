@@ -57,6 +57,7 @@ Node.Plugin.prototype.onMessage = async function (msg)
 {
   switch (msg.type) {
     case Node.Plugin.msgTypes.callMethod:
+    {
       // Deserialize instance
       let caller, applyCaller;
       if (typeof msg.obj === "object") {
@@ -64,13 +65,13 @@ Node.Plugin.prototype.onMessage = async function (msg)
         applyCaller = caller;
       }
       else {
-        caller = require("./" + msg.obj.toLowerCase() + "/index");
+        caller = require(`./${msg.obj.toLowerCase()}/index`);
         applyCaller = this;
       }
       //
       // Call function
       return await caller[msg.cmd].apply(applyCaller, msg.args);
-      break;
+    }
 
     case Node.Plugin.msgTypes.destroyObject:
       await this.destroyObject(msg.obj);
