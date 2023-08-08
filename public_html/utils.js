@@ -127,6 +127,27 @@ Node.Utils.decrypt = function (text)
 };
 
 
+/**
+ * Detect standard timezone offset
+ */
+Node.Utils.stdTimezoneOffset = function ()
+{
+  let jan = new Date(1970, 0, 1);
+  let jul = new Date(1970, 6, 1);
+  return Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+};
+
+
+/**
+ * Check if a date has daylight savings time
+ * @param {Date} d
+ */
+Node.Utils.isDstObserved = function (d)
+{
+  return d.getTimezoneOffset() < Node.Utils.stdTimezoneOffset();
+};
+
+
 //export module for node
 if (module)
   module.exports = Node.Utils;
