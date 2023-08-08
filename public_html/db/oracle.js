@@ -142,10 +142,11 @@ Node.Oracle.prototype.convertValue = function (value, colDef)
       {
         // Some adjustments for daylight savings time
         Node.Utils = require("../utils");
+        let stdTimezoneOffset = Node.Utils.stdTimezoneOffset();
         if (!Node.Utils.isDstObserved(value))
-          value = new Date(value.getTime() - (Node.Utils.stdTimezoneOffset() * 60000));
+          value = new Date(value.getTime() - (stdTimezoneOffset * 60000));
         if (!Node.Utils.isDstObserved(new Date()))
-          value = new Date(value.getTime() + (Node.Utils.stdTimezoneOffset() * 60000));
+          value = new Date(value.getTime() + (stdTimezoneOffset * 60000));
         //
         let v = value.getFullYear() + "-";
         v += (value.getMonth() + 1).toString().padStart(2, "0") + "-";
