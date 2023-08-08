@@ -140,6 +140,13 @@ Node.Oracle.prototype.convertValue = function (value, colDef)
     switch (colDef.dbType) {
       case oracledb.DB_TYPE_DATE:
       {
+        // Some adjustments for daylight savings time
+        Node.Utils = require("../utils");
+        if (!Node.Utils.isDstObserved(value))
+          value = new Date(value.getTime() - (Node.Utils.stdTimezoneOffset() * 60000));
+        if (!Node.Utils.isDstObserved(new Date()))
+          value = new Date(value.getTime() + (Node.Utils.stdTimezoneOffset() * 60000));
+        //
         let v = value.getFullYear() + "-";
         v += (value.getMonth() + 1).toString().padStart(2, "0") + "-";
         v += value.getDate().toString().padStart(2, "0") + " ";
