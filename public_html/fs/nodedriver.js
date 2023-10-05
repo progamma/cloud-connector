@@ -700,6 +700,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
       //
       // Make request
       let res = {};
+      let uploadprogressTimer;
       let req = require("request")(opts, (error, response, body) => {
         // Stop the progress events when the response is complete
         clearInterval(uploadprogressTimer);
@@ -752,9 +753,8 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
       let lastByteSent = 0;
       //
       // Upload progress handler
-      let uploadprogressTimer = setInterval(() => {
-        let byteTotal;
-        let byteSent;
+      uploadprogressTimer = setInterval(() => {
+        let byteTotal, byteSent;
         if (req.req) {
           if (upload)
             byteTotal = options._fileSize;
