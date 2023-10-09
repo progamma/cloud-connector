@@ -458,7 +458,7 @@ Node.NodeDriver.prototype.copyDir = async function (srcDir, dstDir)
 /**
  * Reads recursively the content of directory
  * @param {Directory} directory
- * @param {Integer} depth
+ * @param {Number} depth
  */
 Node.NodeDriver.prototype.readDirectory = async function (directory, depth)
 {
