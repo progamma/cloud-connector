@@ -123,7 +123,7 @@ Node.Directory.prototype.copy = async function (newPath)
 
 /**
  * Reads the content of directory: returns an array of files and folders
- * @param {Integer} depth
+ * @param {Number} depth
  */
 Node.Directory.prototype.list = async function (depth)
 {
