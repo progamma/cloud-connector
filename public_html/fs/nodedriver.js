@@ -722,6 +722,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
         req.once("abort", () => done(null, downloadError || new Error("request aborted")));
         //
         res.status = response.statusCode;
+        res.headers = response.headers;
         //
         // Download
         if (download && response.statusCode === 200) {
@@ -736,7 +737,6 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
         //
         // Listen to data response event
         response.on('data', data => {
-          res.headers = response.headers;
           let totalBytes = response.headers["content-length"];
           if (totalBytes)
             totalBytes = parseInt(totalBytes);
