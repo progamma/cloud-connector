@@ -9,7 +9,7 @@ Con il Cloud Connector installato sul server dove risiede il database, o in un s
 ## Installazione
 
 Per installare il Cloud Connector occorre eseguire le operazioni di seguito descritte:
-- Installare [node.js](https://nodejs.org) v 12.17.0 sul server del database o in un server dal quale è possibile connettersi al database che si desidera esporre.
+- Installare [node.js](https://nodejs.org) v 16.4.0 sul server del database o in un server dal quale è possibile connettersi al database che si desidera esporre.
 - Scaricare il pacchetto di installazione del software di Cloud Connector dal link seguente:
 [https://github.com/progamma/cloud-connector/archive/refs/heads/master.zip](https://github.com/progamma/cloud-connector/archive/refs/heads/master.zip)
 - Decomprimere il contenuto del file zip dove si preferisce.
