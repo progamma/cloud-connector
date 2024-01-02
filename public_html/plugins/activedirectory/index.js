@@ -39,7 +39,7 @@ Node.ActiveDirectory.prototype.exec = async function (cid, args)
   let ad = new Node.AD(this.config);
   //
   let argsArray = [];
-  for (let i = 0; i < args.length - 1; i++)
+  for (let i = 0; i < args.length; i++)
     argsArray.push(args[i]);
   //
   return await new Promise((resolve, reject) => {
