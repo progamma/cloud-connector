@@ -111,5 +111,4 @@ Node.Plugin.prototype.disconnect = async function (server)
 
 
 // export module for node
-if (module)
-  module.exports = Node.Plugin;
+module.exports = Node.Plugin;

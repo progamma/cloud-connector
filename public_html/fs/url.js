@@ -181,5 +181,4 @@ Node.Url.prototype.onDownloadProgress = function (bytesTransfered, total)
 
 
 //  export module for node
-if (module)
-  module.exports = Node.Url;
+module.exports = Node.Url;

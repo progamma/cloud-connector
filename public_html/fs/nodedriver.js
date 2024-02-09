@@ -20,11 +20,9 @@ if (module)
 Node.NodeDriver = function (parent, config)
 {
   // Import modules
-  if (module) {
-    Node.nodeFs = require("fs").promises;
-    Node.File = require("./file");
-    Node.Directory = require("./directory");
-  }
+  Node.nodeFs = require("fs").promises;
+  Node.File = require("./file");
+  Node.Directory = require("./directory");
   //
   Node.FS.call(this, parent, config);
 };
@@ -856,5 +854,4 @@ Node.NodeDriver.prototype.onMessage = async function (msg)
 
 
 // export module for node
-if (module)
-  module.exports = Node.NodeDriver;
+module.exports = Node.NodeDriver;

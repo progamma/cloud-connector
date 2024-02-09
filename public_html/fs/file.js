@@ -288,5 +288,4 @@ Node.File.prototype.unzip = async function (path)
 
 
 //  export module for node
-if (module)
-  module.exports = Node.File;
+module.exports = Node.File;
