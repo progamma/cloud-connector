@@ -463,39 +463,41 @@ Node.CloudServer.prototype.getPluginByName = function (name)
 Node.CloudServer.prototype.onServerConnected = function (server)
 {
   // Send list of databases supported by this connector
-  let msg = {};
-  msg.type = Node.CloudServer.messageTypes.init;
-  msg.data = {};
-  msg.data.name = this.name;
-  msg.data.version = require("./package.json").version;
-  msg.data.nodeVersion = process.version;
-  msg.data.hostname = require("os").hostname();
-  msg.data.dmlist = this.datamodels.map(def => {
-    return {
-      name: def.name,
-      "class": def.class,
-      key: def.APIKey
-    };
-  });
-  //
-  // Send list of file systems supported by this connector
-  msg.data.fslist = this.fileSystems.map(def => {
-    return {
-      name: def.name,
-      path: def.path,
-      permissions: def.permissions,
-      key: def.APIKey
-    };
-  });
-  //
-  // Send list of plugins supported by this connector
-  msg.data.pluginslist = this.plugins.map(def => {
-    return {
-      name: def.name,
-      "class": def.class,
-      key: def.APIKey
-    };
-  });
+  let msg = {
+    type: Node.CloudServer.messageTypes.init,
+    data: {
+      name: this.name,
+      version: require("./package.json").version,
+      nodeVersion: process.version,
+      hostname: require("os").hostname(),
+      dmlist: this.datamodels.map(def => {
+        return {
+          name: def.name,
+          "class": def.class,
+          key: def.APIKey
+        };
+      }),
+      //
+      // Send list of file systems supported by this connector
+      fslist: this.fileSystems.map(def => {
+        return {
+          name: def.name,
+          path: def.path,
+          permissions: def.permissions,
+          key: def.APIKey
+        };
+      }),
+      //
+      // Send list of plugins supported by this connector
+      pluginslist: this.plugins.map(def => {
+        return {
+          name: def.name,
+          "class": def.class,
+          key: def.APIKey
+        };
+      })
+    }
+  };
   //
   server.sendMessage(msg);
 };

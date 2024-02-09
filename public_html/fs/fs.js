@@ -146,5 +146,4 @@ Node.FS.prototype.getAbsolutePath = function (obj)
 
 
 // export module for node
-if (module)
-  module.exports = Node.FS;
+module.exports = Node.FS;

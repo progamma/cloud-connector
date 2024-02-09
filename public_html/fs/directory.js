@@ -154,5 +154,4 @@ Node.Directory.prototype.remove = async function ()
 
 
 // export module for node
-if (module)
-  module.exports = Node.Directory;
+module.exports = Node.Directory;

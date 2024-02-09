@@ -201,5 +201,4 @@ Node.ActiveDirectory.findDeletedObjects = async function (options)
 
 
 // export module for node
-if (module)
-  module.exports = Node.ActiveDirectory;
+module.exports = Node.ActiveDirectory;
