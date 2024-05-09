@@ -103,4 +103,4 @@ Per eseguire pm2 come servizio la procedura è diversa a seconda del tipo di ser
  Per consentire la configurazione da remoto (riavvio, modifica di config.js, aggiornamento del software) occorre impostare il parametro `remoteConfigurationKey` nel config.json.  
    
 ## Guida 
-Per maggiori informazioni sul Cloud Connector è possibile leggere questa [guida](https://storage.googleapis.com/inde-downloads/doc/Instant%20Developer%20Cloud%20Connector.pdf).
+Per maggiori informazioni sul Cloud Connector è possibile leggere questa [guida](https://storage.googleapis.com/inde-downloads/doc/02-Struttura%20del%20database.pdf#page=18).
