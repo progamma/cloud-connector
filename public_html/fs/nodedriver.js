@@ -564,6 +564,12 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
     headers: {}
   }, options);
   //
+  // I make the header keys lowercase
+  let headers = {};
+  for (let key in options.headers)
+    headers[key.toLowerCase()] = options.headers[key];
+  options.headers = headers;
+  //
   let multiPart = false;
   let download = false;
   let upload = false;
@@ -585,7 +591,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
   }
   //
   // If not specified, the post request type is multipart
-  if (options.headers["Content-Type"])
+  if (options.headers["content-type"])
     multiPart = false;
   //
   // Create internal request options object
@@ -607,9 +613,9 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
           opts.body = options.body;
           //
           if (typeof options.bodyType === "string")
-            opts.headers["Content-Type"] = options.bodyType;
-          else if (!options.headers["Content-Type"])
-            opts.headers["Content-Type"] = "application/octet-stream";
+            opts.headers["content-type"] = options.bodyType;
+          else if (!options.headers["content-type"])
+            opts.headers["content-type"] = "application/octet-stream";
           //
           // Types allowed for the custom body are: string and ArrayBuffer, but you can pass an object to
           // get a JSON custom body
@@ -619,7 +625,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
             else {
               try {
                 opts.body = JSON.stringify(options.body);
-                opts.headers["Content-type"] = "application/json";
+                opts.headers["content-type"] = "application/json";
               }
               catch (ex) {
                 return reject(new Error("Cannot stringify custom body"));
@@ -634,7 +640,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
           opts.formData = options.params;
           //
           // Delete custom Content-Type
-          delete opts.headers["Content-Type"];
+          delete opts.headers["content-type"];
           //
           // File section (only fot the upload)
           if (upload) {
@@ -648,7 +654,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
             };
           }
         }
-        else if (opts.headers["Content-Type"] === "application/x-www-form-urlencoded")
+        else if (opts.headers["content-type"] === "application/x-www-form-urlencoded")
           opts.form = options.params;
         else {
           // GET request
