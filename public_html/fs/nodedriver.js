@@ -559,23 +559,14 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
 {
   options = Object.assign({
     responseType: "text",
-    params: {}
+    gzip: true,
+    params: {},
+    headers: {}
   }, options);
   //
-  let uri = url.url;
-  //
-  // Multipart request
   let multiPart = false;
-  //
-  // Download
   let download = false;
-  //
-  // Upload
   let upload = false;
-  //
-  // Create internal request options object
-  let opts = {};
-  //
   switch (method) {
     case "POST":
       multiPart = true;
@@ -593,200 +584,194 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
       break;
   }
   //
-  // Check user options
-  if (!options.headers)
-    options.headers = {};
-  //
-  // Add an Accept-Encoding header to request compressed content encodings from the server, default true
-  opts.gzip = options.hasOwnProperty("gzip") ? options.gzip : true;
-  //
-  // Get custom headers
-  opts.headers = options.headers;
-  //
-  // Get eventually values for the autentication
-  if (options.authentication)
-    opts.auth = options.authentication;
-  //
-  // Set timeout
-  if (options.timeOut)
-    opts.timeout = options.timeOut;
-  //
   // If not specified, the post request type is multipart
   if (options.headers["Content-Type"])
     multiPart = false;
   //
-  opts.method = method;
-  opts.uri = uri;
+  // Create internal request options object
+  let uri = url.url;
+  let opts = {
+    uri,
+    method,
+    gzip: options.gzip, // Add an Accept-Encoding header to request compressed content encodings from the server, default true
+    headers: options.headers,
+    auth: options.authentication,
+    timeout: options.timeOut
+  };
   //
-  return await new Promise((resolve, reject) => {
-    let done = (result, error) => resolve(error ? {error} : result);
-    //
-    try {
-      // Custom body case
-      if (options.body) {
-        if (typeof options.bodyType === "string")
-          opts.headers["Content-Type"] = options.bodyType;
-        else if (!options.headers["Content-Type"])
-          opts.headers["Content-Type"] = "application/octet-stream";
-        //
-        // Types allowed for the custom body are: string and ArrayBuffer, but you can pass an object to
-        // get a JSON custom body
-        if (options.body && (typeof options.body === "object") && !(options.body instanceof ArrayBuffer)) {
-          try {
-            options.body = JSON.stringify(options.body);
-          }
-          catch (ex) {
-            return done(null, new Error("Cannot stringify custom body"));
-          }
-          options.headers["Content-Type"] = "application/json";
-        }
-        //
-        if (options.body instanceof ArrayBuffer)
-          opts.body = Buffer.from(options.body);
-        else if (typeof options.body === "string")
+  try {
+    return await new Promise((resolve, reject) => {
+      try {
+        // Custom body case
+        if (options.body) {
           opts.body = options.body;
-        else
-          return done(null, new Error("Custom body must be string or ArrayBuffer"));
-      }
-      else if (multiPart) { // multipart
-        // Create multipart request for upload
-        opts.formData = options.params || {};
-        //
-        // Delete custom Content-Type
-        delete opts.headers["Content-Type"];
-        //
-        // File section (only fot the upload)
-        if (upload) {
-          // Add the files
-          opts.formData[options._nameField] = {
-            value: require("fs").createReadStream(options._file.absolutePath),
-            options: {
-              filename: options._fileName,
-              contentType: options._fileContentType
-            }
-          };
-        }
-      }
-      else if (opts.headers["Content-Type"] === "application/x-www-form-urlencoded")
-        opts.form = options.params;
-      else {
-        // GET request
-        // Concatenate options params and url params
-        let posQuery = uri.indexOf("?");
-        if (posQuery > 0) {
-          opts.uri = uri.substr(0, posQuery);
-          opts.qs = require("querystring").parse(uri.substr(posQuery + 1));
-          for (let propertyName in options.params)
-            opts.qs[propertyName] = options.params[propertyName];
-        }
-        else
-          opts.qs = options.params;
-        opts.useQuerystring = true;
-      }
-      //
-      // For download check file path
-      let downloadError, writeStream;
-      if (download) {
-        // Create stream
-        writeStream = require("fs").createWriteStream(options._file.absolutePath, {encoding: null});
-        writeStream.once("error", error => downloadError = error);
-      }
-      //
-      // Set response as buffer
-      if (download || options.responseType === "arraybuffer")
-        opts.encoding = null;
-      //
-      // Make request
-      let res = {};
-      let uploadprogressTimer;
-      let req = require("request")(opts, (error, response, body) => {
-        // Stop the progress events when the response is complete
-        clearInterval(uploadprogressTimer);
-        //
-        if (error)
-          return done(null, error);
-        //
-        // Remove bom utf-8
-        if (typeof body === "string" && body.charCodeAt(0) === 65279)
-          body = body.substring(1);
-        //
-        res.body = (body instanceof Buffer ? body.buffer : body);
-        done(res);
-      });
-      //
-      // Listen to response event
-      req.on("response", response => {
-        // Listen to next abort event
-        req.once("abort", () => done(null, downloadError || new Error("request aborted")));
-        //
-        res.status = response.statusCode;
-        res.headers = response.headers;
-        //
-        // Download
-        if (download && response.statusCode === 200) {
-          if (downloadError)
-            req.abort();
-          else
-            req.pipe(writeStream);
-        }
-        //
-        // Amount of byte downloaded
-        let byteDownloaded = 0;
-        //
-        // Listen to data response event
-        response.on('data', data => {
-          let totalBytes = response.headers["content-length"];
-          if (totalBytes)
-            totalBytes = parseInt(totalBytes);
           //
-          byteDownloaded += data.length;
-          if (url.onDownloadProgress(byteDownloaded, totalBytes) === false) {
-            // Stop response writing
-            req.abort();
+          if (typeof options.bodyType === "string")
+            opts.headers["Content-Type"] = options.bodyType;
+          else if (!options.headers["Content-Type"])
+            opts.headers["Content-Type"] = "application/octet-stream";
+          //
+          // Types allowed for the custom body are: string and ArrayBuffer, but you can pass an object to
+          // get a JSON custom body
+          if (typeof options.body === "object") {
+            if (options.body instanceof ArrayBuffer)
+              opts.body = Buffer.from(options.body);
+            else {
+              try {
+                opts.body = JSON.stringify(options.body);
+                opts.headers["Content-type"] = "application/json";
+              }
+              catch (ex) {
+                return reject(new Error("Cannot stringify custom body"));
+              }
+            }
           }
-        });
-      });
-      //
-      // Last value of byte sent
-      let lastByteSent = 0;
-      //
-      // Upload progress handler
-      uploadprogressTimer = setInterval(() => {
-        let byteTotal, byteSent;
-        if (req.req) {
-          if (upload)
-            byteTotal = options._fileSize;
-          else
-            byteTotal = req.req.getHeader("Content-Length");
-          byteSent = Math.min(req.req.connection._bytesDispatched, byteTotal);
+          else if (typeof options.body !== "string")
+            return reject(new Error("Custom body must be String, Object or ArrayBuffer"));
         }
-        else
+        else if (multiPart) { // multipart
+          // Create multipart request for upload
+          opts.formData = options.params;
+          //
+          // Delete custom Content-Type
+          delete opts.headers["Content-Type"];
+          //
+          // File section (only fot the upload)
+          if (upload) {
+            // Add the files
+            opts.formData[options._nameField] = {
+              value: require("fs").createReadStream(options._file.absolutePath),
+              options: {
+                filename: options._fileName,
+                contentType: options._fileContentType
+              }
+            };
+          }
+        }
+        else if (opts.headers["Content-Type"] === "application/x-www-form-urlencoded")
+          opts.form = options.params;
+        else {
+          // GET request
+          // Concatenate options params and url params
+          let posQuery = uri.indexOf("?");
+          if (posQuery > 0) {
+            opts.uri = uri.substr(0, posQuery);
+            opts.qs = require("querystring").parse(uri.substr(posQuery + 1));
+            for (let propertyName in options.params)
+              opts.qs[propertyName] = options.params[propertyName];
+          }
+          else
+            opts.qs = options.params;
+          opts.useQuerystring = true;
+        }
+        //
+        // For download check file path
+        let downloadError, writeStream;
+        if (download) {
+          // Create stream
+          writeStream = require("fs").createWriteStream(options._file.absolutePath, {encoding: null});
+          writeStream.once("error", error => downloadError = error);
+        }
+        //
+        // Set response as buffer
+        if (download || options.responseType === "arraybuffer")
+          opts.encoding = null;
+        //
+        // Make request
+        let res = {};
+        let uploadprogressTimer;
+        let req = require("request")(opts, (error, response, body) => {
+          // Stop the progress events when the response is complete
           clearInterval(uploadprogressTimer);
+          //
+          if (error)
+            return reject(error);
+          //
+          // Remove bom utf-8
+          if (typeof body === "string" && body.charCodeAt(0) === 65279)
+            body = body.substring(1);
+          //
+          res.body = (body instanceof Buffer ? body.buffer : body);
+          resolve(res);
+        });
         //
-        // If the information is not avaible, stop the event
-        if (byteTotal === undefined)
-          return clearInterval(uploadprogressTimer);
+        // Listen to response event
+        req.on("response", response => {
+          // Listen to next abort event
+          req.once("abort", () => reject(downloadError || new Error("request aborted")));
+          //
+          res.status = response.statusCode;
+          res.headers = response.headers;
+          //
+          // Download
+          if (download && response.statusCode === 200) {
+            if (downloadError)
+              req.abort();
+            else
+              req.pipe(writeStream);
+          }
+          //
+          // Amount of byte downloaded
+          let byteDownloaded = 0;
+          //
+          // Listen to data response event
+          response.on('data', data => {
+            let totalBytes = response.headers["content-length"];
+            if (totalBytes)
+              totalBytes = parseInt(totalBytes);
+            //
+            byteDownloaded += data.length;
+            if (url.onDownloadProgress(byteDownloaded, totalBytes) === false) {
+              // Stop response writing
+              req.abort();
+            }
+          });
+        });
         //
-        // If the values have not changed, they are not notified
-        if (lastByteSent === byteSent)
-          return;
+        // Last value of byte sent
+        let lastByteSent = 0;
         //
-        // Check if the upload was interrupted
-        let abort = (url.onUploadProgress(byteSent, byteTotal) === false);
-        lastByteSent = byteSent;
-        //
-        // In these cases, stops the event
-        if (req._ended || abort)
-          clearInterval(uploadprogressTimer);
-        //
-        if (abort)
-          req.abort();
-      }, 250);
-    }
-    catch (e) {
-      done(null, e);
-    }
-  });
+        // Upload progress handler
+        uploadprogressTimer = setInterval(() => {
+          let byteTotal, byteSent;
+          if (req.req) {
+            if (upload)
+              byteTotal = options._fileSize;
+            else
+              byteTotal = req.req.getHeader("Content-Length");
+            byteSent = Math.min(req.req.connection?._bytesDispatched, byteTotal);
+          }
+          else
+            clearInterval(uploadprogressTimer);
+          //
+          // If the information is not avaible, stop the event
+          if (byteTotal === undefined)
+            return clearInterval(uploadprogressTimer);
+          //
+          // If the values have not changed, they are not notified
+          if (lastByteSent === byteSent)
+            return;
+          //
+          // Check if the upload was interrupted
+          let abort = (url.onUploadProgress(byteSent, byteTotal) === false);
+          lastByteSent = byteSent;
+          //
+          // In these cases, stops the event
+          if (req._ended || abort)
+            clearInterval(uploadprogressTimer);
+          //
+          if (abort)
+            req.abort();
+        }, 250);
+      }
+      catch (e) {
+        reject(e);
+      }
+    });
+  }
+  catch (e) {
+    return {error: e};
+  }
 };
 
 
