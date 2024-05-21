@@ -656,18 +656,8 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
         }
         else if (opts.headers["content-type"] === "application/x-www-form-urlencoded")
           opts.form = options.params;
-        else {
-          // GET request
-          // Concatenate options params and url params
-          let posQuery = uri.indexOf("?");
-          if (posQuery > 0) {
-            opts.uri = uri.substr(0, posQuery);
-            opts.qs = require("querystring").parse(uri.substr(posQuery + 1));
-            for (let propertyName in options.params)
-              opts.qs[propertyName] = options.params[propertyName];
-          }
-          else
-            opts.qs = options.params;
+        else if (Object.keys(options.params).length > 0) {
+          opts.qs = options.params;
           opts.useQuerystring = true;
         }
         //
