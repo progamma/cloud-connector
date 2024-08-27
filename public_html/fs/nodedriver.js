@@ -267,8 +267,8 @@ Node.NodeDriver.prototype.renameObject = async function (obj, newObj)
   // Back compatibility (newObj as name)
   if (typeof newObj === "string")
     newObj = this[obj instanceof Node.File ? "file" : "directory"](obj.path.substring(0, obj.path.lastIndexOf("/") + 1) + newObj);
-  else
-    console.assert(newObj instanceof Node.File || newObj instanceof Node.Directory, "The provided parameter 'newObj' must be an instance of Node.File or Node.Directory");
+  else if (!(newObj instanceof Node.File || newObj instanceof Node.Directory))
+    throw new Error("The provided parameter 'newObj' must be an instance of Node.File or Node.Directory");
   //
   await Node.nodeFs.rename(obj.absolutePath, newObj.absolutePath);
 };
