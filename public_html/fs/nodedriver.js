@@ -383,7 +383,7 @@ Node.NodeDriver.prototype.zipFile = async function (file, zipFile)
 
 
 /**
- * Unzip the archiver
+ * Unzip an archiver
  * @param {File} file
  * @param {Directory} directory
  */
@@ -413,8 +413,9 @@ Node.NodeDriver.prototype.unzip = async function (file, directory)
       zipfile.readEntry();
       //
       // For each file/directory
-      zipfile.on("entry", entry => {
-        this.file(directory.path + "/" + entry.fileName, file.type).parentDirectory.create().then(() => {
+      zipfile.on("entry", async entry => {
+        try {
+          await this.file(directory.path + "/" + entry.fileName, file.type).parentDirectory.create();
           zipfile.openReadStream(entry, (err, readStream) => {
             if (err)
               return reject(err);
@@ -435,7 +436,11 @@ Node.NodeDriver.prototype.unzip = async function (file, directory)
             // Listen to close output event
             output.on("close", () => !rejected && zipfile.readEntry());
           });
-        }, reject);
+          resolve();
+        }
+        catch (e) {
+          reject(e);
+        }
       });
       //
       // When the parsing is in error
@@ -505,7 +510,7 @@ Node.NodeDriver.prototype.copyDir = async function (srcDir, dstDir)
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
   //
-  // Check that the relative paths are valid and I get absolute paths
+  // Check if source directory exists
   if (!await srcDir.exists())
     throw new Error(`Directory ${srcDir.path} doesn't exist`);
   //
@@ -568,38 +573,44 @@ Node.NodeDriver.prototype.zipDirectory = async function (directory, zipFile)
   if (!await directory.exists())
     throw new Error("Directory doesn't exist");
   //
-  await new Promise((resolve, reject) => {
-    let done = error => error ? reject(error) : resolve();
-    //
+  // Create the archive object
+  // license and detail: https://github.com/ctalkington/node-archiver
+  let archive = require("archiver")("zip");
+  //
+  try {
     // Create the write stream
     let output = require("fs").createWriteStream(zipPath);
     //
-    // Create the archive object
-    let archive = require("archiver")("zip");//license and detail: https://github.com/ctalkington/node-archiver
-    //
-    // Function that deletes the new zip file (if there is an error)
-    let deleteVoidZip = err => {
-      archive.finalize();
-      zipFile.remove().then(() => done(err), err1 => done(err || err1));
-    };
-    //
-    // Listen to next error event
-    output.once("error", deleteVoidZip);
-    //
-    // Listen to close finalization archive
-    output.on("close", done);
-    //
-    // Listen to error event
-    archive.on("error", deleteVoidZip);
-    //
-    output.on("open", () => {
-      // Push data into the archive
-      archive.pipe(output);
+    await new Promise((resolve, reject) => {
+      // Listen to next error event
+      output.once("error", reject);
       //
-      // Add to archive the folder to compress
-      archive.glob("**/*", {cwd: path}).finalize();
+      // Listen to close finalization archive
+      output.on("close", resolve);
+      //
+      // Listen to error event
+      archive.on("error", reject);
+      //
+      output.on("open", () => {
+        // Push data into the archive
+        archive.pipe(output);
+        //
+        // Add to archive the folder to compress
+        archive.glob("**/*", {cwd: path});
+        //
+        archive.finalize();
+      });
     });
-  });
+  }
+  catch (e) {
+    try {
+      archive.finalize();
+      await zipFile.removeAsync();
+    }
+    catch (e) {
+    }
+    throw e;
+  }
 };
 
 
@@ -705,8 +716,8 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
                 opts.body = JSON.stringify(options.body);
                 opts.headers["content-type"] = "application/json";
               }
-              catch (ex) {
-                return reject(new Error("Cannot stringify custom body"));
+              catch (e) {
+                return reject(new Error(`Cannot stringify custom body: ${e.message}`));
               }
             }
           }
@@ -722,7 +733,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
           //
           // File section (only fot the upload)
           if (upload) {
-            // Add the files
+            // Add the file
             opts.formData[options._nameField] = {
               value: require("fs").createReadStream(options._file.absolutePath),
               options: {
