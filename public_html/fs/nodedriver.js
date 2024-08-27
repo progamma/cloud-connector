@@ -653,6 +653,17 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
   if (options.file && !(options.file instanceof Node.File))
     throw new Error("The provided parameter 'options.file' must be an instance of Node.File");
   //
+  let uri = url.url;
+  if (this.whiteListedUrls) {
+    // Extract the protocol, hostname, and port
+    let parsedUrl = new URL(uri);
+    let baseUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${parsedUrl.port ? `:${parsedUrl.port}` : ""}`;
+    //
+    // Check if the base URL is in the list of allowed URLs
+    if (!this.whiteListedUrls.includes(baseUrl))
+      throw new Error(`The URL '${uri}' is not included in the list of permitted URLs`);
+  }
+  //
   // I make the header keys lowercase
   let headers = {};
   for (let key in options.headers)
@@ -684,7 +695,6 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
     multiPart = false;
   //
   // Create internal request options object
-  let uri = url.url;
   let opts = {
     uri,
     method,
