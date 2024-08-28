@@ -19,6 +19,11 @@ Node.DataModel = function (parent, config)
   //
   for (let k in config)
     this[k] = config[k];
+  //
+  if (this.APIKey === "00000000-0000-0000-0000-000000000000") {
+    this.parent.log("WARNING", `The APIKey of dataModel '${this.name}' is set to the default value and will be ignored`);
+    this.APIKey = "";
+  }
 };
 
 
