@@ -133,7 +133,7 @@ Node.CloudServer.prototype.loadConfig = async function (newConfig)
       }).join("");
       //
       // Try to decrypt passwords
-      if (k === "password" && v) {
+      if (typeof v === "string" && k === "password" && v) {
         try {
           res = Node.Utils.decrypt(v);
         }
@@ -150,7 +150,9 @@ Node.CloudServer.prototype.loadConfig = async function (newConfig)
   //
   this.configChanged = (this.name !== config.name);
   this.name = config.name;
-  if (config.remoteConfigurationKey !== "00000000-0000-0000-0000-000000000000")
+  if (config.remoteConfigurationKey === "00000000-0000-0000-0000-000000000000")
+    this.log("WARNING", "The remoteConfigurationKey is set to the default value and will be ignored");
+  else
     this.remoteConfigurationKey = config.remoteConfigurationKey;
   //
   await this.createDataModels(config);
@@ -473,7 +475,7 @@ Node.CloudServer.prototype.onServerConnected = function (server)
       dmlist: this.datamodels.map(def => {
         return {
           name: def.name,
-          "class": def.class,
+          class: def.class,
           key: def.APIKey
         };
       }),
@@ -492,7 +494,7 @@ Node.CloudServer.prototype.onServerConnected = function (server)
       pluginslist: this.plugins.map(def => {
         return {
           name: def.name,
-          "class": def.class,
+          class: def.class,
           key: def.APIKey
         };
       })
