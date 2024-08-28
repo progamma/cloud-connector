@@ -71,6 +71,7 @@
       "name": "myFS1",
       "path": "/Users/John/Desktop",
       "permissions": "rw",
+      "whiteListedUrls": [],
       "APIKey": "00000000-0000-0000-0000-000000000000"
     }
   ],
