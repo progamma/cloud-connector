@@ -24,13 +24,17 @@ Per installare il Cloud Connector occorre eseguire le operazioni di seguito desc
 
 La configurazione del Cloud Connector avviene mediante il file config.json che si trova nella directory `public_html`:
 - La sezione principale indica il nome del connettore così come sarà visto dai server di produzione e dai server IDE.
+In questa sezione è riportata anche l'impostazione della chiave privata di criptaggio delle password utilizzate nei singoli `datamodels` che è recuperata da una variabile di ambiente del server nel quale verrà installato il Cloud Connector.
+Per esempio:
+`"passwordPrivateKey": "%CC_KEY%",`
+La variabile `%CC_KEY%` deve essere impostata da comando di sistema operativo e può anche essere utilizzato un nome diverso da quello indicato del file di esempio della configurazione. Se non viene definita questa variabile di ambiente il Cloud Connector utilizza un suo valore di default. Consigliamo di impostare un valore per quedsta variabile per mantenere un livello di sicurezza elevato all'istallazione del Cloud Connector.
 - Nella sezione `remoteServers` vanno indicati i server di Instant Developer Cloud che devono essere contattati dal Cloud Connector, quelli dove risiedono gli applicativi che utilizzeranno il database.  
 Per esempio:  
 `"remoteServers": [prod1-pro-gamma.instantdevelopercloud.com,prod2-pro-gamma.instantdevelopercloud.com],`
 - Nella sezione `remoteUserNames` devono essere indicati indicati gli utenti dell’IDE di Instant Developer Cloud a cui il Cloud Connector può collegarsi.  
 Per esempio:  
-`"remoteUserNames": ["https://ide1-pro-gamma.instantdevelopercloud.com@paolo-giannelli"],`  
-- Nella `datamodels` devono essere impostate le informazioni di connessione ai database che si vuole esporre. È possibile elencare più database. Ogni tipo di database (Oracle, Postgres, SQLServer, MySQL) ha parametri di connessione specifici.  
+`"remoteUserNames": ["https://ide1-pro-gamma.instantdevelopercloud.com@paolo-giannelli"],` 
+- Nella sezione `datamodels` devono essere impostate le informazioni di connessione ai database che si vuole esporre. È possibile elencare più database. Ogni tipo di database (Oracle, Postgres, SQLServer, MySQL) ha parametri di connessione specifici.  
 Un esempio di configurazione SQL server è il seguente:
   ```js
   "datamodels": [  
