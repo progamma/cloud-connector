@@ -28,6 +28,12 @@ In questa sezione è riportata anche l'impostazione della chiave privata di crip
 L'impostazione di default nel file di esempio della configurazione (config_example.json) è questa `"passwordPrivateKey": "%CC_KEY%",`   
 La variabile `%CC_KEY%` deve essere impostata da comando di sistema operativo; può anche essere utilizzato un nome diverso da quello indicato. Se non viene definita questa variabile di ambiente il Cloud Connector utilizza un suo valore di default.  
 Consigliamo di impostare un valore per quedsta variabile per mantenere un livello di sicurezza elevato all'istallazione del Cloud Connector.
+- È possibile aggiungere una sezione `connectionOptions` al file di configurazione del Cloud Connector per indicare al sistema che deve accettare connessioni anche da server con certificati non validi o autofirmati.  
+Attenzione questa impostazione va utilizzata solamente in ambiente di sviluppo in quanto rende insicura l'installazione del Cloud Connector.  
+Per abilitare questa impostazione occorre aggiungere questa sezione al dile config.json:  
+`"connectionOptions": {
+  "rejectUnauthorized": false
+},`
 - Nella sezione `remoteServers` vanno indicati i server di Instant Developer Cloud che devono essere contattati dal Cloud Connector, quelli dove risiedono gli applicativi che utilizzeranno il database.  
 Per esempio:  
 `"remoteServers": [prod1-pro-gamma.instantdevelopercloud.com,prod2-pro-gamma.instantdevelopercloud.com],`
