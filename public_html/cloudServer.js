@@ -101,83 +101,37 @@ Node.CloudServer.serverForUser = async function (username)
 
 /**
  * Read the JSON of the configuration from the file config.json
- * @param {String/Object} newConfig
+ * @param {Object} config
  */
-Node.CloudServer.prototype.loadConfig = async function (newConfig)
+Node.CloudServer.prototype.loadConfig = async function (config)
 {
-  let file;
-  try {
-    if (newConfig)
-      file = JSON.stringify(newConfig);
-    else
-      file = await Node.fs.readFile("config.json", {encoding: "utf8"});
-  }
-  catch (e) {
-    throw new Error("Error reading the configuration");
-  }
+  config = config || require("./config.json");
   //
-  // If the read is successful the variable "file" contains the content of config.json
-  let config;
-  try {
-    Node.Utils = require("./utils");
-    config = JSON.parse(file, (k, v) => {
-      if (typeof v !== "string")
-        return v;
-      //
-      // Replace environment variables
-      let res = v.split("%").map((v, i) => {
-        if (i % 2 && v in process.env)
-          return process.env[v];
-        else
-          return v;
-      }).join("");
-      //
-      // Try to decrypt passwords
-      if (k === "password" && v) {
-        try {
-          res = Node.Utils.decrypt(v);
-        }
-        catch (e) {
-        }
-      }
-      //
-      return res;
-    });
-  }
-  catch (e) {
-    throw new Error(`Error parsing the configuration: ${e}\n${e.stack}`);
-  }
+  utils = require("./utils");
+  resolvedConfig = JSON.parse(JSON.stringify(config));
+  utils.replaceEnvVariables(resolvedConfig);
   //
-  this.configChanged = (this.name !== config.name);
-  this.name = config.name;
-  if (config.remoteConfigurationKey !== "00000000-0000-0000-0000-000000000000")
-    this.remoteConfigurationKey = config.remoteConfigurationKey;
+  let key = resolvedConfig.passwordPrivateKey;
+  utils.processPasswords(resolvedConfig, key);
   //
-  await this.createDataModels(config);
-  await this.createFileSystems(config);
-  await this.createPlugins(config);
-  await this.createServers(config);
+  this.configChanged = (this.name !== resolvedConfig.name);
+  this.name = resolvedConfig.name;
+  //
+  if (resolvedConfig.remoteConfigurationKey === "00000000-0000-0000-0000-000000000000")
+    this.log("WARNING", "The remoteConfigurationKey is set to the default value and will be ignored");
+  else
+    this.remoteConfigurationKey = resolvedConfig.remoteConfigurationKey;
+  //
+  await this.createDataModels(resolvedConfig);
+  await this.createFileSystems(resolvedConfig);
+  await this.createPlugins(resolvedConfig);
+  await this.createServers(resolvedConfig);
   delete this.configChanged;
   //
   this.log("INFO", "Configuration loaded with success");
   //
-  // Reparse the config for mantain the environment variables
-  config = JSON.parse(file, (k, v) => {
-    if (typeof v !== "string" || k !== "password" || !v)
-      return v;
-    //
-    let res;
-    try {
-      Node.Utils.decrypt(v);
-      res = v;
-    }
-    catch (e) {
-      res = Node.Utils.encrypt(v);
-    }
-    return res;
-  });
-  //
-  // Resave the config because the passwords have been encrypted
+  // Resave the config with the passwords encrypted
+  utils.processPasswords(config, key, true);
   await Node.fs.writeFile("config.json", JSON.stringify(config, null, 2), {encoding: "utf8"});
 };
 
@@ -473,7 +427,7 @@ Node.CloudServer.prototype.onServerConnected = function (server)
       dmlist: this.datamodels.map(def => {
         return {
           name: def.name,
-          "class": def.class,
+          class: def.class,
           key: def.APIKey
         };
       }),
@@ -492,7 +446,7 @@ Node.CloudServer.prototype.onServerConnected = function (server)
       pluginslist: this.plugins.map(def => {
         return {
           name: def.name,
-          "class": def.class,
+          class: def.class,
           key: def.APIKey
         };
       })
@@ -659,7 +613,11 @@ Node.CloudServer.prototype.changeConfig = async function (msg)
   if (!options || options.key !== this.remoteConfigurationKey)
     throw new Error("Key for remote configuration is wrong");
   //
-  await this.loadConfig(msg.args[0]);
+  let config = msg.args[0];
+  if (typeof config === "string")
+    config = JSON.parse(config);
+  //
+  await this.loadConfig(config);
 };
 
 

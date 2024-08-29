@@ -4,7 +4,6 @@
   "remoteUserNames": ["{ideUsername}", "{ideOrganization/IdeUsername}", "{ideUrl@ideUsername}"],
   "remoteConfigurationKey": "00000000-0000-0000-0000-000000000000",
   "connectionOptions": {
-    "rejectUnauthorized": false
   },
   "datamodels": [
     {
@@ -72,6 +71,7 @@
       "name": "myFS1",
       "path": "/Users/John/Desktop",
       "permissions": "rw",
+      "whiteListedOrigins": [],
       "APIKey": "00000000-0000-0000-0000-000000000000"
     }
   ],

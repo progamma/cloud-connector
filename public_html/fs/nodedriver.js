@@ -54,6 +54,9 @@ Node.NodeDriver.prototype.getAbsolutePath = function (obj)
  */
 Node.NodeDriver.prototype.createFile = async function (file)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -70,6 +73,9 @@ Node.NodeDriver.prototype.createFile = async function (file)
  */
 Node.NodeDriver.prototype.openFile = async function (file)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   file.handle = await Node.nodeFs.open(file.absolutePath, "r");
   this.files[file.id] = file;
 };
@@ -81,6 +87,9 @@ Node.NodeDriver.prototype.openFile = async function (file)
  */
 Node.NodeDriver.prototype.openFileForAppend = async function (file)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -96,6 +105,9 @@ Node.NodeDriver.prototype.openFileForAppend = async function (file)
  */
 Node.NodeDriver.prototype.close = async function (file)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   delete this.files[file.id];
   await file.handle?.close();
   delete file.handle;
@@ -108,6 +120,9 @@ Node.NodeDriver.prototype.close = async function (file)
  */
 Node.NodeDriver.prototype.fileExists = async function (file)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   try {
     return (await Node.nodeFs.stat(file.absolutePath)).isFile();
   }
@@ -125,6 +140,9 @@ Node.NodeDriver.prototype.fileExists = async function (file)
  */
 Node.NodeDriver.prototype.read = async function (file, length, offset)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   // Check that the file is opened (reading)
   if (!file.handle)
     throw new Error("File not opened");
@@ -153,6 +171,9 @@ Node.NodeDriver.prototype.read = async function (file, length, offset)
  */
 Node.NodeDriver.prototype.readAll = async function (file)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   // Client-size is done in file.readAll (must be different)
   // If not specified the default encoding is utf-8
   file.encoding = file.encoding || "utf-8";
@@ -172,6 +193,9 @@ Node.NodeDriver.prototype.readAll = async function (file)
  */
 Node.NodeDriver.prototype.write = async function (file, data, offset, length, position)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -209,6 +233,11 @@ Node.NodeDriver.prototype.write = async function (file, data, offset, length, po
  */
 Node.NodeDriver.prototype.copyFile = async function (file, newFile)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  if (!(newFile instanceof Node.File))
+    throw new Error("The provided parameter 'newFile' must be an instance of Node.File");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -228,6 +257,9 @@ Node.NodeDriver.prototype.copyFile = async function (file, newFile)
  */
 Node.NodeDriver.prototype.renameObject = async function (obj, newObj)
 {
+  if (!(obj instanceof Node.File || obj instanceof Node.Directory))
+    throw new Error("The provided parameter 'obj' must be an instance of Node.File or Node.Directory");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -235,6 +267,8 @@ Node.NodeDriver.prototype.renameObject = async function (obj, newObj)
   // Back compatibility (newObj as name)
   if (typeof newObj === "string")
     newObj = this[obj instanceof Node.File ? "file" : "directory"](obj.path.substring(0, obj.path.lastIndexOf("/") + 1) + newObj);
+  else if (!(newObj instanceof Node.File || newObj instanceof Node.Directory))
+    throw new Error("The provided parameter 'newObj' must be an instance of Node.File or Node.Directory");
   //
   await Node.nodeFs.rename(obj.absolutePath, newObj.absolutePath);
 };
@@ -246,6 +280,9 @@ Node.NodeDriver.prototype.renameObject = async function (obj, newObj)
  */
 Node.NodeDriver.prototype.fileLength = async function (file)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   return (await Node.nodeFs.stat(file.absolutePath)).size;
 };
 
@@ -256,6 +293,9 @@ Node.NodeDriver.prototype.fileLength = async function (file)
  */
 Node.NodeDriver.prototype.fileDateTime = async function (file)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   return (await Node.nodeFs.stat(file.absolutePath)).mtime;
 };
 
@@ -266,6 +306,9 @@ Node.NodeDriver.prototype.fileDateTime = async function (file)
  */
 Node.NodeDriver.prototype.deleteFile = async function (file)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -281,6 +324,11 @@ Node.NodeDriver.prototype.deleteFile = async function (file)
  */
 Node.NodeDriver.prototype.zipFile = async function (file, zipFile)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  if (!(zipFile instanceof Node.File))
+    throw new Error("The provided parameter 'zipFile' must be an instance of Node.File");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -335,12 +383,17 @@ Node.NodeDriver.prototype.zipFile = async function (file, zipFile)
 
 
 /**
- * Unzip the archiver
+ * Unzip an archiver
  * @param {File} file
  * @param {Directory} directory
  */
 Node.NodeDriver.prototype.unzip = async function (file, directory)
 {
+  if (!(file instanceof Node.File))
+    throw new Error("The provided parameter 'file' must be an instance of Node.File");
+  if (!(directory instanceof Node.Directory))
+    throw new Error("The provided parameter 'directory' must be an instance of Node.Directory");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -360,8 +413,9 @@ Node.NodeDriver.prototype.unzip = async function (file, directory)
       zipfile.readEntry();
       //
       // For each file/directory
-      zipfile.on("entry", entry => {
-        this.file(directory.path + "/" + entry.fileName, file.type).parentDirectory.create().then(() => {
+      zipfile.on("entry", async entry => {
+        try {
+          await this.file(directory.path + "/" + entry.fileName, file.type).parentDirectory.create();
           zipfile.openReadStream(entry, (err, readStream) => {
             if (err)
               return reject(err);
@@ -382,7 +436,11 @@ Node.NodeDriver.prototype.unzip = async function (file, directory)
             // Listen to close output event
             output.on("close", () => !rejected && zipfile.readEntry());
           });
-        }, reject);
+          resolve();
+        }
+        catch (e) {
+          reject(e);
+        }
       });
       //
       // When the parsing is in error
@@ -407,6 +465,9 @@ Node.NodeDriver.prototype.unzip = async function (file, directory)
  */
 Node.NodeDriver.prototype.mkDir = async function (directory)
 {
+  if (!(directory instanceof Node.Directory))
+    throw new Error("The provided parameter 'directory' must be an instance of Node.Directory");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -421,6 +482,9 @@ Node.NodeDriver.prototype.mkDir = async function (directory)
  */
 Node.NodeDriver.prototype.dirExists = async function (directory)
 {
+  if (!(directory instanceof Node.Directory))
+    throw new Error("The provided parameter 'directory' must be an instance of Node.Directory");
+  //
   try {
     return (await Node.nodeFs.stat(directory.absolutePath)).isDirectory();
   }
@@ -437,11 +501,16 @@ Node.NodeDriver.prototype.dirExists = async function (directory)
  */
 Node.NodeDriver.prototype.copyDir = async function (srcDir, dstDir)
 {
+  if (!(srcDir instanceof Node.Directory))
+    throw new Error("The provided parameter 'srcDir' must be an instance of Node.Directory");
+  if (!(dstDir instanceof Node.Directory))
+    throw new Error("The provided parameter 'dstDir' must be an instance of Node.Directory");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
   //
-  // Check that the relative paths are valid and I get absolute paths
+  // Check if source directory exists
   if (!await srcDir.exists())
     throw new Error(`Directory ${srcDir.path} doesn't exist`);
   //
@@ -460,6 +529,9 @@ Node.NodeDriver.prototype.copyDir = async function (srcDir, dstDir)
  */
 Node.NodeDriver.prototype.readDirectory = async function (directory, depth)
 {
+  if (!(directory instanceof Node.Directory))
+    throw new Error("The provided parameter 'directory' must be an instance of Node.Directory");
+  //
   // Check the validity of the path (reading)
   let path = directory.absolutePath;
   //
@@ -485,6 +557,11 @@ Node.NodeDriver.prototype.readDirectory = async function (directory, depth)
  */
 Node.NodeDriver.prototype.zipDirectory = async function (directory, zipFile)
 {
+  if (!(directory instanceof Node.Directory))
+    throw new Error("The provided parameter 'directory' must be an instance of Node.Directory");
+  if (!(zipFile instanceof Node.File))
+    throw new Error("The provided parameter 'zipFile' must be an instance of Node.File");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -496,38 +573,44 @@ Node.NodeDriver.prototype.zipDirectory = async function (directory, zipFile)
   if (!await directory.exists())
     throw new Error("Directory doesn't exist");
   //
-  await new Promise((resolve, reject) => {
-    let done = error => error ? reject(error) : resolve();
-    //
+  // Create the archive object
+  // license and detail: https://github.com/ctalkington/node-archiver
+  let archive = require("archiver")("zip");
+  //
+  try {
     // Create the write stream
     let output = require("fs").createWriteStream(zipPath);
     //
-    // Create the archive object
-    let archive = require("archiver")("zip");//license and detail: https://github.com/ctalkington/node-archiver
-    //
-    // Function that deletes the new zip file (if there is an error)
-    let deleteVoidZip = err => {
-      archive.finalize();
-      zipFile.remove().then(() => done(err), err1 => done(err || err1));
-    };
-    //
-    // Listen to next error event
-    output.once("error", deleteVoidZip);
-    //
-    // Listen to close finalization archive
-    output.on("close", done);
-    //
-    // Listen to error event
-    archive.on("error", deleteVoidZip);
-    //
-    output.on("open", () => {
-      // Push data into the archive
-      archive.pipe(output);
+    await new Promise((resolve, reject) => {
+      // Listen to next error event
+      output.once("error", reject);
       //
-      // Add to archive the folder to compress
-      archive.glob("**/*", {cwd: path}).finalize();
+      // Listen to close finalization archive
+      output.on("close", resolve);
+      //
+      // Listen to error event
+      archive.on("error", reject);
+      //
+      output.on("open", () => {
+        // Push data into the archive
+        archive.pipe(output);
+        //
+        // Add to archive the folder to compress
+        archive.glob("**/*", {cwd: path});
+        //
+        archive.finalize();
+      });
     });
-  });
+  }
+  catch (e) {
+    try {
+      archive.finalize();
+      await zipFile.removeAsync();
+    }
+    catch (e) {
+    }
+    throw e;
+  }
 };
 
 
@@ -537,6 +620,9 @@ Node.NodeDriver.prototype.zipDirectory = async function (directory, zipFile)
  */
 Node.NodeDriver.prototype.removeDirRecursive = async function (directory)
 {
+  if (!(directory instanceof Node.Directory))
+    throw new Error("The provided parameter 'directory' must be an instance of Node.Directory");
+  //
   // Check permissions
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
@@ -563,6 +649,20 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
     params: {},
     headers: {}
   }, options);
+  //
+  if (options.file && !(options.file instanceof Node.File))
+    throw new Error("The provided parameter 'options.file' must be an instance of Node.File");
+  //
+  let uri = url.url;
+  if (this.whiteListedOrigins) {
+    // Extract the protocol, hostname, and port
+    let parsedUrl = new URL(uri);
+    let baseUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${parsedUrl.port ? `:${parsedUrl.port}` : ""}`;
+    //
+    // Check if the base URL is in the list of allowed URLs
+    if (!this.whiteListedOrigins.includes(baseUrl))
+      throw new Error(`The URL '${uri}' is not included in the list of permitted URLs`);
+  }
   //
   // I make the header keys lowercase
   let headers = {};
@@ -595,7 +695,6 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
     multiPart = false;
   //
   // Create internal request options object
-  let uri = url.url;
   let opts = {
     uri,
     method,
@@ -627,8 +726,8 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
                 opts.body = JSON.stringify(options.body);
                 opts.headers["content-type"] = "application/json";
               }
-              catch (ex) {
-                return reject(new Error("Cannot stringify custom body"));
+              catch (e) {
+                return reject(new Error(`Cannot stringify custom body: ${e.message}`));
               }
             }
           }
@@ -644,7 +743,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
           //
           // File section (only fot the upload)
           if (upload) {
-            // Add the files
+            // Add the file
             opts.formData[options._nameField] = {
               value: require("fs").createReadStream(options._file.absolutePath),
               options: {

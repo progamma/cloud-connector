@@ -56,6 +56,8 @@ Node.Server.prototype.connect = function (options)
             return value;
         });
       }
+      else if (k === "remoteConfigurationKey")
+        v = "****";
       else
         return v;
     }));
