@@ -131,15 +131,21 @@ Node.Utils.processPasswords = function (config, key, encrypt)
   config.datamodels?.forEach(dm => {
     let password = dm.connectionOptions.password;
     try {
+      // Try to decrypt the password; I may not be able to do this if the password is still in clear text
       dm.connectionOptions.password = Node.Utils.decrypt(password, key, dm.iv);
     }
     catch (e) {
     }
     //
     if (encrypt) {
-      // Generate a new iv
-      dm.iv = require("crypto").randomBytes(16).toString("hex");
-      dm.connectionOptions.password = Node.Utils.encrypt(dm.connectionOptions.password, key, dm.iv);
+      try {
+        // Generate a new iv
+        dm.iv = require("crypto").randomBytes(16).toString("hex");
+        dm.connectionOptions.password = Node.Utils.encrypt(dm.connectionOptions.password, key, dm.iv);
+      }
+      catch (e) {
+        throw new Error(`Unable to encryt the password of datamodel '${dm.name}': ${e.message}`);
+      }
     }
   });
 };
