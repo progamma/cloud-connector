@@ -654,13 +654,13 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
     throw new Error("The provided parameter 'options.file' must be an instance of Node.File");
   //
   let uri = url.url;
-  if (this.whiteListedUrls) {
+  if (this.whiteListedOrigins) {
     // Extract the protocol, hostname, and port
     let parsedUrl = new URL(uri);
     let baseUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${parsedUrl.port ? `:${parsedUrl.port}` : ""}`;
     //
     // Check if the base URL is in the list of allowed URLs
-    if (!this.whiteListedUrls.includes(baseUrl))
+    if (!this.whiteListedOrigins.includes(baseUrl))
       throw new Error(`The URL '${uri}' is not included in the list of permitted URLs`);
   }
   //
