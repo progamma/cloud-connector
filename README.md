@@ -64,14 +64,16 @@ Un esempio di condivisione è il seguente:
    ```js
    "fileSystems": [
     {
-      "name": "pabloFileSystemTemp",
+      "name": "myFS1",
       "path": "C:\\Data\\Image",
       "permissions": "rw",
+      "whiteListedOrigins": [],
       "APIKey": "00000000-0000-0000-0000-000000000000"
     }
   ] 
   ```
-
+Questa configurazione indica che la directory indicata in `"path"` e condivisa in lettura e scrittura.  
+Il parametro `"whiteListedOrigins"` serve ad indicare una lista di domini verso i quali il Cloud Connector può effettuare richieste http; la lista vuota proibisce le richieste.
  - Nella sezione `plugins` devono essere elencate le classi che sono installate all'interno della directory `public_html\plugins` ed utilizzate come plugin.   
 Cloud Connector ha un plug-in già integrato: ActiveDirectory.  
 Per usarlo occorre aggiungere alla sezione un oggetto simile al seguente:  
