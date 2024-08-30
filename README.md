@@ -55,11 +55,14 @@ Ecco una guida su come gestire questi privilegi:
 ## Configurazione
 
 La configurazione del Cloud Connector avviene mediante il file config.json che si trova nella directory `public_html`:
-- La sezione principale indica il nome del connettore così come sarà visto dai server di produzione e dai server IDE.  
-In questa sezione è riportata anche l'impostazione della chiave privata di criptaggio delle password utilizzate nei singoli `datamodels` che è recuperata da una variabile di ambiente del server nel quale verrà installato il Cloud Connector.  
+- La sezione principale indica il nome del connettore così come sarà visto dai server di produzione e dai server IDE.
+
+In questa sezione è riportata anche l'impostazione della chiave privata di criptaggio delle password utilizzate nei singoli `datamodels` che è recuperata da una variabile di ambiente del server nel quale è installato il Cloud Connector.  
 L'impostazione di default nel file di esempio della configurazione (config_example.json) è questa `"passwordPrivateKey": "%CC_KEY%",`   
-La variabile `%CC_KEY%` deve essere impostata da comando di sistema operativo; può anche essere utilizzato un nome diverso da quello indicato. Se non viene definita questa variabile di ambiente il Cloud Connector utilizza un suo valore di default.  
-Consigliamo di impostare un valore per quedsta variabile per mantenere un livello di sicurezza elevato all'istallazione del Cloud Connector.
+La variabile `%CC_KEY%` deve essere impostata da comando di sistema operativo; può anche essere utilizzato un nome diverso da quello indicato.  
+Se non viene definita questa variabile di ambiente il Cloud Connector utilizza un suo valore di default.  
+Consigliamo di impostare un valore per questa variabile per mantenere un livello di sicurezza elevato all'istallazione del Cloud Connector.  
+Le password vengono criptate al primo avvio del Cloud Connector quindi occorre settare la variabile di ambiente `%CC_KEY%` prima di avviarlo.
 - È possibile aggiungere una sezione `connectionOptions` al file di configurazione del Cloud Connector per indicare al sistema che deve accettare connessioni anche da server con certificati non validi o autofirmati.  
 Attenzione questa impostazione va utilizzata solamente in ambiente di sviluppo in quanto rende insicura l'installazione del Cloud Connector.  
 Per abilitare questa impostazione occorre aggiungere questa sezione al dile config.json:  
