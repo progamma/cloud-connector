@@ -20,6 +20,38 @@ Per installare il Cloud Connector occorre eseguire le operazioni di seguito desc
 `$ npm update`
 - Eseguire il comando `node cloudServer.js` per far partire il connettore.
 
+## Sicurezza
+Per garantire una elevata gestione della sicurezza occorre prestare attenzione alla configurazione dei permessi concessi all'utente di accesso al database e di quelli concessi all'utente che avvia il servizio Cloud connector.  
+
+### Utente di database
+Per l'utente di database si consiglia di concedere solamente i privilegi di lettura, inserimento, aggiornamento e cancellazione dei dati sulle tabelle.  
+Di seguito una serie di buone pratiche per le autorizzazioni dell'utente di accesso al database:  
+- Concedi solo i permessi strettamente necessari per svolgere le funzioni richieste.
+- Nel caso di privilegi specifici più elevati concedili solo sulle tabelle dove occorrono ed evita di assegnare privilegi globali.
+- Non concedere privilegi amministrativi come GRANT, CREATE USER, o ALTER SYSTEM a meno che non sia assolutamente necessario.
+- Crea ruoli con set specifici di privilegi per il Cloud Conncetor e assegnali agli utenti per accedere al database.
+- Assicurati che le connessioni al database siano sicure (es. SSL/TLS).
+- Usa credenziali e permessi diversi per ambienti di sviluppo, test e produzione.
+- Ricorda che la sicurezza è un processo continuo e richiede monitoraggio e aggiustamenti regolari.
+
+### Utente per i processi
+Per concedere i privilegi necessari a un utente che deve eseguire un processo con PM2 su Node.js, dobbiamo considerare sia i permessi a livello di sistema operativo che quelli specifici per PM2 e Node.js.  
+Ecco una guida su come gestire questi privilegi:
+- Permessi a livello di sistema operativo.
+  - Crea un utente dedicato per l'esecuzione dei processi Node.js/PM2.
+  - Concedi a questo utente i permessi di lettura ed esecuzione nella directory del progetto.
+  - Assicurati che l'utente possa scrivere nei log e nelle directory temporanee necessarie.
+- Permessi per Node.js.
+  - L'utente deve avere il permesso di eseguire Node.js.
+  - Accesso in lettura alle dipendenze del progetto (node_modules).
+- Permessi per PM2.
+  - Installa PM2 globalmente o assicurati che l'utente possa accedere all'installazione di PM2.
+  - L'utente deve poter eseguire i comandi PM2 (start, stop, restart, list, etc.).
+  - Accesso in scrittura alla directory home dell'utente per i file di configurazione PM2.
+- Permessi specifici per l'applicazione.
+  - Accesso in lettura ai file di configurazione dell'applicazione.
+  - Permessi di scrittura per i log dell'applicazione.
+
 ## Configurazione
 
 La configurazione del Cloud Connector avviene mediante il file config.json che si trova nella directory `public_html`:
@@ -94,7 +126,8 @@ Per usarlo occorre aggiungere alla sezione un oggetto simile al seguente:
 ## Note
 Attualmente Cloud Connector non supporta il `caching_sha2_password` come metodo di autenticazione su MySQL 8. Si consiglia invece di utilizzare il metodo di autenticazione `legacy`.  
 
-Nel file config.json tutte le `APIKey` sono impostate per default al valore `00000000-0000-0000-0000-000000000000` ed è importante modificarle con un guid effettivo in quanto il Cloud Connector se trova il valore impostato a tutti zero trasmette una stringa vuota e quindi la connessione non funziona nemmeno se nel database su di un porgetto nell'ide di Instant Developer Cloud impostato il valore `00000000-0000-0000-0000-000000000000` nella proprietà APIKEy.
+Nel file config.json tutte le `APIKey` sono impostate per default al valore `00000000-0000-0000-0000-000000000000` ed è importante modificarle con un guid effettivo in quanto il Cloud Connector se trova il valore impostato a tutti zero trasmette una stringa vuota e quindi la connessione non funziona nemmeno se nel database su di un porgetto nell'ide di Instant Developer Cloud impostato il valore `00000000-0000-0000-0000-000000000000` nella proprietà APIKey.  
+In questo caso nEl log del Cloud Connector viene inserito il messaggio `The APIKey of dataModel '${this.name}' is set to the default value and will be ignored`.
 
 ## Installazione come servizio
 
