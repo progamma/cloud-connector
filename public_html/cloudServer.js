@@ -119,8 +119,11 @@ Node.CloudServer.prototype.loadConfig = async function (config)
   //
   if (resolvedConfig.remoteConfigurationKey === "00000000-0000-0000-0000-000000000000")
     this.log("WARNING", "The remoteConfigurationKey is set to the default value and will be ignored");
-  else
+  else {
+    if (resolvedConfig.remoteConfigurationKey?.length < 36)
+      this.log("WARNING", " The remoteConfigurationKey is shorter than 36 characters. This may weaken security. It is recommended to use a key of at least 36 characters for better robustness.");
     this.remoteConfigurationKey = resolvedConfig.remoteConfigurationKey;
+  }
   //
   await this.createDataModels(resolvedConfig);
   await this.createFileSystems(resolvedConfig);
