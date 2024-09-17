@@ -84,10 +84,6 @@ Node.FS.normalizePath = function (path)
   // Check if path is out of root
   path = path.replace(/\\/g, "\/");
   //
-  // Resources in master exception
-  if (path.startsWith("../resources"))
-    return path;
-  //
   let parts = path.split("/");
   for (let i = 0; i < parts.length; i++) {
     switch (parts[i]) {
@@ -97,7 +93,7 @@ Node.FS.normalizePath = function (path)
         break;
       case "..":
         if (i === 0)
-          throw new Error("Invalid path " + path);
+          throw new Error(`Invalid path ${path}`);
         parts.splice(i - 1, 2);
         i -= 2;
         break;

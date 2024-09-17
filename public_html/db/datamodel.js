@@ -24,6 +24,8 @@ Node.DataModel = function (parent, config)
     this.parent.log("WARNING", `The APIKey of dataModel '${this.name}' is set to the default value and will be ignored`);
     this.APIKey = "";
   }
+  else if (this.APIKey?.length < 36)
+    this.parent.log("WARNING", `The APIKey of dataModel '${this.name}' is shorter than 36 characters. This may weaken security. It is recommended to use a key of at least 36 characters for better robustness.`);
 };
 
 
