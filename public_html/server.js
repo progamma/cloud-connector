@@ -56,7 +56,7 @@ Node.Server.prototype.connect = function (options)
             return value;
         });
       }
-      else if (k === "remoteConfigurationKey")
+      else if (["remoteConfigurationKey", "APIKey", "password"].includes(k))
         v = "****";
       else
         return v;
