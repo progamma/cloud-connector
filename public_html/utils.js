@@ -20,7 +20,7 @@ Node.Utils.bufferToStream = function (buffer)
 {
   let stream = new require("stream").Readable();
   stream.push(buffer);
-  stream.push(null);
+  stream.push(null); // Signal the end of the stream
   return stream;
 };
 
