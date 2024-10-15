@@ -107,8 +107,8 @@ Node.CloudServer.prototype.loadConfig = async function (config)
 {
   config = config || require("./config.json");
   //
-  utils = require("./utils");
-  resolvedConfig = JSON.parse(JSON.stringify(config));
+  let utils = require("./utils");
+  let resolvedConfig = JSON.parse(JSON.stringify(config));
   utils.replaceEnvVariables(resolvedConfig);
   //
   let key = resolvedConfig.passwordPrivateKey;
