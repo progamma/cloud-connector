@@ -349,7 +349,7 @@ Node.NodeDriver.prototype.zipFile = async function (file, zipFile)
     // Function that deletes the new zip file (if there is an error)
     let deleteVoidZip = err => {
       error = err;
-      zipFile.remove().then();
+      zipFile.remove();
       archive.finalize();
     };
     //
