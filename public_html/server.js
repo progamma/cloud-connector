@@ -61,7 +61,7 @@ Node.Server.prototype.connect = function (options)
       else
         return v;
     }));
-    this.parent.onServerMessage(this, data).then();
+    this.parent.onServerMessage(this, data);
   });
   //
   this.socket.on("connect_error", error => {
@@ -74,7 +74,7 @@ Node.Server.prototype.connect = function (options)
   //
   this.socket.on("disconnect", () => {
     this.parent.log("INFO", `Disconnect to ${this.serverUrl}`);
-    this.parent.onServerDisconnected(this).then();
+    this.parent.onServerDisconnected(this);
   });
   //
   this.socket.on("indeError", data => {
