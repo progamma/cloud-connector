@@ -25,6 +25,7 @@ Node.CloudServer = function ()
   this.fileSystems = [];    // List of file systems
   this.plugins = [];        // List of plugins
   this.logger = new Node.Logger();
+  this.id = require("crypto").randomUUID();
 };
 
 
@@ -46,7 +47,7 @@ Node.CloudServer.commandTypes = {
  */
 Node.CloudServer.prototype.start = async function ()
 {
-  this.log("INFO", "Start Cloud Connector");
+  this.log("INFO", `Start Cloud Connector with id=${this.id}`);
   try {
     await this.loadConfig();
   }
@@ -423,6 +424,7 @@ Node.CloudServer.prototype.onServerConnected = function (server)
   let msg = {
     type: Node.CloudServer.messageTypes.init,
     data: {
+      id: this.id,
       name: this.name,
       version: require("./package.json").version,
       nodeVersion: process.version,
