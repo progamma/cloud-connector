@@ -51,7 +51,7 @@ Node.Server.prototype.connect = function (options)
       if (k === "args" && v) {
         return v.map(value => {
           if (value instanceof Buffer)
-            return "<Buffer length " + value.length + ">";
+            return `<Buffer length ${value.length}>`;
           else
             return value;
         });
@@ -72,8 +72,8 @@ Node.Server.prototype.connect = function (options)
     this.parent.log("ERROR", `Connect timeout to ${this.serverUrl}`);
   });
   //
-  this.socket.on("disconnect", () => {
-    this.parent.log("INFO", `Disconnect to ${this.serverUrl}`);
+  this.socket.on("disconnect", err => {
+    this.parent.log("INFO", `Disconnect to ${this.serverUrl}: ${err}`);
     this.parent.onServerDisconnected(this);
   });
   //
