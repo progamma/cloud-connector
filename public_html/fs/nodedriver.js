@@ -398,64 +398,22 @@ Node.NodeDriver.prototype.unzip = async function (file, directory)
   if (this.permissions === Node.FS.permissions.read)
     throw new Error("Permission denied");
   //
-  // Check the validity of the path (writing)
-  let zipPath = file.absolutePath;
-  let dirPath = directory.absolutePath;
-  //
-  await new Promise((resolve, reject) => {
-    // Opens the archive for decompression using the library yauzl
-    // license and detail: https://github.com/thejoshwolfe/yauzl
-    require("yauzl").open(zipPath, {lazyEntries: true}, (err, zipfile) => {
-      if (err)
-        return reject(err);
-      //
-      let ok = false;
-      zipfile.readEntry();
-      //
-      // For each file/directory
-      zipfile.on("entry", async entry => {
-        try {
-          await this.file(directory.path + "/" + entry.fileName, file.type).parentDirectory.create();
-          zipfile.openReadStream(entry, (err, readStream) => {
-            if (err)
-              return reject(err);
-            //
-            // Extract the files
-            let output = require("fs").createWriteStream(dirPath + "/" + entry.fileName);
-            //
-            // Listen to open output event
-            output.on("open", () => readStream.pipe(output));
-            //
-            // Listen to next error output event
-            let rejected = false;
-            output.once("error", error => {
-              rejected = true;
-              reject(error);
-            });
-            //
-            // Listen to close output event
-            output.on("close", () => !rejected && zipfile.readEntry());
-          });
-          resolve();
-        }
-        catch (e) {
-          reject(e);
-        }
-      });
-      //
-      // When the parsing is in error
-      zipfile.on("error", reject);
-      //
-      // When the parsing is to end
-      zipfile.on("end", error => ok = true);
-      //
-      // When the parsing is over
-      zipfile.on("close", () => {
-        if (ok)
-          resolve();
-      });
-    });
-  });
+  let zipFile = await require("yauzl-promise").open(file.absolutePath);
+  try {
+    let {pipeline} = require("stream/promises");
+    for await (const entry of zipFile) {
+      if (entry.filename.endsWith("/"))
+        await this.directory(`${directory.path}/${entry.fileName}`).createAsync();
+      else {
+        let readStream = await entry.openReadStream();
+        let writeStream = require("fs").createWriteStream(`${directory.absolutePath}/${entry.fileName}`);
+        await pipeline(readStream, writeStream);
+      }
+    }
+  }
+  finally {
+    await zipFile.close();
+  }
 };
 
 
