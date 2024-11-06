@@ -152,7 +152,7 @@ Node.DataModel.prototype.execute = async function (msg)
   //
   // Deserialize some parameters
   msg.pars?.forEach((p, i) => {
-    if (p && typeof p === "object" && p.type === "buffer", p.data)
+    if (p && typeof p === "object" && p.type === "buffer" && p.data)
       msg.pars[i] = Buffer.from(p.data, "base64");
   });
   //
