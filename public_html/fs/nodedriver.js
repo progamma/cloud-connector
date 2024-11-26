@@ -751,10 +751,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
   }
   catch (e) {
     return {
-      error: e,
-      status: e.response?.status,
-      headers: e.response?.headers,
-      body: e.response?.data
+      error: e
     };
   }
 };
