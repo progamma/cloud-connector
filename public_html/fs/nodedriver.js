@@ -662,18 +662,8 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
     responseType: options.responseType,
     params: options.params,
     timeout: options.timeOut,
+    proxy: options.proxy,
     validateStatus: () => true // for back compatibility
-    /*
-     proxy: {
-     protocol: "http",
-     host: "127.0.0.1",
-     port: 8888,
-     auth: {
-     username: 'mikeymike',
-     password: 'rapunz3l'
-     }
-     }
-     */
   };
   //
   try {
