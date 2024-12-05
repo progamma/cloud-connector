@@ -13,6 +13,7 @@ Node.https = require("https");
 // Import local modules
 Node.Server = require("./server");
 Node.Logger = require("./logger");
+Node.Utils = require("./utils");
 
 
 /**
@@ -108,12 +109,11 @@ Node.CloudServer.prototype.loadConfig = async function (config)
 {
   config = config || require("./config.json");
   //
-  let utils = require("./utils");
   let resolvedConfig = JSON.parse(JSON.stringify(config));
-  utils.replaceEnvVariables(resolvedConfig);
+  Node.Utils.replaceEnvVariables(resolvedConfig);
   //
   let key = resolvedConfig.passwordPrivateKey;
-  utils.processPasswords(resolvedConfig, key);
+  Node.Utils.processPasswords(resolvedConfig, key);
   //
   this.configChanged = (this.name !== resolvedConfig.name);
   this.name = resolvedConfig.name;
@@ -135,7 +135,7 @@ Node.CloudServer.prototype.loadConfig = async function (config)
   this.log("INFO", "Configuration loaded with success");
   //
   // Resave the config with the passwords encrypted
-  utils.processPasswords(config, key, true);
+  Node.Utils.processPasswords(config, key, true);
   await Node.fs.writeFile("config.json", JSON.stringify(config, null, 2), {encoding: "utf8"});
 };
 
