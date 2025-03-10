@@ -470,7 +470,7 @@ Node.NodeDriver.prototype.copyDir = async function (srcDir, dstDir)
   //
   // Check if source directory exists
   if (!await srcDir.exists())
-    throw new Error(`Directory ${srcDir.path} doesn't exists`);
+    throw new Error(`Directory ${srcDir.path} doesn't exist`);
   //
   await require("fs-extra").copy(srcDir.absolutePath, dstDir.absolutePath);
 };
