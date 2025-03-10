@@ -470,13 +470,9 @@ Node.NodeDriver.prototype.copyDir = async function (srcDir, dstDir)
   //
   // Check if source directory exists
   if (!await srcDir.exists())
-    throw new Error(`Directory ${srcDir.path} doesn't exist`);
+    throw new Error(`Directory ${srcDir.path} doesn't exists`);
   //
-  // Use fs extra to copy the entire directory
-  //license and detail: https://www.npmjs.com/package/fs.extra
-  await new Promise((resolve, reject) => {
-    require("fs.extra").copyRecursive(srcDir.absolutePath, dstDir.absolutePath, error => error ? reject(error) : resolve());
-  });
+  await require("fs-extra").copy(srcDir.absolutePath, dstDir.absolutePath);
 };
 
 
