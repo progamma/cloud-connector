@@ -667,26 +667,26 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
     if (options.body) {
       opts.data = options.body;
       //
+      if (typeof options.bodyType === "string")
+        opts.headers["content-type"] = options.bodyType;
+      //
       // Types allowed for the custom body are: string and ArrayBuffer, but you can pass an object to
       // get a JSON custom body
       if (options.body instanceof ArrayBuffer)
-        opts.headers["content-type"] = "application/octet-stream";
+        opts.headers["content-type"] = opts.headers["content-type"] || "application/octet-stream";
       else if (typeof options.body === "object") {
         try {
           opts.body = JSON.stringify(options.body);
-          opts.headers["content-type"] = "application/json";
+          opts.headers["content-type"] = opts.headers["content-type"] || "application/json";
         }
         catch (e) {
           throw new Error(`Cannot stringify custom body: ${e.message}`);
         }
       }
       else if (typeof options.body === "string")
-        opts.headers["content-type"] = "text/plain";
+        opts.headers["content-type"] = opts.headers["content-type"] || "text/plain";
       else
         throw new Error("Custom body must be String, Object or ArrayBuffer");
-      //
-      if (typeof options.bodyType === "string")
-        opts.headers["content-type"] = options.bodyType;
     }
     else if (multiPart) {
       let formData = new require("form-data")();
