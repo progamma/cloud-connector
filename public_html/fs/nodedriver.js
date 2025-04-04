@@ -692,6 +692,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
       let formData = new require("form-data")();
       for (let key in options.params)
         formData.append(key, options.params[key]);
+      delete opts.params;
       //
       if (upload) {
         formData.append(options._nameField, require("fs").createReadStream(options._file.absolutePath), {
@@ -708,6 +709,10 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
       opts.data = formData;
       // opts.headers = {...opts.headers, ...formData.getHeaders() };
       opts.headers = Object.assign(opts.headers, formData.getHeaders());
+    }
+    else if (opts.headers["content-type"] === "application/x-www-form-urlencoded") {
+      delete opts.params;
+      opts.data = options.params;
     }
     //
     if (download) {
