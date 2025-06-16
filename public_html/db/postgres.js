@@ -110,7 +110,6 @@ Node.Postgres.prototype._execute = async function (conn, msg)
 Node.Postgres.prototype._beginTransaction = async function (conn)
 {
   await conn.query("begin");
-  return true;
 };
 
 

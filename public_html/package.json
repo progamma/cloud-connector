@@ -7,6 +7,7 @@
     "fs-extra": "11.3.0",
     "mssql": "11.0.1",
     "mysql": "2.18.1",
+    "odbc": "2.4.9",
     "oracledb": "6.8.0",
     "pg": "8.14.1",
     "socket.io-client": "4.8.1",

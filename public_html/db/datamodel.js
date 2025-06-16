@@ -36,6 +36,10 @@ Node.DataModel.commandTypes = {
   begin: "begin",
   commit: "commit",
   rollback: "rollback",
+  listTables: "listTables",
+  listTablePrimaryKeys: "listTablePrimaryKeys",
+  listTableColumns: "listTableColumns",
+  listTableForeignKeys: "listTableForeignKeys",
   ping: "ping"
 };
 
@@ -64,11 +68,19 @@ Node.DataModel.prototype.onMessage = async function (msg)
     case Node.DataModel.commandTypes.rollback:
       await this.rollbackTransaction(msg);
       break;
+    case Node.DataModel.commandTypes.listTables:
+      return await this.listTables(msg);
+    case Node.DataModel.commandTypes.listTablePrimaryKeys:
+      return await this.listTablePrimaryKeys(msg);
+    case Node.DataModel.commandTypes.listTableColumns:
+      return await this.listTableColumns(msg);
+    case Node.DataModel.commandTypes.listTableForeignKeys:
+      return await this.listTableForeignKeys(msg);
     case Node.DataModel.commandTypes.ping:
       this.ping(msg);
       break;
     default:
-      throw new Error(`Command '${msg.type}' not supported`);
+      throw new Error(`Command '${msg.cmd}' not supported`);
   }
 };
 
@@ -185,7 +197,7 @@ Node.DataModel.prototype.beginTransaction = async function (msg)
   if (!conn)
     throw new Error("Connection closed");
   //
-  conn.transaction = await this._beginTransaction(conn);
+  conn.transaction = await this._beginTransaction(conn) || true;
 };
 
 
@@ -231,6 +243,63 @@ Node.DataModel.prototype.rollbackTransaction = async function (msg)
     delete conn.transaction;
   }
 };
+
+
+/**
+ * Read list of tables
+ * @param {Object} options - options for the query
+ */
+Node.DataModel.prototype.listTables = async function (msg)
+{
+  let conn = this.connections[msg.cid];
+  if (!conn)
+    throw new Error("Connection closed");
+  //
+  return await this._listTables(conn, msg.options);
+};
+
+
+/**
+ * Read list of primary keys of a table
+ * @param {Object} options - options for the query
+ */
+Node.DataModel.prototype.listTablePrimaryKeys = async function (msg)
+{
+  let conn = this.connections[msg.cid];
+  if (!conn)
+    throw new Error("Connection closed");
+  //
+  return await this._listTablePrimaryKeys(conn, msg.options);
+};
+
+
+/**
+ * Read list of columns of a table
+ * @param {Object} options - options for the query
+ */
+Node.DataModel.prototype.listTableColumns = async function (msg)
+{
+  let conn = this.connections[msg.cid];
+  if (!conn)
+    throw new Error("Connection closed");
+  //
+  return await this._listTableColumns(conn, msg.options);
+};
+
+
+/**
+ * Read list of foreign keys of a table
+ * @param {Object} options - options for the query
+ */
+Node.DataModel.prototype.listTableForeignKeys = async function (msg)
+{
+  let conn = this.connections[msg.cid];
+  if (!conn)
+    throw new Error("Connection closed");
+  //
+  return await this._listTableForeignKeys(conn, msg.options);
+};
+
 
 
 /**

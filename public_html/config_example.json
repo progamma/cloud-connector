@@ -65,6 +65,16 @@
         "connectTimeout": 30000,
         "acquireTimeout": 30000
       }
+    },
+    {
+      "name": "{datamodelName}",
+      "class": "ODBC",
+      "APIKey": "00000000-0000-0000-0000-000000000000",
+      "connectionOptions": {
+        "connectionString": "DSN={dsnName};UID={username};PWD={password}",
+        "maxSize": 100,
+        "connectionTimeout": 30
+      }
     }
   ],
   "fileSystems": [

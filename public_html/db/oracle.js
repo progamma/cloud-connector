@@ -178,7 +178,6 @@ Node.Oracle.prototype.convertValue = function (value, colDef)
  */
 Node.Oracle.prototype._beginTransaction = async function (conn)
 {
-  return true;
 };
 
 

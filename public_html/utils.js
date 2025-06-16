@@ -130,6 +130,9 @@ Node.Utils.processPasswords = function (config, key, encrypt)
 {
   config.datamodels?.forEach(dm => {
     let password = dm.connectionOptions.password;
+    if (!password)
+      return;
+    //
     try {
       // Try to decrypt the password; I may not be able to do this if the password is still in clear text
       dm.connectionOptions.password = Node.Utils.decrypt(password, key, dm.iv);
