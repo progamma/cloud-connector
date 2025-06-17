@@ -142,7 +142,7 @@ Node.Url.prototype.upload = async function (file, options)
       throw new Error("file missing");
     //
     options = Object.assign({
-      _fileName: options?.fileName || file.path.substr(file.path.lastIndexOf('/') + 1),
+      _fileName: options?.fileName || file.path.slice(file.path.lastIndexOf("/") + 1),
       _nameField: options?.nameField || "file",
       _fileContentType: options?.fileContentType || "application/octet-stream",
       _fileSize: await file.length(),

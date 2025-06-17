@@ -236,11 +236,9 @@ Node.File.prototype.extension = function ()
   // Get only the file name
   let fileName = this.name();
   //
-  /* jshint ignore:start */
+  // Returns only the extension (null for a binary file)
   if (fileName.length)
-    // Returns only the extension (null for a binary file)
-    return fileName.substr((~-fileName.lastIndexOf(".") >>> 0) + 2);
-  /* jshint ignore:end */
+    return fileName.slice((~-fileName.lastIndexOf(".") >>> 0) + 2);
   //
   return "";
 };
