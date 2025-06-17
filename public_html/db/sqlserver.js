@@ -30,6 +30,16 @@ Node.SQLServer = function (parent, config)
 Node.SQLServer.prototype = new Node.DataModel();
 
 
+/*
+ * Get the name of a parameter
+ * @param {Number} index
+ */
+Node.SQLServer.prototype.getParameterName = function (index)
+{
+  return "@P" + (index + 1);
+};
+
+
 /**
  * Open the connection to the database
  */

@@ -26,6 +26,16 @@ Node.Postgres = function (parent, config)
 Node.Postgres.prototype = new Node.DataModel();
 
 
+/*
+ * Get the name of a parameter
+ * @param {Number} index
+ */
+Node.Postgres.prototype.getParameterName = function (index)
+{
+  return `$${index + 1}`;
+};
+
+
 /**
  * Open a connection to the database
  */

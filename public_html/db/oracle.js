@@ -172,6 +172,16 @@ Node.Oracle.prototype.convertValue = function (value, colDef)
 };
 
 
+/*
+ * Get the name of a parameter
+ * @param {Number} index
+ */
+Node.Oracle.prototype.getParameterName = function (index)
+{
+  return ":P" + (index + 1);
+};
+
+
 /**
  * Begin a transaction
  * @param {Object} conn

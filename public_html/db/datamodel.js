@@ -114,6 +114,75 @@ Node.DataModel.prototype.getPool = async function ()
 
 
 /**
+ * Bind parameters of a SQL statement
+ * @param {String} sql statement to bind
+ * @param {Array} params
+ */
+Node.DataModel.prototype.bindParameters = function (sql, params)
+{
+  if (!params)
+    return sql;
+  //
+  let inQuote = false;
+  let parIndex = 0;
+  for (let i = 0; i < sql.length; i++) {
+    if (sql.charAt(i) === "'") {
+      inQuote = !inQuote;
+      continue;
+    }
+    //
+    if (inQuote)
+      continue;
+    //
+    let parName = this.getParameterName(parIndex);
+    if (sql.slice(i, i + parName.length) === parName) {
+      let par = params[parIndex];
+      if (par?.dataType)
+        par = this.toSql(par.value, par.dataType, par.maxLen, par.scale);
+      else if (typeof par === "string")
+        par = Node.DataModel.quoteString(par);
+      //
+      sql = sql.slice(0, i) + par + sql.slice(i + parName.length);
+      i += (par + "").length - 1;
+      parIndex++;
+    }
+  }
+  return sql;
+};
+
+
+/*
+ * Get the name of a parameter
+ * @param {Number} index
+ */
+Node.DataModel.prototype.getParameterName = function (index)
+{
+  return "?";
+};
+
+
+/**
+ * Quote a string
+ * @param {String} s string to quote
+ */
+Node.DataModel.quoteString = function (s)
+{
+  let ris = s;
+  let i = 0;
+  while (i < ris.length) {
+    if (ris.charAt(i) === "'") {
+      let tmp = ris.slice(0, i) + "'";
+      tmp = tmp + ris.slice(i);
+      ris = tmp;
+      i++;
+    }
+    i++;
+  }
+  return "'" + ris + "'";
+};
+
+
+/**
  * Open the connection to the database
  * @param {Object} msg - message received
  */

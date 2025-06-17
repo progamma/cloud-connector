@@ -56,28 +56,21 @@ Node.ODBC.prototype._closeConnection = async function (conn)
 
 /**
  * Execute a command on the database
- * @param {Object} conn
+ * @param {Object} conn - connection object
  * @param {Object} msg - message received
  */
 Node.ODBC.prototype._execute = async function (conn, msg)
 {
-  let result;
   let {sql, pars} = msg;
   //
   // Check if parametric queries are supported
-  if (pars?.length > 0 && !(await this.isQueryParametricSupported())) {
-    let stmt;
-    try {
-      stmt = await conn.createStatement();
-      stmt.prepare(sql);
-      stmt.bindParameters(pars);
-      result = stmt.execute();
-    } finally {
-      stmt.close();
-    }
+  if (pars?.length > 0 && !(await this.isQueryParametricSupported(conn))) {
+    // If not supported, directly bind parameters
+    sql = this.bindParameters(sql, pars);
+    pars = [];
   }
-  else
-    result = await conn.query(sql, pars);
+  //
+  let result = await conn.query(sql, pars);
   //
   let rs = {
     cols: [],
@@ -106,23 +99,24 @@ Node.ODBC.prototype._execute = async function (conn, msg)
 
 /**
  * Check if parametric queries are supported
+ * @param {Object} conn - connection object
  * @return {Boolean} true if parametric queries are supported, false otherwise
  */
-Node.ODBC.prototype.isQueryParametricSupported = async function()
+Node.ODBC.prototype.isQueryParametricSupported = async function (conn)
 {
   // If not yet tested, check the pool for support
   if (this.pool.isQueryParametricSupported === undefined) {
     try {
       // Try a simple query to check if parametric queries are supported
       // This will throw an error if not supported
-      await this.connection.query("SELECT ?", [1]);
+      await conn.query("SELECT ?", [1]);
     }
     catch (e) {
       let sqlState = e.odbcErrors?.[0]?.state;
       let msg = (e.odbcErrors?.[0]?.message || e.message || '').toLowerCase();
       //
       // Detect specific errors for unsupported parametric queries
-      pool.isQueryParametricSupported = !(sqlState === 'HYC00' ||
+      this.pool.isQueryParametricSupported = !(sqlState === 'HYC00' ||
         sqlState === '0A000' || // feature not supported (standard SQL)
         sqlState === 'HY092' || // invalid attribute/option identifier
         sqlState === '07009' || // invalid descriptor index
