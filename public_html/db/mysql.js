@@ -18,7 +18,7 @@ Node.DataModel = require("./datamodel");
  */
 Node.MySQL = function (parent, config)
 {
-  this.moduleName = "mysql";
+  this.moduleName = "mysql2/promise";
   Node.DataModel.call(this, parent, config);
   //
   // Date, time and datetime -> string
@@ -34,17 +34,13 @@ Node.MySQL.prototype = new Node.DataModel();
  */
 Node.MySQL.prototype._openConnection = async function ()
 {
-  return await new Promise((resolve, reject) => {
-    this.pool.getConnection((error, connection) => {
-      // Stop auto closure and return the connection from pool
-      if (connection && connection.closeTimer) {
-        clearTimeout(connection.closeTimer);
-        delete connection.closeTimer;
-      }
-      //
-      error ? reject(error) : resolve(connection);
-    });
-  });
+  const connection = await this.pool.getConnection();
+  // Stop auto closure and return the connection from pool
+  if (connection?.closeTimer) {
+    clearTimeout(connection.closeTimer);
+    delete connection.closeTimer;
+  }
+  return connection;
 };
 
 
@@ -53,7 +49,7 @@ Node.MySQL.prototype._openConnection = async function ()
  */
 Node.MySQL.prototype._initPool = async function ()
 {
-  return new mysql.createPool(this.connectionOptions);
+  return global["mysql2/promise"].createPool(this.connectionOptions);
 };
 
 
@@ -77,37 +73,32 @@ Node.MySQL.prototype._closeConnection = async function (conn)
  */
 Node.MySQL.prototype._execute = async function (conn, msg)
 {
-  return await new Promise((resolve, reject) => {
-    conn.query(msg.sql, msg.pars, (error, result, md) => {
-      if (error)
-        return reject(error);
+  let [result, fields] = await conn.query(msg.sql, msg.pars);
+  //
+  let rs = {
+    cols: [],
+    rows: []
+  };
+  //
+  if (result) {
+    // Serialize rows
+    for (let i = 0; i < result.length; i++) {
+      let row = [];
+      rs.rows.push(row);
       //
-      let rs = {
-        cols: [],
-        rows: []
-      };
+      if (i === 0)
+        rs.cols = Object.keys(result[i]);
       //
-      if (result) {
-        // Serialize rows
-        for (let i = 0; i < result.length; i++) {
-          let row = [];
-          rs.rows.push(row);
-          //
-          if (i === 0)
-            rs.cols = Object.keys(result[i]);
-          //
-          for (let j = 0; j < rs.cols.length; j++)
-            row.push(this.convertValue(result[i][rs.cols[j]], md[j]));
-        }
-        //
-        // Serialize extra info
-        rs.rowsAffected = result.affectedRows;
-        rs.insertId = result.insertId;
-      }
-      //
-      resolve(rs);
-    });
-  });
+      for (let j = 0; j < rs.cols.length; j++)
+        row.push(this.convertValue(result[i][rs.cols[j]], fields[j]));
+    }
+    //
+    // Serialize extra info
+    rs.rowsAffected = result.affectedRows;
+    rs.insertId = result.insertId;
+  }
+  //
+  return rs;
 };
 
 
@@ -117,9 +108,7 @@ Node.MySQL.prototype._execute = async function (conn, msg)
  */
 Node.MySQL.prototype._beginTransaction = async function (conn)
 {
-  return await new Promise((resolve, reject) => {
-    conn.beginTransaction(error => error ? reject(error) : resolve());
-  });
+  await conn.beginTransaction();
 };
 
 
@@ -129,9 +118,7 @@ Node.MySQL.prototype._beginTransaction = async function (conn)
  */
 Node.MySQL.prototype._commitTransaction = async function (conn)
 {
-  return await new Promise((resolve, reject) => {
-    conn.commit(error => error ? reject(error) : resolve());
-  });
+  await conn.commit();
 };
 
 
@@ -141,9 +128,7 @@ Node.MySQL.prototype._commitTransaction = async function (conn)
  */
 Node.MySQL.prototype._rollbackTransaction = async function (conn)
 {
-  return await new Promise((resolve, reject) => {
-    conn.rollback(error => error ? reject(error) : resolve());
-  });
+  await conn.rollback();
 };
 
 
