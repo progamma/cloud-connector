@@ -62,8 +62,7 @@
         "user": "{username}",
         "password": "{password}",
         "connectionLimit": 100,
-        "connectTimeout": 30000,
-        "acquireTimeout": 30000
+        "connectTimeout": 30000
       }
     },
     {
