@@ -34,13 +34,7 @@ Node.MySQL.prototype = new Node.DataModel();
  */
 Node.MySQL.prototype._openConnection = async function ()
 {
-  const connection = await this.pool.getConnection();
-  // Stop auto closure and return the connection from pool
-  if (connection?.closeTimer) {
-    clearTimeout(connection.closeTimer);
-    delete connection.closeTimer;
-  }
-  return connection;
+  return await this.pool.getConnection();
 };
 
 
@@ -60,9 +54,6 @@ Node.MySQL.prototype._initPool = async function ()
 Node.MySQL.prototype._closeConnection = async function (conn)
 {
   conn.release();
-  //
-  // Program closure of connection
-  conn.closeTimer = setTimeout(() => conn.destroy(), 30000);
 };
 
 
