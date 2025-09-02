@@ -175,6 +175,10 @@ Node.SQLServer.prototype._beginTransaction = async function (conn)
 {
   let tr = new mssql.Transaction(this.pool);
   await tr.begin();
+  //
+  this.onRollback = this.parent.log("WARNING", `transaction on ${this.name} aborted unexpectedly`);
+  tr.on("rollback", this.onRollback);
+  //
   return tr;
 };
 
@@ -195,6 +199,7 @@ Node.SQLServer.prototype._commitTransaction = async function (conn)
  */
 Node.SQLServer.prototype._rollbackTransaction = async function (conn)
 {
+  conn.transaction.off("rollback", this.onRollback);
   await conn.transaction.rollback();
 };
 
