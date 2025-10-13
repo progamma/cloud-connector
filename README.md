@@ -77,8 +77,13 @@ Per esempio:
 - Nella sezione `remoteUserNames` devono essere indicati indicati gli utenti dell’IDE di Instant Developer Cloud a cui il Cloud Connector può collegarsi.  
 Per esempio:  
 `"remoteUserNames": ["https://ide1-pro-gamma.instantdevelopercloud.com@paolo-giannelli"],` 
-- Nella sezione `datamodels` devono essere impostate le informazioni di connessione ai database che si vuole esporre. È possibile elencare più database. Ogni tipo di database (Oracle, Postgres, SQLServer, MySQL) ha parametri di connessione specifici.  
-Un esempio di configurazione SQL server è il seguente:
+- Nella sezione `datamodels` devono essere impostate le informazioni di connessione ai database che si vuole esporre. È possibile elencare più database. Ogni tipo di database ha parametri di connessione specifici. È possibile collegare i seguenti tipi di database:
+  - Oracle
+  - Postgres
+  - SQLServer
+  - MySQL
+  - ODBC  
+- Un esempio di configurazione SQL server è il seguente:
   ```js
   "datamodels": [  
     {  
@@ -95,6 +100,20 @@ Un esempio di configurazione SQL server è il seguente:
       }  
     }  
   }],
+  ```
+- Un esempio di configurazione ODBC è il seguente:
+  ```js
+  "datamodels": [ 
+  {
+      "name": "nwind-db",
+      "class": "ODBC",
+      "APIKey": "00000000-0000-0000-0000-000000000000",
+      "connectionOptions": {
+        "connectionString": "DSN=NorthwindDB;UID=utente-northwinddb;PWD=password-northwinddb",
+        "maxSize": 100,
+        "connectionTimeout": 30
+      }
+    }],
   ```
 - Nella sezione `fileSystems` devono essere impostate le informazioni delle directory che si desidera condividere.  
 Un esempio di condivisione è il seguente:
