@@ -82,7 +82,7 @@ Per esempio:
   - Postgres
   - SQLServer
   - MySQL
-  - ODBC (dalla versione 25.5 di Instant Developer Cloud)   
+  - ODBC  
 - Un esempio di configurazione SQL server è il seguente:
   ```js
   "datamodels": [  
