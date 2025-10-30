@@ -627,7 +627,7 @@ Node.CloudServer.prototype.changeConfig = async function (msg)
 
 
 /**
- * Change the config
+ * Change the source code
  * @param {Object} msg - message received
  */
 Node.CloudServer.prototype.changeCode = async function (msg)
@@ -640,7 +640,7 @@ Node.CloudServer.prototype.changeCode = async function (msg)
     throw new Error("Key for remote configuration is wrong");
   //
   // Unpack new source code
-  const tar = require("tar");
+  let tar = require("tar");
   let unpack = tar.extract({cwd: __dirname});
   await new Promise((resolve, reject) => {
     unpack.on("close", resolve);
@@ -649,8 +649,8 @@ Node.CloudServer.prototype.changeCode = async function (msg)
   });
   //
   // Update node_modules
-  const util = require("util");
-  const execFile = util.promisify(require("child_process").execFile);
+  let util = require("util");
+  let execFile = util.promisify(require("child_process").execFile);
   let batch = `${__dirname}/update_node_modules.bat`;
   if (process.platform === "win32")
     await execFile(batch, [], {cwd: __dirname});
