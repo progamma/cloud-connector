@@ -596,11 +596,12 @@ Node.CloudServer.prototype.restart = async function (msg)
   //
   // Execute restart batch in another process
   let child_process = require("child_process");
+  let batch = `"${__dirname}/restart.bat"`;
   if (process.platform === "win32")
-    child_process.spawn(`${__dirname}/restart.bat`).unref();
+    child_process.spawn("cmd.exe", ["/c", batch]).unref();
   else {
-    await Node.fs.chmod(`${__dirname}/restart.bat`, 0o777);
-    child_process.spawn("bash", ["-c", `${__dirname}/restart.bat`]).unref();
+    await Node.fs.chmod(batch, 0o777);
+    child_process.spawn("bash", ["-c", batch]).unref();
   }
 };
 
@@ -651,9 +652,9 @@ Node.CloudServer.prototype.changeCode = async function (msg)
   // Update node_modules
   let util = require("util");
   let execFile = util.promisify(require("child_process").execFile);
-  let batch = `${__dirname}/update_node_modules.bat`;
+  let batch = `"${__dirname}/update_node_modules.bat"`;
   if (process.platform === "win32")
-    await execFile(batch, [], {cwd: __dirname});
+    await execFile("cmd.exe", ["/c", batch], {cwd: __dirname});
   else {
     await Node.fs.chmod(batch, 0o777);
     await execFile("bash", ["-c", batch], {cwd: __dirname});
