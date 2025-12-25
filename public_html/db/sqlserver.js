@@ -176,7 +176,7 @@ Node.SQLServer.prototype._beginTransaction = async function (conn)
   let tr = new mssql.Transaction(this.pool);
   await tr.begin();
   //
-  this.onRollback = this.parent.log("WARNING", `transaction on ${this.name} aborted unexpectedly`);
+  this.onRollback = () => this.parent.log("WARNING", `transaction on ${this.name} aborted unexpectedly`);
   tr.on("rollback", this.onRollback);
   //
   return tr;
