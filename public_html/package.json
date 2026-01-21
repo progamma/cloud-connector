@@ -12,7 +12,7 @@
     "oracledb": "6.10.0",
     "pg": "8.16.3",
     "socket.io-client": "4.8.1",
-    "tar": "7.5.2",
+    "tar": "7.5.4",
     "yauzl-promise": "4.0.0"
   }
 }
