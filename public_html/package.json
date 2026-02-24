@@ -3,7 +3,7 @@
   "version": "26.0.0",
   "dependencies": {
     "archiver": "7.0.1",
-    "axios": "1.12.2",
+    "axios": "1.13.5",
     "form-data": "4.0.4",
     "fs-extra": "11.3.2",
     "mssql": "12.0.0",
@@ -12,7 +12,7 @@
     "oracledb": "6.10.0",
     "pg": "8.16.3",
     "socket.io-client": "4.8.1",
-    "tar": "7.5.4",
+    "tar": "7.5.8",
     "yauzl-promise": "4.0.0"
   }
 }
