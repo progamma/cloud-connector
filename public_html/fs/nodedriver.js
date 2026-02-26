@@ -676,7 +676,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
         opts.headers["content-type"] = opts.headers["content-type"] || "application/octet-stream";
       else if (typeof options.body === "object") {
         try {
-          opts.body = JSON.stringify(options.body);
+          opts.data = JSON.stringify(options.body);
           opts.headers["content-type"] = opts.headers["content-type"] || "application/json";
         }
         catch (e) {
