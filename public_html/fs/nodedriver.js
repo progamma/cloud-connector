@@ -663,6 +663,8 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
   };
   //
   try {
+    let response;
+    //
     // Custom body case
     if (options.body) {
       opts.data = options.body;
@@ -723,7 +725,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
       };
     }
     //
-    let response = await require("axios")(opts);
+    response = await require("axios")(opts);
     if (download) {
       let writeStream = require("fs").createWriteStream(options._file.absolutePath);
       response.data.pipe(writeStream);
