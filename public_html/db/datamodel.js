@@ -125,59 +125,131 @@ Node.DataModel.prototype.bindParameters = function (sql, params)
   if (!params)
     return sql;
   //
-  let inQuote = false;
   let parIndex = 0;
-  for (let i = 0; i < sql.length; i++) {
-    if (sql.charAt(i) === "'") {
-      inQuote = !inQuote;
+  let i = 0;
+  let result = "";
+  while (i < sql.length) {
+    // Check for single-line comment
+    if (sql.slice(i, i + 2) === "--") {
+      // Find end of line considering different line endings
+      let endComment = sql.length;
+      for (let j = i; j < sql.length; j++) {
+        if (sql.charAt(j) === "\n" || sql.charAt(j) === "\r") {
+          endComment = j;
+          break;
+        }
+      }
+      result += sql.slice(i, endComment);
+      i = endComment;
       continue;
     }
     //
-    if (inQuote)
+    // Check for multi-line comment
+    if (sql.slice(i, i + 2) === "/*") {
+      let endComment = sql.indexOf("*/", i + 2);
+      if (endComment === -1) endComment = sql.length;
+      else endComment += 2;
+      result += sql.slice(i, endComment);
+      i = endComment;
       continue;
+    }
     //
+    // Check for dollar-quoted string (PostgreSQL)
+    if (sql.charAt(i) === "$") {
+      let match = sql.slice(i).match(/^\$([^$]*)\$/);
+      if (match) {
+        let tag = match[0];
+        let endTag = sql.indexOf(tag, i + tag.length);
+        if (endTag !== -1) {
+          endTag += tag.length;
+          result += sql.slice(i, endTag);
+          i = endTag;
+          continue;
+        }
+      }
+    }
+    //
+    // Check for standard quoted string
+    if (sql.charAt(i) === "'") {
+      result += "'";
+      i++;
+      // Process string content with proper escape handling
+      while (i < sql.length) {
+        if (sql.charAt(i) === "'") {
+          // Check for escaped quote (two consecutive quotes)
+          if (i + 1 < sql.length && sql.charAt(i + 1) === "'") {
+            result += "''";
+            i += 2;
+          }
+          else {
+            // End of string
+            result += "'";
+            i++;
+            break;
+          }
+        }
+        else {
+          result += sql.charAt(i);
+          i++;
+        }
+      }
+      continue;
+    }
+    //
+    // Check for parameter placeholder
     let parName = this.getParameterName(parIndex);
     if (sql.slice(i, i + parName.length) === parName) {
-      let par = params[parIndex];
-      //
-      // Handle different parameter types
-      if (par?.dataType) {
-      // Use existing toSql method for typed parameters
-        par = this.toSql(par.value, par.dataType, par.maxLen, par.scale);
-      }
-      else if (par === null || par === undefined) {
-        // Handle null/undefined values
-        par = "NULL";
-      }
-      else if (typeof par === "string") {
+      // Check if this is actually a parameter (not part of a word)
+      let beforeOk = i === 0 || /[^a-zA-Z0-9_]/.test(sql.charAt(i - 1));
+      let afterOk = i + parName.length >= sql.length || /[^a-zA-Z0-9_]/.test(sql.charAt(i + parName.length));
+      if (beforeOk && afterOk) {
+        let par = params[parIndex];
+        //
+        // Handle different parameter types
+        if (par?.dataType) {
+          // Use existing toSql method for typed parameters
+          par = this.toSql(par.value, par.dataType, par.maxLen, par.scale);
+        }
+        else if (par === null || par === undefined) {
+          // Handle null/undefined values
+          par = "NULL";
+        }
+        else if (typeof par === "string") {
         // Use improved quoteString for string values
-        par = Node.DataModel.quoteString(par);
+          par = Node.DataModel.quoteString(par);
+        }
+        else if (typeof par === "number") {
+          // Validate numeric values to prevent injection
+          if (!isFinite(par))
+            throw new Error(`Invalid numeric parameter at index ${parIndex}: ${par}`);
+          par = String(par);
+        }
+        else if (typeof par === "boolean") {
+          // Convert boolean to SQL boolean representation
+          par = par ? "1" : "0";
+        }
+        else if (par instanceof Date) {
+          // Convert Date to ISO string format
+          par = Node.DataModel.quoteString(par.toISOString());
+        }
+        else {
+          // For other types, convert to string and escape
+          par = Node.DataModel.quoteString(String(par));
+        }
+        //
+        result += par;
+        i += parName.length;
+        parIndex++;
+        continue;
       }
-      else if (typeof par === "number") {
-        // Validate numeric values to prevent injection
-        if (!isFinite(par))
-          throw new Error(`Invalid numeric parameter at index ${parIndex}: ${par}`);
-        par = String(par);
-      }
-      else if (typeof par === "boolean") {
-        // Convert boolean to SQL boolean representation
-        par = par ? "1" : "0";
-      }
-      else if (par instanceof Date) {
-        // Convert Date to ISO string format
-        par = Node.DataModel.quoteString(par.toISOString());
-      }
-      else {
-        // For other types, convert to string and escape
-        par = Node.DataModel.quoteString(String(par));
-      }
-      //
-      sql = sql.slice(0, i) + par + sql.slice(i + parName.length);
-      i += (par + "").length - 1;
-      parIndex++;
     }
+    //
+    // Regular character
+    result += sql.charAt(i);
+    i++;
   }
-  return sql;
+  //
+  return result;
 };
 
 
