@@ -5,8 +5,6 @@
  */
 
 
-/* global module */
-
 var Node = Node || {};
 
 Node.File = require("./file");
@@ -45,9 +43,10 @@ Node.FS.permissions = {
 
 
 /**
- * Creates a file object with the appropriate driver and path
- * @param {String} path
- * @param {String} id
+ * Creates a file object with the appropriate driver and path.
+ * File objects provide methods for reading, writing, copying, and managing files.
+ * @param {String} path - Relative or absolute file path
+ * @returns {Node.File} File object for performing file operations
  */
 Node.FS.prototype.file = function (path, id)
 {
@@ -56,8 +55,10 @@ Node.FS.prototype.file = function (path, id)
 
 
 /**
- * Creates a directory object with the appropriate driver
- * @param {String} path
+ * Creates a directory object with the appropriate driver.
+ * Directory objects provide methods for creating, listing, and managing directories.
+ * @param {String} path - Relative or absolute directory path
+ * @returns {Node.Directory} Directory object for performing directory operations
  */
 Node.FS.prototype.directory = function (path)
 {
@@ -66,8 +67,10 @@ Node.FS.prototype.directory = function (path)
 
 
 /**
- * Creates a URL object with the appropriate driver
- * @param {String} url
+ * Creates a URL object for handling remote file operations.
+ * URL objects provide methods for fetching and working with remote resources.
+ * @param {String} url - Full URL of the remote resource
+ * @returns {Node.Url} URL object for performing remote file operations
  */
 Node.FS.prototype.url = function (url)
 {
@@ -76,13 +79,17 @@ Node.FS.prototype.url = function (url)
 
 
 /**
- * Normalize a path
- * @param {String} path
+ * Normalizes a file system path by resolving relative references.
+ * Converts backslashes to forward slashes, removes "." segments,
+ * and resolves ".." segments. Prevents path traversal outside root.
+ * @param {String} path - Path to normalize (can contain . and .. segments)
+ * @returns {String} Normalized path with resolved references
+ * @throws {Error} If path attempts to traverse above root directory
  */
 Node.FS.normalizePath = function (path)
 {
   // Check if path is out of root
-  path = path.replace(/\\/g, "\/");
+  path = path.replace(/\\/g, "/");
   //
   let parts = path.split("/");
   for (let i = 0; i < parts.length; i++) {
@@ -138,8 +145,10 @@ Node.FS.prototype.disconnect = async function (server)
 
 
 /**
- * Return absolute path
- * @param {File/Directory} obj
+ * Returns the absolute path for a file or directory object.
+ * Must be overridden in driver implementations (LocalDriver, NodeDriver, ShellDriver).
+ * @param {Node.File|Node.Directory} obj - File or directory object to get absolute path for
+ * @returns {String} Absolute path to the file or directory
  */
 Node.FS.prototype.getAbsolutePath = function (obj)
 {
