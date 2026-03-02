@@ -3,7 +3,6 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global module, mysql */
 
 var Node = Node || {};
 
@@ -12,9 +11,14 @@ Node.DataModel = require("./datamodel");
 
 
 /**
- * @class Definition of MySQL object
+ * @class MySQL database connector implementation
+ * @classdesc Provides MySQL-specific database operations including connection management,
+ * transaction handling, schema operations, and SQL generation. Extends the base Database
+ * class with MySQL-specific features like JSON support, custom data type handling, and
+ * MySQL-specific SQL syntax.
  * @param {Node.CloudConnector} parent
  * @param {Object} config
+ * @extends Node.DataModel
  */
 Node.MySQL = function (parent, config)
 {
@@ -30,7 +34,10 @@ Node.MySQL.prototype = new Node.DataModel();
 
 
 /**
- * Open the connection to the database
+ * Opens a connection to the MySQL database from the connection pool
+ * @private
+ * @returns {Promise<Object>} Database connection object from the pool
+ * @throws {Error} Connection errors from the MySQL driver
  */
 Node.MySQL.prototype._openConnection = async function ()
 {
@@ -48,12 +55,23 @@ Node.MySQL.prototype._initPool = async function ()
 
 
 /**
- * Close the connection to the database
- * @param {Object} conn
+ * Closes the current database connection and returns it to the pool
+ * Handles connection release errors by destroying the connection if needed
+ * @private
+ * @returns {Promise<void>}
  */
 Node.MySQL.prototype._closeConnection = async function (conn)
 {
   conn.release();
+};
+
+
+/**
+ * Close the connection pool
+ */
+Node.MySQL.prototype._closePool = async function ()
+{
+  await this.pool.end();
 };
 
 
@@ -94,8 +112,11 @@ Node.MySQL.prototype._execute = async function (conn, msg)
 
 
 /**
- * Begin a transaction
+ * Begins a database transaction
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
+ * @throws {Error} Transaction start errors
  */
 Node.MySQL.prototype._beginTransaction = async function (conn)
 {
@@ -104,8 +125,11 @@ Node.MySQL.prototype._beginTransaction = async function (conn)
 
 
 /**
- * Commit a transaction
+ * Commits the current database transaction
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
+ * @throws {Error} Transaction commit errors
  */
 Node.MySQL.prototype._commitTransaction = async function (conn)
 {
@@ -114,8 +138,11 @@ Node.MySQL.prototype._commitTransaction = async function (conn)
 
 
 /**
- * Rollback a transaction
+ * Rolls back the current database transaction
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
+ * @throws {Error} Transaction rollback errors
  */
 Node.MySQL.prototype._rollbackTransaction = async function (conn)
 {

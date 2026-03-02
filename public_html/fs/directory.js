@@ -11,10 +11,16 @@ var Node = Node || {};
 
 
 /**
- * @class Directory
- * Represents a directory object
- * @param {Node.FS} fs
- * @param {String} path
+ * @class Node.Directory
+ * @classdesc Represents a directory in the file system.
+ * Provides methods for creating, reading, renaming, copying, and removing directories.
+ *
+ * @param {Node.FS} fs - The file system instance that manages this directory
+ * @param {string} path - The relative path of the directory (leading/trailing slashes will be removed)
+ *
+ * @property {string} path - The normalized relative path of the directory
+ * @property {string} absolutePath - The absolute path of the directory (read-only)
+ * @property {Node.FS} fs - Reference to the file system instance
  */
 Node.Directory = function (fs, path)
 {
@@ -34,17 +40,21 @@ Node.Directory = function (fs, path)
 };
 
 
+/**
+ * @property {string} path - The normalized relative path of the directory
+ * @property {string} absolutePath - The absolute path of the directory (read-only)
+ */
 Object.defineProperties(Node.Directory.prototype, {
   path: {
-    get: function () {
+    get() {
       return this._path;
     },
-    set: function (newValue) {
+    set(newValue) {
       this._path = Node.FS.normalizePath(newValue);
     }
   },
   absolutePath: {
-    get: function () {
+    get() {
       return this.fs.getAbsolutePath(this);
     }
   }
@@ -52,28 +62,32 @@ Object.defineProperties(Node.Directory.prototype, {
 
 
 /**
- * Tells something about this object to the DTT module
+ * Returns debug information about this Directory instance for the DTT module.
+ * @returns {Object} Debug info object containing _class, path and type properties
  */
 Node.Directory.prototype.getDebugInfo = function ()
 {
-  let info = {};
-  info._class = "Directory";
-  info.path = this.path;
-  return info;
+  return {
+    _class: "Directory",
+    path: this.path
+  };
 };
 
 
 /**
- * Return the name of directory
+ * Returns the directory name (last part of the path).
+ * @returns {String} Directory name without path prefix
  */
 Node.Directory.prototype.name = function ()
 {
-  return this.path.replace(/^.*(\\|\/|\:)/, "");
+  return this.path.replace(/^.*(\\|\/|:)/, "");
 };
 
 
 /**
- * Creates the directory physically
+ * Creates the directory physically on the file system.
+ * Parent directories are created automatically if they don't exist (recursive).
+ * @returns {Promise<void>} Resolves when the directory is created
  */
 Node.Directory.prototype.create = async function ()
 {
@@ -82,7 +96,8 @@ Node.Directory.prototype.create = async function ()
 
 
 /**
- * Checks the existence of the directory
+ * Checks whether the directory exists on the file system.
+ * @returns {Promise<Boolean>} Resolves to true if directory exists, false otherwise
  */
 Node.Directory.prototype.exists = async function ()
 {
@@ -91,8 +106,10 @@ Node.Directory.prototype.exists = async function ()
 
 
 /**
- * Renames the directory
- * @param {string/Directory} newDir
+ * Renames or moves the directory to a new location.
+ * Updates the directory's path property after successful rename.
+ * @param {String|App.Directory} newDir - New directory name or path
+ * @returns {Promise<void>} Resolves when the rename is complete
  */
 Node.Directory.prototype.rename = async function (newDir)
 {
@@ -110,8 +127,10 @@ Node.Directory.prototype.rename = async function (newDir)
 
 
 /**
- * Copies the entire directory
- * @param {String} newPath
+ * Copies the entire directory and all its contents to a new location.
+ * Creates a complete recursive copy including all subdirectories and files.
+ * @param {String} newPath - Destination path where the directory will be copied
+ * @returns {Promise<Node.Directory>} Resolves to the new Directory object
  */
 Node.Directory.prototype.copy = async function (newPath)
 {
@@ -122,19 +141,21 @@ Node.Directory.prototype.copy = async function (newPath)
 
 
 /**
- * Reads the content of directory: returns an array of files and folders
- * @param {Number} depth
+ * Reads the content of the directory and returns an array of files and folders.
+ * Can recursively list subdirectories based on the specified depth level.
+ * @param {Number} [depth=0] - Depth level for recursive listing (0=immediate children, -1=full recursive)
+ * @returns {Promise<Array<Node.File|Node.Directory>>} Resolves to array of File and Directory objects
  */
-Node.Directory.prototype.list = async function (depth)
+Node.Directory.prototype.list = async function (depth = 0)
 {
-  // Set default depth to 0
-  depth = depth || 0;
   return await this.fs.readDirectory(this, depth);
 };
 
 
 /**
- * Zip the directory
+ * Compresses the directory and all its contents into a ZIP file.
+ * The ZIP file is created in the same location with .zip extension.
+ * @returns {Promise<Node.File>} Resolves to the File object representing the created ZIP file
  */
 Node.Directory.prototype.zip = async function ()
 {
@@ -145,7 +166,9 @@ Node.Directory.prototype.zip = async function ()
 
 
 /**
- * Removes the entire directory
+ * Removes the entire directory and all its contents recursively.
+ * This operation is irreversible and permanently deletes all data.
+ * @returns {Promise<void>} Resolves when the directory is removed
  */
 Node.Directory.prototype.remove = async function ()
 {

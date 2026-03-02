@@ -114,46 +114,169 @@ Node.DataModel.prototype.getPool = async function ()
 
 
 /**
- * Bind parameters of a SQL statement
- * @param {String} sql statement to bind
- * @param {Array} params
+ * Close the connection pool and release all resources
+ * @returns {Promise<void>} Promise that resolves when the pool is closed
+ */
+Node.DataModel.prototype.closePool = async function ()
+{
+  if (!this.pool)
+    return;
+  //
+  try {
+    // Call driver-specific pool closure
+    await this._closePool();
+  }
+  finally {
+    delete this.pool;
+  }
+};
+
+
+/**
+ * Binds parameters to a SQL statement by replacing parameter placeholders with actual values.
+ * Handles proper escaping and type conversion based on parameter data types.
+ * @param {String} sql - SQL statement with parameter placeholders
+ * @param {Array} params - Array of parameter values or parameter objects with dataType
+ * @returns {String} SQL statement with parameters bound
  */
 Node.DataModel.prototype.bindParameters = function (sql, params)
 {
   if (!params)
     return sql;
   //
-  let inQuote = false;
   let parIndex = 0;
-  for (let i = 0; i < sql.length; i++) {
-    if (sql.charAt(i) === "'") {
-      inQuote = !inQuote;
+  let i = 0;
+  let result = "";
+  while (i < sql.length) {
+    // Check for single-line comment
+    if (sql.slice(i, i + 2) === "--") {
+      // Find end of line considering different line endings
+      let endComment = sql.length;
+      for (let j = i; j < sql.length; j++) {
+        if (sql.charAt(j) === "\n" || sql.charAt(j) === "\r") {
+          endComment = j;
+          break;
+        }
+      }
+      result += sql.slice(i, endComment);
+      i = endComment;
       continue;
     }
     //
-    if (inQuote)
+    // Check for multi-line comment
+    if (sql.slice(i, i + 2) === "/*") {
+      let endComment = sql.indexOf("*/", i + 2);
+      if (endComment === -1) endComment = sql.length;
+      else endComment += 2;
+      result += sql.slice(i, endComment);
+      i = endComment;
       continue;
+    }
     //
+    // Check for dollar-quoted string (PostgreSQL)
+    if (sql.charAt(i) === "$") {
+      let match = sql.slice(i).match(/^\$([^$]*)\$/);
+      if (match) {
+        let tag = match[0];
+        let endTag = sql.indexOf(tag, i + tag.length);
+        if (endTag !== -1) {
+          endTag += tag.length;
+          result += sql.slice(i, endTag);
+          i = endTag;
+          continue;
+        }
+      }
+    }
+    //
+    // Check for standard quoted string
+    if (sql.charAt(i) === "'") {
+      result += "'";
+      i++;
+      // Process string content with proper escape handling
+      while (i < sql.length) {
+        if (sql.charAt(i) === "'") {
+          // Check for escaped quote (two consecutive quotes)
+          if (i + 1 < sql.length && sql.charAt(i + 1) === "'") {
+            result += "''";
+            i += 2;
+          }
+          else {
+            // End of string
+            result += "'";
+            i++;
+            break;
+          }
+        }
+        else {
+          result += sql.charAt(i);
+          i++;
+        }
+      }
+      continue;
+    }
+    //
+    // Check for parameter placeholder
     let parName = this.getParameterName(parIndex);
     if (sql.slice(i, i + parName.length) === parName) {
-      let par = params[parIndex];
-      if (par?.dataType)
-        par = this.toSql(par.value, par.dataType, par.maxLen, par.scale);
-      else if (typeof par === "string")
-        par = Node.DataModel.quoteString(par);
-      //
-      sql = sql.slice(0, i) + par + sql.slice(i + parName.length);
-      i += (par + "").length - 1;
-      parIndex++;
+      // Check if this is actually a parameter (not part of a word)
+      let beforeOk = i === 0 || /[^a-zA-Z0-9_]/.test(sql.charAt(i - 1));
+      let afterOk = i + parName.length >= sql.length || /[^a-zA-Z0-9_]/.test(sql.charAt(i + parName.length));
+      if (beforeOk && afterOk) {
+        let par = params[parIndex];
+        //
+        // Handle different parameter types
+        if (par?.dataType) {
+          // Use existing toSql method for typed parameters
+          par = this.toSql(par.value, par.dataType, par.maxLen, par.scale);
+        }
+        else if (par === null || par === undefined) {
+          // Handle null/undefined values
+          par = "NULL";
+        }
+        else if (typeof par === "string") {
+        // Use improved quoteString for string values
+          par = Node.DataModel.quoteString(par);
+        }
+        else if (typeof par === "number") {
+          // Validate numeric values to prevent injection
+          if (!isFinite(par))
+            throw new Error(`Invalid numeric parameter at index ${parIndex}: ${par}`);
+          par = String(par);
+        }
+        else if (typeof par === "boolean") {
+          // Convert boolean to SQL boolean representation
+          par = par ? "1" : "0";
+        }
+        else if (par instanceof Date) {
+          // Convert Date to ISO string format
+          par = Node.DataModel.quoteString(par.toISOString());
+        }
+        else {
+          // For other types, convert to string and escape
+          par = Node.DataModel.quoteString(String(par));
+        }
+        //
+        result += par;
+        i += parName.length;
+        parIndex++;
+        continue;
+      }
     }
+    //
+    // Regular character
+    result += sql.charAt(i);
+    i++;
   }
-  return sql;
+  //
+  return result;
 };
 
 
-/*
- * Get the name of a parameter
- * @param {Number} index
+/**
+ * Returns the placeholder name for a query parameter at given index.
+ * Default implementation returns "?" for positional parameters.
+ * @param {Number} index - Zero-based parameter index
+ * @returns {String} Parameter placeholder (e.g., "?", "$1", ":p1")
  */
 Node.DataModel.prototype.getParameterName = function (index)
 {
@@ -162,29 +285,38 @@ Node.DataModel.prototype.getParameterName = function (index)
 
 
 /**
- * Quote a string
- * @param {String} s string to quote
+ * Escapes and quotes a string value for safe use in SQL statements.
+ * Doubles single quotes and wraps the string in single quotes.
+ * Also handles null bytes and other potentially dangerous characters.
+ * @param {String} s - String value to escape and quote
+ * @returns {String} SQL-safe quoted string literal
  */
 Node.DataModel.quoteString = function (s)
 {
-  let ris = s;
-  let i = 0;
-  while (i < ris.length) {
-    if (ris.charAt(i) === "'") {
-      let tmp = ris.slice(0, i) + "'";
-      tmp = tmp + ris.slice(i);
-      ris = tmp;
-      i++;
-    }
-    i++;
-  }
-  return "'" + ris + "'";
+  // Handle null/undefined
+  if (s === null || s === undefined)
+    return "NULL";
+  //
+  // Ensure it's a string
+  s = String(s);
+  //
+  // Remove null bytes which can truncate SQL strings
+  s = s.replace(/[\0]/g, "");
+  //
+  // Replace all single quotes with doubled single quotes (standard SQL escaping)
+  s = s.replace(/'/g, "''");
+  //
+  return `'${s}'`;
 };
 
 
 /**
- * Open the connection to the database
- * @param {Object} msg - message received
+ * Open a new connection to the database and register it with the connection pool
+ * @param {Object} msg - Message object containing connection parameters
+ * @param {String} msg.cid - Connection ID for tracking this connection
+ * @param {Node.Server} msg.server - Server instance associated with this connection
+ * @throws {Error} Throws error if driver module not found or connection fails
+ * @returns {Promise<void>} Promise that resolves when connection is established
  */
 Node.DataModel.prototype.openConnection = async function (msg)
 {
@@ -200,8 +332,11 @@ Node.DataModel.prototype.openConnection = async function (msg)
 
 
 /**
- * Close the connection to the database
- * @param {Object} msg - message received
+ * Close an active database connection and remove it from the connection pool
+ * @param {Object} msg - Message object containing disconnection parameters
+ * @param {String} msg.cid - Connection ID identifying the connection to close
+ * @throws {Error} Throws error if connection closing fails
+ * @returns {Promise<void>} Promise that resolves when connection is closed and cleaned up
  */
 Node.DataModel.prototype.closeConnection = async function (msg)
 {
@@ -222,8 +357,14 @@ Node.DataModel.prototype.closeConnection = async function (msg)
 
 
 /**
- * Execute a command on the database
- * @param {Object} msg - message received
+ * Execute a SQL command on the database with optional parameters
+ * @param {Object} msg - Message object containing execution parameters
+ * @param {String} msg.cid - Connection ID identifying the database connection
+ * @param {String} msg.sql - SQL statement to execute
+ * @param {Array} [msg.pars] - Array of parameters for parameterized queries (optional)
+ * @param {Object} [msg.options] - Additional execution options (optional)
+ * @throws {Error} Throws error if connection is closed or execution fails
+ * @returns {Promise<Object>} Promise resolving to result set with rows, affected count, and timing info
  */
 Node.DataModel.prototype.execute = async function (msg)
 {
@@ -245,8 +386,11 @@ Node.DataModel.prototype.execute = async function (msg)
 
 
 /**
- * Convert a value
- * @param {Object} value
+ * Converts database native values to JavaScript values.
+ * Handles datetime conversions with timezone support via moment.js.
+ * @param {*} v - Native database value to convert
+ * @param {Object} options - Conversion options with srcDT, dstDT, moment, withoutTimeZone
+ * @returns {*} JavaScript value converted according to target data type
  */
 Node.DataModel.prototype.convertValue = function (value)
 {
@@ -257,8 +401,11 @@ Node.DataModel.prototype.convertValue = function (value)
 
 
 /**
- * Begin a transaction
- * @param {Object} msg - message received
+ * Begin a database transaction on the specified connection
+ * @param {Object} msg - Message object containing transaction parameters
+ * @param {String} msg.cid - Connection ID identifying the database connection
+ * @throws {Error} Throws error if connection is closed or transaction fails
+ * @returns {Promise<void>} Promise that resolves when transaction is started
  */
 Node.DataModel.prototype.beginTransaction = async function (msg)
 {
@@ -271,8 +418,11 @@ Node.DataModel.prototype.beginTransaction = async function (msg)
 
 
 /**
- * Commit a transaction
- * @param {Object} msg - message received
+ * Commit the current database transaction on the specified connection
+ * @param {Object} msg - Message object containing transaction parameters
+ * @param {String} msg.cid - Connection ID identifying the database connection
+ * @throws {Error} Throws error if connection is closed or commit fails
+ * @returns {Promise<void>} Promise that resolves when transaction is committed successfully
  */
 Node.DataModel.prototype.commitTransaction = async function (msg)
 {
@@ -293,8 +443,11 @@ Node.DataModel.prototype.commitTransaction = async function (msg)
 
 
 /**
- * Rollback a transaction
- * @param {Object} msg - message received
+ * Rollback the current database transaction on the specified connection
+ * @param {Object} msg - Message object containing transaction parameters
+ * @param {String} msg.cid - Connection ID identifying the database connection
+ * @throws {Error} Throws error if connection is closed or rollback fails
+ * @returns {Promise<void>} Promise that resolves when transaction is rolled back successfully
  */
 Node.DataModel.prototype.rollbackTransaction = async function (msg)
 {
@@ -315,8 +468,14 @@ Node.DataModel.prototype.rollbackTransaction = async function (msg)
 
 
 /**
- * Read list of tables
- * @param {Object} options - options for the query
+ * Retrieve list of all tables in the database
+ * @param {Object} msg - Message object containing request parameters
+ * @param {String} msg.cid - Connection ID identifying the database connection
+ * @param {Object} msg.options - Query options for filtering tables
+ * @param {String} [msg.options.schema] - Schema name to filter tables (optional)
+ * @param {String} [msg.options.pattern] - Pattern for table name matching (optional)
+ * @throws {Error} Throws error if connection is closed or query fails
+ * @returns {Promise<Array>} Promise resolving to array of table objects with metadata
  */
 Node.DataModel.prototype.listTables = async function (msg)
 {
@@ -329,8 +488,14 @@ Node.DataModel.prototype.listTables = async function (msg)
 
 
 /**
- * Read list of primary keys of a table
- * @param {Object} options - options for the query
+ * Retrieve list of primary key columns for a specific table
+ * @param {Object} msg - Message object containing request parameters
+ * @param {String} msg.cid - Connection ID identifying the database connection
+ * @param {Object} msg.options - Query options containing table information
+ * @param {String} msg.options.table - Table name to get primary keys for
+ * @param {String} [msg.options.schema] - Schema name containing the table (optional)
+ * @throws {Error} Throws error if connection is closed or query fails
+ * @returns {Promise<Array>} Promise resolving to array of primary key column definitions
  */
 Node.DataModel.prototype.listTablePrimaryKeys = async function (msg)
 {
@@ -343,8 +508,14 @@ Node.DataModel.prototype.listTablePrimaryKeys = async function (msg)
 
 
 /**
- * Read list of columns of a table
- * @param {Object} options - options for the query
+ * Retrieve detailed column information for a specific table
+ * @param {Object} msg - Message object containing request parameters
+ * @param {string} msg.cid - Connection ID identifying the database connection
+ * @param {Object} msg.options - Query options containing table information
+ * @param {string} msg.options.table - Table name to get column information for
+ * @param {string} [msg.options.schema] - Schema name containing the table (optional)
+ * @throws {Error} Throws error if connection is closed or query fails
+ * @returns {Promise<Array>} Promise resolving to array of column objects with name, type, nullable, default, etc.
  */
 Node.DataModel.prototype.listTableColumns = async function (msg)
 {
@@ -357,8 +528,14 @@ Node.DataModel.prototype.listTableColumns = async function (msg)
 
 
 /**
- * Read list of foreign keys of a table
- * @param {Object} options - options for the query
+ * Retrieve list of foreign key constraints for a specific table
+ * @param {Object} msg - Message object containing request parameters
+ * @param {String} msg.cid - Connection ID identifying the database connection
+ * @param {Object} msg.options - Query options containing table information
+ * @param {String} msg.options.table - Table name to get foreign key constraints for
+ * @param {String} [msg.options.schema] - Schema name containing the table (optional)
+ * @throws {Error} Throws error if connection is closed or query fails
+ * @returns {Promise<Array>} Promise resolving to array of foreign key constraint definitions with source/target info
  */
 Node.DataModel.prototype.listTableForeignKeys = async function (msg)
 {
@@ -372,8 +549,10 @@ Node.DataModel.prototype.listTableForeignKeys = async function (msg)
 
 
 /**
- * Do nothing
- * @param {Object} msg - message received
+ * Health check endpoint for verifying connection status
+ * @param {Object} msg - Message object for ping request
+ * @param {String} msg.cid - Connection ID to verify (optional)
+ * @returns {void} No return value - used for keep-alive and health checks
  */
 Node.DataModel.prototype.ping = function (msg)
 {
@@ -381,8 +560,10 @@ Node.DataModel.prototype.ping = function (msg)
 
 
 /**
- * Notified when a server disconnects
- * @param {Node.Server} server - server disconnected
+ * Event handler called when a server connection is lost
+ * Automatically closes all database connections associated with the disconnected server
+ * @param {Node.Server} server - Server instance that has disconnected
+ * @returns {Promise<void>} Promise that resolves when all connections are closed
  */
 Node.DataModel.prototype.onServerDisconnected = async function (server)
 {
@@ -392,21 +573,34 @@ Node.DataModel.prototype.onServerDisconnected = async function (server)
 
 
 /**
- * Close all connections
- * @param {Node.Server} server - server disconnected
+ * Close all database connections, optionally filtering by server
+ * @param {Node.Server} [server] - Optional server instance to filter connections (if provided, only closes connections to this server)
+ * @throws {Error} Throws error with connection details if closing fails
+ * @returns {Promise<void>} Promise that resolves when all targeted connections are closed
  */
 Node.DataModel.prototype.disconnect = async function (server)
 {
   // Close all pending connections
   for (let cid in this.connections) {
     if (server && this.connections[cid].server !== server)
-      return;
+      continue;
     //
     try {
       await this.closeConnection({cid});
     }
     catch (e) {
       throw new Error(`Error closing connection of datamodel ${this.name}': ${e}`);
+    }
+  }
+  //
+  // If no server specified (closing all connections), also close the pool
+  if (!server) {
+    try {
+      await this.closePool();
+    }
+    catch (e) {
+      // Log error but don't throw to ensure cleanup continues
+      this.parent?.log("ERROR", `Error closing pool for datamodel '${this.name}': ${e}`);
     }
   }
 };

@@ -3,7 +3,6 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global module, pg, parseInt */
 
 var Node = Node || {};
 
@@ -12,9 +11,14 @@ Node.DataModel = require("./datamodel");
 
 
 /**
- * @class Definition of Postgres object
+ * @class PostgreSQL database connector implementation for the InDe platform
+ * @classdesc Comprehensive PostgreSQL adapter that extends the base Database class with full support
+ * for PostgreSQL's advanced features and optimizations. This connector provides enterprise-grade
+ * database connectivity with robust error handling, connection pooling, and PostgreSQL-specific
+ * SQL generation that leverages the database's unique capabilities.
  * @param {Node.CloudConnector} parent
  * @param {Object} config
+ * @extends Node.DataModel
  */
 Node.Postgres = function (parent, config)
 {
@@ -26,18 +30,12 @@ Node.Postgres = function (parent, config)
 Node.Postgres.prototype = new Node.DataModel();
 
 
-/*
- * Get the name of a parameter
- * @param {Number} index
- */
-Node.Postgres.prototype.getParameterName = function (index)
-{
-  return `$${index + 1}`;
-};
-
 
 /**
- * Open a connection to the database
+ * Opens a connection to the PostgreSQL database
+ * @private
+ * @returns {Promise<Object>} Database connection object from the connection pool
+ * @throws {Error} Connection errors from the PostgreSQL driver
  */
 Node.Postgres.prototype._openConnection = async function ()
 {
@@ -67,12 +65,23 @@ Node.Postgres.prototype._initPool = async function ()
 
 
 /**
- * Close the connection to the database
+ * Closes the current database connection and returns it to the pool
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
  */
 Node.Postgres.prototype._closeConnection = async function (conn)
 {
   conn.release();
+};
+
+
+/**
+ * Close the connection pool
+ */
+Node.Postgres.prototype._closePool = async function ()
+{
+  await this.pool.end();
 };
 
 
@@ -114,8 +123,11 @@ Node.Postgres.prototype._execute = async function (conn, msg)
 
 
 /**
- * Begin a transaction
+ * Begins a database transaction
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
+ * @throws {Error} Transaction start errors
  */
 Node.Postgres.prototype._beginTransaction = async function (conn)
 {
@@ -124,8 +136,11 @@ Node.Postgres.prototype._beginTransaction = async function (conn)
 
 
 /**
- * Commit a transaction
+ * Commits the current database transaction
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
+ * @throws {Error} Transaction commit errors
  */
 Node.Postgres.prototype._commitTransaction = async function (conn)
 {
@@ -134,12 +149,26 @@ Node.Postgres.prototype._commitTransaction = async function (conn)
 
 
 /**
- * Rollback a transaction
+ * Rolls back the current database transaction
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
+ * @throws {Error} Transaction rollback errors
  */
 Node.Postgres.prototype._rollbackTransaction = async function (conn)
 {
   await conn.query("rollback");
+};
+
+
+/**
+ * Gets the PostgreSQL parameter placeholder name for prepared statements
+ * @param {Number} index - Zero-based parameter index
+ * @returns {String} Parameter placeholder (e.g., "$1", "$2")
+ */
+Node.Postgres.prototype.getParameterName = function (index)
+{
+  return `$${index + 1}`;
 };
 
 

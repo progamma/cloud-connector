@@ -12,9 +12,14 @@ Node.DataModel = require("./datamodel");
 
 
 /**
- * @class Definition of SQLServer object
+ * @class SQL Server database connector implementation
+ * @classdesc Provides SQL Server-specific database operations including connection pooling,
+ * transaction handling, schema operations, and SQL generation. Extends the base Database
+ * class with SQL Server-specific features like Unicode support, temporal data types,
+ * and SQL Server-specific SQL syntax.
  * @param {Node.CloudConnector} parent
  * @param {Object} config
+ * @extends Node.DataModel
  */
 Node.SQLServer = function (parent, config)
 {
@@ -29,15 +34,6 @@ Node.SQLServer = function (parent, config)
 // Make Node.SQLServer extend Node.DataModel
 Node.SQLServer.prototype = new Node.DataModel();
 
-
-/*
- * Get the name of a parameter
- * @param {Number} index
- */
-Node.SQLServer.prototype.getParameterName = function (index)
-{
-  return "@P" + (index + 1);
-};
 
 
 /**
@@ -69,6 +65,15 @@ Node.SQLServer.prototype._initPool = async function ()
  */
 Node.SQLServer.prototype._closeConnection = async function (conn)
 {
+};
+
+
+/**
+ * Close the connection pool
+ */
+Node.SQLServer.prototype._closePool = async function ()
+{
+  await this.pool.close();
 };
 
 
@@ -168,8 +173,11 @@ Node.SQLServer.prototype.convertValue = function (value, colDef)
 
 
 /**
- * Begin a transaction
+ * Begins a new database transaction
+ * Sets up rollback event handler to warn if transaction is aborted unexpectedly
+ * @private
  * @param {Object} conn
+ * @returns {Promise<Object>} SQL Server transaction object
  */
 Node.SQLServer.prototype._beginTransaction = async function (conn)
 {
@@ -184,8 +192,10 @@ Node.SQLServer.prototype._beginTransaction = async function (conn)
 
 
 /**
- * Commit a transaction
+ * Commits the current transaction
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
  */
 Node.SQLServer.prototype._commitTransaction = async function (conn)
 {
@@ -194,13 +204,28 @@ Node.SQLServer.prototype._commitTransaction = async function (conn)
 
 
 /**
- * Rollback a transaction
+ * Rolls back the current transaction
+ * Removes the rollback event handler before executing the rollback
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
  */
 Node.SQLServer.prototype._rollbackTransaction = async function (conn)
 {
   conn.transaction.off("rollback", this.onRollback);
   await conn.transaction.rollback();
+};
+
+
+/**
+ * Generates the parameter name for a parameterized query
+ * SQL Server uses @P1, @P2, etc. for parameter names
+ * @param {Number} index - Zero-based parameter index
+ * @returns {String} Parameter name in SQL Server format (e.g., "@P1")
+ */
+Node.SQLServer.prototype.getParameterName = function (index)
+{
+  return `@P${index + 1}`;
 };
 
 
