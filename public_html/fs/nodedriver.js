@@ -439,10 +439,10 @@ Node.NodeDriver.prototype.unzip = async function (file, directory)
     let {pipeline} = require("stream/promises");
     for await (const entry of zipFile) {
       if (entry.filename.endsWith("/"))
-        await this.directory(`${directory.path}/${entry.fileName}`).createAsync();
+        await this.directory(`${directory.path}/${entry.filename}`).createAsync();
       else {
         let readStream = await entry.openReadStream();
-        let writeStream = require("fs").createWriteStream(`${directory.absolutePath}/${entry.fileName}`);
+        let writeStream = require("fs").createWriteStream(`${directory.absolutePath}/${entry.filename}`);
         await pipeline(readStream, writeStream);
       }
     }
