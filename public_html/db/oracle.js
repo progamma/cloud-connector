@@ -78,6 +78,15 @@ Node.Oracle.prototype._closeConnection = async function (conn)
 
 
 /**
+ * Close the connection pool
+ */
+Node.Oracle.prototype._closePool = async function ()
+{
+  await this.pool.close();
+};
+
+
+/**
  * Execute a command on the database
  * @param {Object} conn
  * @param {Object} msg - message received

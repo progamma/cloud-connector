@@ -67,6 +67,15 @@ Node.MySQL.prototype._closeConnection = async function (conn)
 
 
 /**
+ * Close the connection pool
+ */
+Node.MySQL.prototype._closePool = async function ()
+{
+  await this.pool.end();
+};
+
+
+/**
  * Execute a command on the database
  * @param {Object} conn
  * @param {Object} msg - message received

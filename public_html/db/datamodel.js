@@ -114,6 +114,25 @@ Node.DataModel.prototype.getPool = async function ()
 
 
 /**
+ * Close the connection pool and release all resources
+ * @returns {Promise<void>} Promise that resolves when the pool is closed
+ */
+Node.DataModel.prototype.closePool = async function ()
+{
+  if (!this.pool)
+    return;
+  //
+  try {
+    // Call driver-specific pool closure
+    await this._closePool();
+  }
+  finally {
+    delete this.pool;
+  }
+};
+
+
+/**
  * Binds parameters to a SQL statement by replacing parameter placeholders with actual values.
  * Handles proper escaping and type conversion based on parameter data types.
  * @param {String} sql - SQL statement with parameter placeholders
@@ -564,13 +583,24 @@ Node.DataModel.prototype.disconnect = async function (server)
   // Close all pending connections
   for (let cid in this.connections) {
     if (server && this.connections[cid].server !== server)
-      return;
+      continue;
     //
     try {
       await this.closeConnection({cid});
     }
     catch (e) {
       throw new Error(`Error closing connection of datamodel ${this.name}': ${e}`);
+    }
+  }
+  //
+  // If no server specified (closing all connections), also close the pool
+  if (!server) {
+    try {
+      await this.closePool();
+    }
+    catch (e) {
+      // Log error but don't throw to ensure cleanup continues
+      this.parent?.log("ERROR", `Error closing pool for datamodel '${this.name}': ${e}`);
     }
   }
 };

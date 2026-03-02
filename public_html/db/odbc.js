@@ -55,6 +55,15 @@ Node.ODBC.prototype._closeConnection = async function (conn)
 
 
 /**
+ * Close the connection pool
+ */
+Node.ODBC.prototype._closePool = async function ()
+{
+  await this.pool.close();
+};
+
+
+/**
  * Execute a command on the database
  * @param {Object} conn - connection object
  * @param {Object} msg - message received
