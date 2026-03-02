@@ -313,7 +313,7 @@ Node.DataModel.quoteString = function (s)
 /**
  * Open a new connection to the database and register it with the connection pool
  * @param {Object} msg - Message object containing connection parameters
- * @param {string} msg.cid - Connection ID for tracking this connection
+ * @param {String} msg.cid - Connection ID for tracking this connection
  * @param {Node.Server} msg.server - Server instance associated with this connection
  * @throws {Error} Throws error if driver module not found or connection fails
  * @returns {Promise<void>} Promise that resolves when connection is established
@@ -334,7 +334,7 @@ Node.DataModel.prototype.openConnection = async function (msg)
 /**
  * Close an active database connection and remove it from the connection pool
  * @param {Object} msg - Message object containing disconnection parameters
- * @param {string} msg.cid - Connection ID identifying the connection to close
+ * @param {String} msg.cid - Connection ID identifying the connection to close
  * @throws {Error} Throws error if connection closing fails
  * @returns {Promise<void>} Promise that resolves when connection is closed and cleaned up
  */
@@ -359,8 +359,8 @@ Node.DataModel.prototype.closeConnection = async function (msg)
 /**
  * Execute a SQL command on the database with optional parameters
  * @param {Object} msg - Message object containing execution parameters
- * @param {string} msg.cid - Connection ID identifying the database connection
- * @param {string} msg.sql - SQL statement to execute
+ * @param {String} msg.cid - Connection ID identifying the database connection
+ * @param {String} msg.sql - SQL statement to execute
  * @param {Array} [msg.pars] - Array of parameters for parameterized queries (optional)
  * @param {Object} [msg.options] - Additional execution options (optional)
  * @throws {Error} Throws error if connection is closed or execution fails
@@ -403,7 +403,7 @@ Node.DataModel.prototype.convertValue = function (value)
 /**
  * Begin a database transaction on the specified connection
  * @param {Object} msg - Message object containing transaction parameters
- * @param {string} msg.cid - Connection ID identifying the database connection
+ * @param {String} msg.cid - Connection ID identifying the database connection
  * @throws {Error} Throws error if connection is closed or transaction fails
  * @returns {Promise<void>} Promise that resolves when transaction is started
  */
@@ -420,7 +420,7 @@ Node.DataModel.prototype.beginTransaction = async function (msg)
 /**
  * Commit the current database transaction on the specified connection
  * @param {Object} msg - Message object containing transaction parameters
- * @param {string} msg.cid - Connection ID identifying the database connection
+ * @param {String} msg.cid - Connection ID identifying the database connection
  * @throws {Error} Throws error if connection is closed or commit fails
  * @returns {Promise<void>} Promise that resolves when transaction is committed successfully
  */
@@ -445,7 +445,7 @@ Node.DataModel.prototype.commitTransaction = async function (msg)
 /**
  * Rollback the current database transaction on the specified connection
  * @param {Object} msg - Message object containing transaction parameters
- * @param {string} msg.cid - Connection ID identifying the database connection
+ * @param {String} msg.cid - Connection ID identifying the database connection
  * @throws {Error} Throws error if connection is closed or rollback fails
  * @returns {Promise<void>} Promise that resolves when transaction is rolled back successfully
  */
@@ -470,10 +470,10 @@ Node.DataModel.prototype.rollbackTransaction = async function (msg)
 /**
  * Retrieve list of all tables in the database
  * @param {Object} msg - Message object containing request parameters
- * @param {string} msg.cid - Connection ID identifying the database connection
+ * @param {String} msg.cid - Connection ID identifying the database connection
  * @param {Object} msg.options - Query options for filtering tables
- * @param {string} [msg.options.schema] - Schema name to filter tables (optional)
- * @param {string} [msg.options.pattern] - Pattern for table name matching (optional)
+ * @param {String} [msg.options.schema] - Schema name to filter tables (optional)
+ * @param {String} [msg.options.pattern] - Pattern for table name matching (optional)
  * @throws {Error} Throws error if connection is closed or query fails
  * @returns {Promise<Array>} Promise resolving to array of table objects with metadata
  */
@@ -490,10 +490,10 @@ Node.DataModel.prototype.listTables = async function (msg)
 /**
  * Retrieve list of primary key columns for a specific table
  * @param {Object} msg - Message object containing request parameters
- * @param {string} msg.cid - Connection ID identifying the database connection
+ * @param {String} msg.cid - Connection ID identifying the database connection
  * @param {Object} msg.options - Query options containing table information
- * @param {string} msg.options.table - Table name to get primary keys for
- * @param {string} [msg.options.schema] - Schema name containing the table (optional)
+ * @param {String} msg.options.table - Table name to get primary keys for
+ * @param {String} [msg.options.schema] - Schema name containing the table (optional)
  * @throws {Error} Throws error if connection is closed or query fails
  * @returns {Promise<Array>} Promise resolving to array of primary key column definitions
  */
@@ -530,10 +530,10 @@ Node.DataModel.prototype.listTableColumns = async function (msg)
 /**
  * Retrieve list of foreign key constraints for a specific table
  * @param {Object} msg - Message object containing request parameters
- * @param {string} msg.cid - Connection ID identifying the database connection
+ * @param {String} msg.cid - Connection ID identifying the database connection
  * @param {Object} msg.options - Query options containing table information
- * @param {string} msg.options.table - Table name to get foreign key constraints for
- * @param {string} [msg.options.schema] - Schema name containing the table (optional)
+ * @param {String} msg.options.table - Table name to get foreign key constraints for
+ * @param {String} [msg.options.schema] - Schema name containing the table (optional)
  * @throws {Error} Throws error if connection is closed or query fails
  * @returns {Promise<Array>} Promise resolving to array of foreign key constraint definitions with source/target info
  */
@@ -551,7 +551,7 @@ Node.DataModel.prototype.listTableForeignKeys = async function (msg)
 /**
  * Health check endpoint for verifying connection status
  * @param {Object} msg - Message object for ping request
- * @param {string} msg.cid - Connection ID to verify (optional)
+ * @param {String} msg.cid - Connection ID to verify (optional)
  * @returns {void} No return value - used for keep-alive and health checks
  */
 Node.DataModel.prototype.ping = function (msg)
