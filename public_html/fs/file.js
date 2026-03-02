@@ -219,7 +219,7 @@ Node.File.prototype.rename = async function (newFile)
   if (newFile instanceof Node.Directory)
     newFile = this.fs.file(`${newFile.path}/${this.name()}`);
   else if (typeof newFile === "string" && newFile.endsWith("/"))
-    newFile = this.file(`${newFile}${this.name()}`);
+    newFile = this.fs.file(`${newFile}${this.name()}`);
   //
   await this.fs.renameObject(this, newFile);
   //
