@@ -114,9 +114,11 @@ Node.DataModel.prototype.getPool = async function ()
 
 
 /**
- * Bind parameters of a SQL statement
- * @param {String} sql statement to bind
- * @param {Array} params
+ * Binds parameters to a SQL statement by replacing parameter placeholders with actual values.
+ * Handles proper escaping and type conversion based on parameter data types.
+ * @param {String} sql - SQL statement with parameter placeholders
+ * @param {Array} params - Array of parameter values or parameter objects with dataType
+ * @returns {String} SQL statement with parameters bound
  */
 Node.DataModel.prototype.bindParameters = function (sql, params)
 {
@@ -137,10 +139,38 @@ Node.DataModel.prototype.bindParameters = function (sql, params)
     let parName = this.getParameterName(parIndex);
     if (sql.slice(i, i + parName.length) === parName) {
       let par = params[parIndex];
-      if (par?.dataType)
+      //
+      // Handle different parameter types
+      if (par?.dataType) {
+      // Use existing toSql method for typed parameters
         par = this.toSql(par.value, par.dataType, par.maxLen, par.scale);
-      else if (typeof par === "string")
+      }
+      else if (par === null || par === undefined) {
+        // Handle null/undefined values
+        par = "NULL";
+      }
+      else if (typeof par === "string") {
+        // Use improved quoteString for string values
         par = Node.DataModel.quoteString(par);
+      }
+      else if (typeof par === "number") {
+        // Validate numeric values to prevent injection
+        if (!isFinite(par))
+          throw new Error(`Invalid numeric parameter at index ${parIndex}: ${par}`);
+        par = String(par);
+      }
+      else if (typeof par === "boolean") {
+        // Convert boolean to SQL boolean representation
+        par = par ? "1" : "0";
+      }
+      else if (par instanceof Date) {
+        // Convert Date to ISO string format
+        par = Node.DataModel.quoteString(par.toISOString());
+      }
+      else {
+        // For other types, convert to string and escape
+        par = Node.DataModel.quoteString(String(par));
+      }
       //
       sql = sql.slice(0, i) + par + sql.slice(i + parName.length);
       i += (par + "").length - 1;
@@ -162,23 +192,28 @@ Node.DataModel.prototype.getParameterName = function (index)
 
 
 /**
- * Quote a string
- * @param {String} s string to quote
+ * Escapes and quotes a string value for safe use in SQL statements.
+ * Doubles single quotes and wraps the string in single quotes.
+ * Also handles null bytes and other potentially dangerous characters.
+ * @param {String} s - String value to escape and quote
+ * @returns {String} SQL-safe quoted string literal
  */
 Node.DataModel.quoteString = function (s)
 {
-  let ris = s;
-  let i = 0;
-  while (i < ris.length) {
-    if (ris.charAt(i) === "'") {
-      let tmp = ris.slice(0, i) + "'";
-      tmp = tmp + ris.slice(i);
-      ris = tmp;
-      i++;
-    }
-    i++;
-  }
-  return "'" + ris + "'";
+  // Handle null/undefined
+  if (s === null || s === undefined)
+    return "NULL";
+  //
+  // Ensure it's a string
+  s = String(s);
+  //
+  // Remove null bytes which can truncate SQL strings
+  s = s.replace(/[\0]/g, "");
+  //
+  // Replace all single quotes with doubled single quotes (standard SQL escaping)
+  s = s.replace(/'/g, "''");
+  //
+  return `'${s}'`;
 };
 
 
