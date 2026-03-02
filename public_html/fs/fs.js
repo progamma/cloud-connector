@@ -107,7 +107,7 @@ Node.FS.normalizePath = function (path)
     }
   }
   //
-  return path;
+  return parts.join("/");
 };
 
 
