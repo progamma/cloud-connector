@@ -139,7 +139,11 @@ Node.NodeDriver.prototype.fileExists = async function (file)
     return (await Node.nodeFs.stat(file.absolutePath)).isFile();
   }
   catch (e) {
-    return e.code !== "ENOENT";
+    // Return false only if file does not exist, otherwise propagate the error
+    if (e.code === "ENOENT")
+      return false;
+    //
+    throw e;
   }
 };
 
@@ -484,7 +488,11 @@ Node.NodeDriver.prototype.dirExists = async function (directory)
     return (await Node.nodeFs.stat(directory.absolutePath)).isDirectory();
   }
   catch (e) {
-    return e.code !== "ENOENT";
+    // Return false only if directory does not exist, otherwise propagate the error
+    if (e.code === "ENOENT")
+      return false;
+    //
+    throw e;
   }
 };
 
