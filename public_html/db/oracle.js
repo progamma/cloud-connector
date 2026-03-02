@@ -3,7 +3,6 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global module, oracledb */
 
 var Node = Node || {};
 
@@ -12,7 +11,11 @@ Node.DataModel = require("./datamodel");
 
 
 /**
- * @class Definition of Oracle object
+ * @class Oracle database connector implementation
+ * @classdesc Provides Oracle-specific database operations including connection pooling,
+ * transaction handling, schema operations, and SQL generation. Extends the base Database
+ * class with Oracle-specific features like PL/SQL support, LOB handling, sequences,
+ * and Oracle-specific SQL syntax.
  * @param {Node.CloudConnector} parent
  * @param {Object} config
  */
@@ -50,7 +53,9 @@ Node.Oracle.prototype.loadModule = function ()
 
 
 /**
- * Open the connection to the database
+ * Opens a connection to the Oracle database
+ * Gets a connection from the pool and returns it for use
+ * @returns {Promise<Object>} Oracle database connection object
  */
 Node.Oracle.prototype._openConnection = async function ()
 {
@@ -68,8 +73,10 @@ Node.Oracle.prototype._initPool = async function ()
 
 
 /**
- * Close the connection to the database
+ * Closes the current database connection
+ * Returns the connection to the pool for reuse
  * @param {Object} conn
+ * @returns {Promise<void>}
  */
 Node.Oracle.prototype._closeConnection = async function (conn)
 {
@@ -181,19 +188,12 @@ Node.Oracle.prototype.convertValue = function (value, colDef)
 };
 
 
-/*
- * Get the name of a parameter
- * @param {Number} index
- */
-Node.Oracle.prototype.getParameterName = function (index)
-{
-  return ":P" + (index + 1);
-};
-
-
 /**
- * Begin a transaction
+ * Begins a database transaction
+ * Oracle transactions are implicit, so this is a no-op
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
  */
 Node.Oracle.prototype._beginTransaction = async function (conn)
 {
@@ -201,8 +201,11 @@ Node.Oracle.prototype._beginTransaction = async function (conn)
 
 
 /**
- * Commit a transaction
+ * Commits the current database transaction
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
+ * @throws {Error} Transaction commit errors
  */
 Node.Oracle.prototype._commitTransaction = async function (conn)
 {
@@ -211,12 +214,26 @@ Node.Oracle.prototype._commitTransaction = async function (conn)
 
 
 /**
- * Rollback a transaction
+ * Rolls back the current database transaction
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
+ * @throws {Error} Transaction rollback errors
  */
 Node.Oracle.prototype._rollbackTransaction = async function (conn)
 {
   await conn.rollback();
+};
+
+
+/**
+ * Gets the Oracle parameter placeholder name for prepared statements
+ * @param {Number} index - Zero-based parameter index
+ * @returns {String} Parameter placeholder (e.g., ":P1", ":P2")
+ */
+Node.Oracle.prototype.getParameterName = function (index)
+{
+  return `:P${index + 1}`;
 };
 
 

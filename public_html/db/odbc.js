@@ -12,9 +12,13 @@ Node.DataModel = require("./datamodel");
 
 
 /**
- * @class Definition of ODBC object
+ * ODBC Database Connector
+ * Provides database connectivity through ODBC (Open Database Connectivity) drivers.
+ * Supports various database systems including MS Access, SQL Server, Oracle, MySQL, and any ODBC-compliant database.
+ * Handles connection pooling, query execution, transaction management, and schema introspection.
  * @param {Node.CloudConnector} parent
  * @param {Object} config
+ * @extends Node.DataModel
  */
 Node.ODBC = function (parent, config)
 {
@@ -27,11 +31,22 @@ Node.ODBC.prototype = new Node.DataModel();
 
 
 /**
- * Open a connection to the database
+ * Opens a connection to the database from the connection pool
+ * Extracts and throws ODBC-specific error messages when connection fails.
+ * @private
+ * @returns {Promise<Object>} ODBC connection object
  */
 Node.ODBC.prototype._openConnection = async function ()
 {
-  return await this.pool.connect();
+  try {
+    return await this.pool.connect();
+  }
+  catch (e) {
+    if (e.odbcErrors?.[0])
+      throw new Error(e.odbcErrors?.[0].message);
+    else
+      throw e;
+  }
 };
 
 
@@ -45,8 +60,11 @@ Node.ODBC.prototype._initPool = async function ()
 
 
 /**
- * Close the connection to the database
+ * Closes the current database connection and returns it to the pool
+ * The connection is not destroyed but returned to the pool for reuse.
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
  */
 Node.ODBC.prototype._closeConnection = async function (conn)
 {
@@ -168,8 +186,11 @@ Node.ODBC.prototype.isTransactionSupported = function(err)
 
 
 /**
- * Begin a transaction
+ * Begins a database transaction
+ * If the ODBC driver doesn't support transactions, logs a warning instead of throwing an error.
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
  */
 Node.ODBC.prototype._beginTransaction = async function (conn)
 {
@@ -187,8 +208,11 @@ Node.ODBC.prototype._beginTransaction = async function (conn)
 
 
 /**
- * Commit a transaction
+ * Commits the current database transaction
+ * Only commits if the ODBC driver supports transactions.
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
  */
 Node.ODBC.prototype._commitTransaction = async function (conn)
 {
@@ -198,8 +222,11 @@ Node.ODBC.prototype._commitTransaction = async function (conn)
 
 
 /**
- * Rollback a transaction
+ * Rolls back the current database transaction
+ * Only rolls back if the ODBC driver supports transactions.
+ * @private
  * @param {Object} conn
+ * @returns {Promise<void>}
  */
 Node.ODBC.prototype._rollbackTransaction = async function (conn)
 {
