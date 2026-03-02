@@ -5,15 +5,14 @@
  */
 
 
-/* global ArrayBuffer, Buffer, module */
-
 var Node = Node || {};
 if (module)
   Node.FS = require("./fs");
 
 /**
  * @class NodeDriver
- * Represents a node driver object,that will handle files and folders
+ * Represents a node driver object that handles files and folders operations on Node.js filesystem
+ * @extends {Node.FS}
  * @param {Object} parent
  * @param {Object} config
  */
@@ -32,8 +31,10 @@ Node.NodeDriver.prototype = new Node.FS();
 
 
 /**
- * Return absolute path
- * @param {File/Directory} obj
+ * Returns the absolute path for a file or directory object, with security validation
+ * @param {Node.File|Node.Directory} obj - The file or directory object
+ * @returns {String} - The validated absolute path
+ * @throws {Error} - Throws error if the path is invalid or attempts to access restricted folders
  */
 Node.NodeDriver.prototype.getAbsolutePath = function (obj)
 {
@@ -49,8 +50,10 @@ Node.NodeDriver.prototype.getAbsolutePath = function (obj)
 
 
 /**
- * Creates the file physically (Opens the file and overwrites it)
- * @param {File} file
+ * Creates a file physically on the filesystem (opens the file in write mode, overwrites if exists)
+ * @param {Node.File} file - The file object to create
+ * @returns {Promise<void>} - Sets the file handle for writing
+ * @throws {Error} - If parameter is not an instance of Node.File
  */
 Node.NodeDriver.prototype.createFile = async function (file)
 {
@@ -68,8 +71,10 @@ Node.NodeDriver.prototype.createFile = async function (file)
 
 
 /**
- * Opens the file for reading
- * @param {File} file
+ * Opens a file for reading operations
+ * @param {Node.File} file - The file object to open
+ * @returns {Promise<void>} - Sets the file handle for reading
+ * @throws {Error} - If parameter is not an instance of Node.File
  */
 Node.NodeDriver.prototype.openFile = async function (file)
 {
@@ -82,8 +87,10 @@ Node.NodeDriver.prototype.openFile = async function (file)
 
 
 /**
- * Opens the file to append data
- * @param {File} file
+ * Opens a file for appending data (writes at the end of the file)
+ * @param {Node.File} file - The file object to open for append
+ * @returns {Promise<void>} - Sets the file handle for appending
+ * @throws {Error} - If parameter is not an instance of Node.File
  */
 Node.NodeDriver.prototype.openFileForAppend = async function (file)
 {
@@ -100,8 +107,10 @@ Node.NodeDriver.prototype.openFileForAppend = async function (file)
 
 
 /**
- * Closes the file
- * @param {File} file
+ * Closes an open file handle and releases resources
+ * @param {Node.File} file - The file object to close
+ * @returns {Promise<void>} - Removes the file handle from the file object
+ * @throws {Error} - If parameter is not an instance of Node.File
  */
 Node.NodeDriver.prototype.close = async function (file)
 {
@@ -116,7 +125,10 @@ Node.NodeDriver.prototype.close = async function (file)
 
 /**
  * Checks existence of a file
- * @param {File} file
+ * @param {Node.File} file - The file object to check
+ * @returns {Promise<Boolean>} - Returns true if the file exists and is a file (not a directory),
+ *                                false if the file does not exist (ENOENT error)
+ * @throws {Error} - Throws an error for permission denied or other filesystem errors
  */
 Node.NodeDriver.prototype.fileExists = async function (file)
 {
@@ -133,10 +145,12 @@ Node.NodeDriver.prototype.fileExists = async function (file)
 
 
 /**
- * Reads a block of data, return an array buffer
- * @param {File} file
- * @param {Number} length
- * @param {Number} offset
+ * Reads a block of binary data from a file
+ * @param {Node.File} file - The file object to read from (must be opened)
+ * @param {Number} [length] - Number of bytes to read (defaults to file length)
+ * @param {Number} [offset] - Position in file to start reading from (null for current position)
+ * @returns {Promise<ArrayBuffer>} - The data read as an ArrayBuffer
+ * @throws {Error} - If file is not opened or parameter is not an instance of Node.File
  */
 Node.NodeDriver.prototype.read = async function (file, length, offset)
 {
@@ -166,8 +180,10 @@ Node.NodeDriver.prototype.read = async function (file, length, offset)
 
 
 /**
- * Read the whole file as text
- * @param {File} file
+ * Reads the entire file content as text
+ * @param {Node.File} file - The file object to read
+ * @returns {Promise<string>} - The entire file content as a string with specified encoding
+ * @throws {Error} - If parameter is not an instance of Node.File
  */
 Node.NodeDriver.prototype.readAll = async function (file)
 {
@@ -184,12 +200,14 @@ Node.NodeDriver.prototype.readAll = async function (file)
 
 
 /**
- * Writes the data or the string given
- * @param {File} file
- * @param {String/Buffer} data
- * @param {Number} offset
- * @param {Number} length
- * @param {Number} position
+ * Writes data to an open file
+ * @param {Node.File} file - The file object to write to (must be opened for writing)
+ * @param {string|ArrayBuffer|Buffer|Object} data - Data to write (objects are JSON stringified)
+ * @param {Number} [offset] - Offset in the buffer to start writing from (for binary data)
+ * @param {Number} [length] - Number of bytes to write (for binary data)
+ * @param {Number} [position] - Position in file to write at
+ * @returns {Promise<void>}
+ * @throws {Error} - If file is not opened, no data provided, or invalid parameters
  */
 Node.NodeDriver.prototype.write = async function (file, data, offset, length, position)
 {
@@ -227,9 +245,11 @@ Node.NodeDriver.prototype.write = async function (file, data, offset, length, po
 
 
 /**
- * Copy the file
- * @param {File} file
- * @param {File} newFile
+ * Copies a file to a new location
+ * @param {Node.File} file - The source file to copy
+ * @param {Node.File} newFile - The destination file object
+ * @returns {Promise<void>}
+ * @throws {Error} - If files are not instances of Node.File or source doesn't exist
  */
 Node.NodeDriver.prototype.copyFile = async function (file, newFile)
 {
@@ -251,9 +271,11 @@ Node.NodeDriver.prototype.copyFile = async function (file, newFile)
 
 
 /**
- * Rename a file or directory
- * @param {File/Directory} obj
- * @param {File/Directory} newObj
+ * Renames or moves a file or directory
+ * @param {Node.File|Node.Directory} obj - The source file or directory to rename
+ * @param {Node.File|Node.Directory|String} newObj - The new file/directory object or name string
+ * @returns {Promise<void>}
+ * @throws {Error} - If objects are not valid instances
  */
 Node.NodeDriver.prototype.renameObject = async function (obj, newObj)
 {
@@ -275,8 +297,10 @@ Node.NodeDriver.prototype.renameObject = async function (obj, newObj)
 
 
 /**
- * Return the file size (in bytes)
- * @param {File} file
+ * Returns the size of a file in bytes
+ * @param {Node.File} file - The file object
+ * @returns {Promise<Number>} - The file size in bytes
+ * @throws {Error} - If parameter is not an instance of Node.File
  */
 Node.NodeDriver.prototype.fileLength = async function (file)
 {
@@ -288,8 +312,10 @@ Node.NodeDriver.prototype.fileLength = async function (file)
 
 
 /**
- * Return the last modified file date
- * @param {File} file
+ * Returns the last modified date of a file
+ * @param {Node.File} file - The file object
+ * @returns {Promise<Date>} - The last modified date as a Date object
+ * @throws {Error} - If parameter is not an instance of Node.File
  */
 Node.NodeDriver.prototype.fileDateTime = async function (file)
 {
@@ -301,8 +327,10 @@ Node.NodeDriver.prototype.fileDateTime = async function (file)
 
 
 /**
- * Deletes a file
- * @param {File} file
+ * Deletes a file from the filesystem
+ * @param {Node.File} file - The file object to delete
+ * @returns {Promise<void>}
+ * @throws {Error} - If parameter is not an instance of Node.File
  */
 Node.NodeDriver.prototype.deleteFile = async function (file)
 {
@@ -318,9 +346,11 @@ Node.NodeDriver.prototype.deleteFile = async function (file)
 
 
 /**
- * Zip a file
- * @param {File} file
- * @param {File} zipFile
+ * Compresses a file into a ZIP archive
+ * @param {Node.File} file - The source file to compress
+ * @param {Node.File} zipFile - The destination ZIP file
+ * @returns {Promise<void>}
+ * @throws {Error} - If parameters are not instances of Node.File or operation fails
  */
 Node.NodeDriver.prototype.zipFile = async function (file, zipFile)
 {
@@ -383,9 +413,11 @@ Node.NodeDriver.prototype.zipFile = async function (file, zipFile)
 
 
 /**
- * Unzip an archiver
- * @param {File} file
- * @param {Directory} directory
+ * Extracts a ZIP archive to a directory
+ * @param {Node.File} file - The ZIP file to extract
+ * @param {Node.Directory} directory - The destination directory
+ * @returns {Promise<void>}
+ * @throws {Error} - If parameters are not valid instances or extraction fails
  */
 Node.NodeDriver.prototype.unzip = async function (file, directory)
 {
@@ -418,8 +450,10 @@ Node.NodeDriver.prototype.unzip = async function (file, directory)
 
 
 /**
- * Create the directory
- * @param {Directory} directory
+ * Creates a directory (recursively creates parent directories if needed)
+ * @param {Node.Directory} directory - The directory object to create
+ * @returns {Promise<void>} - Does nothing if directory already exists
+ * @throws {Error} - If parameter is not an instance of Node.Directory
  */
 Node.NodeDriver.prototype.mkDir = async function (directory)
 {
@@ -436,7 +470,10 @@ Node.NodeDriver.prototype.mkDir = async function (directory)
 
 /**
  * Checks the existence of the directory
- * @param {Directory} directory
+ * @param {Node.Directory} directory - The directory object to check
+ * @returns {Promise<Boolean>} - Returns true if the directory exists and is a directory (not a file),
+ *                                false if the directory does not exist (ENOENT error)
+ * @throws {Error} - Throws an error for permission denied or other filesystem errors
  */
 Node.NodeDriver.prototype.dirExists = async function (directory)
 {
@@ -453,9 +490,11 @@ Node.NodeDriver.prototype.dirExists = async function (directory)
 
 
 /**
- * Copies the entire directory
- * @param {Directory} srcDir
- * @param {Directory} dstDir
+ * Copies an entire directory tree to a new location
+ * @param {Node.Directory} srcDir - The source directory to copy
+ * @param {Node.Directory} dstDir - The destination directory
+ * @returns {Promise<void>}
+ * @throws {Error} - If directories are not valid instances or source doesn't exist
  */
 Node.NodeDriver.prototype.copyDir = async function (srcDir, dstDir)
 {
@@ -477,11 +516,13 @@ Node.NodeDriver.prototype.copyDir = async function (srcDir, dstDir)
 
 
 /**
- * Reads recursively the content of directory
- * @param {Directory} directory
- * @param {Number} depth
+ * Reads directory contents recursively up to specified depth
+ * @param {Node.Directory} directory - The directory to read
+ * @param {Number} [depth=0] - How many levels deep to read (0 = current level only)
+ * @returns {Promise<Array<Node.File|Node.Directory>>} - Array of Node.File and Node.Directory objects
+ * @throws {Error} - If parameter is not an instance of Node..Directory
  */
-Node.NodeDriver.prototype.readDirectory = async function (directory, depth)
+Node.NodeDriver.prototype.readDirectory = async function (directory, depth = 0)
 {
   if (!(directory instanceof Node.Directory))
     throw new Error("The provided parameter 'directory' must be an instance of Node.Directory");
@@ -492,8 +533,8 @@ Node.NodeDriver.prototype.readDirectory = async function (directory, depth)
   let result = [];
   let entries = await Node.nodeFs.readdir(path);
   for (let entry of entries) {
-    let stat = await Node.nodeFs.stat(path + "/" + entry);
-    let obj = this[stat.isFile() ? "file" : "directory"](directory.path + "/" + entry);
+    let stat = await Node.nodeFs.stat(`${path}/${entry}`);
+    let obj = this[stat.isFile() ? "file" : "directory"](`${directory.path}/${entry}`);
     result.push(this.serializeObject(obj));
     //
     if (obj instanceof Node.Directory && depth > 0)
@@ -505,9 +546,11 @@ Node.NodeDriver.prototype.readDirectory = async function (directory, depth)
 
 
 /**
- * Zip directory
- * @param {Directory} directory
- * @param {File} zipFile
+ * Compresses an entire directory into a ZIP archive
+ * @param {Node.Directory} directory - The directory to compress
+ * @param {Node.File} zipFile - The destination ZIP file
+ * @returns {Promise<void>}
+ * @throws {Error} - If parameters are not valid instances, directory doesn't exist, or operation fails
  */
 Node.NodeDriver.prototype.zipDirectory = async function (directory, zipFile)
 {
@@ -561,7 +604,7 @@ Node.NodeDriver.prototype.zipDirectory = async function (directory, zipFile)
       archive.finalize();
       await zipFile.removeAsync();
     }
-    catch (e) {
+    catch {
     }
     throw e;
   }
@@ -569,8 +612,10 @@ Node.NodeDriver.prototype.zipDirectory = async function (directory, zipFile)
 
 
 /**
- * Removes the entire directory
- * @param {Directory} directory
+ * Removes a directory and all its contents recursively
+ * @param {Node.Directory} directory - The directory to remove
+ * @returns {Promise<void>} - Does nothing if directory doesn't exist
+ * @throws {Error} - If parameter is not an instance of Node.Directory
  */
 Node.NodeDriver.prototype.removeDirRecursive = async function (directory)
 {
@@ -590,10 +635,29 @@ Node.NodeDriver.prototype.removeDirRecursive = async function (directory)
 
 
 /**
- * Makes an HTTP request to a web server
- * @param {Object} url
- * @param {String} method
- * @param {Object} options
+ * Makes an HTTP request to a web server with support for various methods and options
+ * @param {Object} url - URL object with request configuration
+ * @param {String} url.url - The target URL
+ * @param {Function} [url.onUploadProgress] - Upload progress callback
+ * @param {Function} [url.onDownloadProgress] - Download progress callback
+ * @param {String} method - HTTP method (GET, POST, DOWNLOAD, UPLOAD, etc.)
+ * @param {Object} [options] - Request options
+ * @param {String} [options.responseType='text'] - Expected response type
+ * @param {Boolean} [options.gzip=true] - Enable gzip compression
+ * @param {Object} [options.params={}] - Query parameters or form data
+ * @param {Object} [options.headers={}] - Request headers
+ * @param {Object} [options.proxy] - Proxy configuration
+ * @param {File} [options.file] - File for download/upload operations
+ * @param {string|ArrayBuffer|Object} [options.body] - Custom request body
+ * @param {String} [options.bodyType] - Content type for custom body
+ * @param {Object} [options.authentication] - Authentication credentials
+ * @param {Number} [options.timeOut] - Request timeout in milliseconds
+ * @param {File} [options._file] - Internal: File object for upload operations
+ * @param {String} [options._fileName] - Internal: File name for upload
+ * @param {String} [options._fileContentType] - Internal: MIME type for upload
+ * @param {String} [options._nameField] - Internal: Form field name for file upload
+ * @returns {Promise<Object>} - Response object with status, headers, body, or error
+ * @throws {Error} - If file parameter is not an instance of Node.File when provided
  */
 Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
 {
@@ -649,6 +713,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
     multiPart = false;
   //
   // Create internal request options object
+  let uri = url.url;
   let opts = {
     url: uri,
     method,
@@ -749,7 +814,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
 
 
 /*
- * Deserialize File/Directory/Url
+ * Deserialize Node.File/Node.Directory/Node.Url
  * @param {Object} obj
  */
 Node.NodeDriver.prototype.deserializeObject = function (obj)
@@ -769,7 +834,7 @@ Node.NodeDriver.prototype.deserializeObject = function (obj)
 
 
 /*
- * Serialize File/Directory/Url
+ * Serialize Node.File/Node.Directory/Node.Url
  * @param {Object} obj
  */
 Node.NodeDriver.prototype.serializeObject = function (obj)
@@ -794,7 +859,7 @@ Node.NodeDriver.prototype.onMessage = async function (msg)
   for (let i = 0; i < msg.args.length; i++) {
     let arg = msg.args[i];
     //
-    // Deserialize arguments of type File/Directory/Url
+    // Deserialize arguments of type Node.File/Node.Directory/Node.Url
     if (arg && typeof arg === "object" && arg._t) {
       let obj = this.deserializeObject(arg);
       obj.server = msg.server;
