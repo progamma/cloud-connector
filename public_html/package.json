@@ -13,5 +13,12 @@
     "socket.io-client": "4.8.1",
     "tar": "7.4.3",
     "yauzl-promise": "4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.27.0",
+    "@eslint/json": "0.13.2",
+    "@eslint/markdown": "7.4.0",
+    "eslint": "^10.0.2",
+    "globals": "16.2.0"
   }
 }
