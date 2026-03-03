@@ -38,30 +38,15 @@ Node.NodeDriver.prototype = new Node.FS();
  */
 Node.NodeDriver.prototype.getAbsolutePath = function (obj)
 {
-  // SEMPRE normalizza il path per prevenire bypass del setter
-  let normalizedPath;
-  try {
-    normalizedPath = Node.FS.normalizePath(obj.path);
-  }
-  catch (e) {
-    // Se normalizePath lancia un errore per traversal, rilancia con messaggio più specifico
-    throw new Error(`Path traversal detected: '${obj.path}' is outside the allowed directory`);
-  }
-
+  obj.path = Node.FS.normalizePath(obj.path);
+  //
   // Build absolute path con path normalizzato
-  let absPath = [this.path, normalizedPath].join("/");
-
-  // Remove duplicate slashes and final slash
-  absPath = absPath.replace(/\/+/g, "/");
+  let absPath = [this.path, obj.path].join("/");
+  //
+  // Remove final slash
   if (absPath.endsWith("/"))
     absPath = absPath.slice(0, -1);
-
-  // Verifica finale: l'absolute path deve iniziare con il base path
-  // Questo previene casi edge dove la normalizzazione potrebbe non essere sufficiente
-  if (!absPath.startsWith(this.path)) {
-    throw new Error(`Path traversal detected: '${obj.path}' is outside the allowed directory`);
-  }
-
+  //
   return absPath;
 };
 
