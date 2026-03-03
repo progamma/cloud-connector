@@ -88,26 +88,35 @@ Node.FS.prototype.url = function (url)
  */
 Node.FS.normalizePath = function (path)
 {
-  // Check if path is out of root
+  // Convert Windows path separators to Unix style
   path = path.replace(/\\/g, "/");
   //
+  // First normalize the path to resolve all . and .. segments
   let parts = path.split("/");
+  let normalizedParts = [];
   for (let i = 0; i < parts.length; i++) {
     switch (parts[i]) {
       case ".":
-        parts.splice(i, 1);
-        i--;
-        break;
+      case "":
+        // Skip empty and current directory references
+        continue;
+
       case "..":
-        if (i === 0)
-          throw new Error(`Invalid path ${path}`);
-        parts.splice(i - 1, 2);
-        i -= 2;
+        if (normalizedParts.length > 0 && normalizedParts[normalizedParts.length - 1] !== "..") {
+          // Go up one level if possible
+          normalizedParts.pop();
+        }
+        else // We're trying to go above root - this is a traversal attempt
+          throw new Error(`Invalid path ${path} - traversal above root not allowed`);
+        break;
+
+      default:
+        normalizedParts.push(parts[i]);
         break;
     }
   }
   //
-  return parts.join("/");
+  return normalizedParts.join("/");
 };
 
 
