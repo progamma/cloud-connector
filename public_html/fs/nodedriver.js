@@ -38,7 +38,9 @@ Node.NodeDriver.prototype = new Node.FS();
  */
 Node.NodeDriver.prototype.getAbsolutePath = function (obj)
 {
-  // Absolute path
+  obj.path = Node.FS.normalizePath(obj.path);
+  //
+  // Build absolute path con path normalizzato
   let absPath = [this.path, obj.path].join("/");
   //
   // Remove final slash
@@ -721,7 +723,6 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
     multiPart = false;
   //
   // Create internal request options object
-  let uri = url.url;
   let opts = {
     url: uri,
     method,

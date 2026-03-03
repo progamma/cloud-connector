@@ -82,32 +82,90 @@ Node.FS.prototype.url = function (url)
  * Normalizes a file system path by resolving relative references.
  * Converts backslashes to forward slashes, removes "." segments,
  * and resolves ".." segments. Prevents path traversal outside root.
+ * Includes comprehensive security checks against various attack vectors.
  * @param {String} path - Path to normalize (can contain . and .. segments)
  * @returns {String} Normalized path with resolved references
- * @throws {Error} If path attempts to traverse above root directory
+ * @throws {Error} If path attempts to traverse above root directory or contains malicious patterns
  */
 Node.FS.normalizePath = function (path)
 {
-  // Check if path is out of root
+  // Validate input
+  if (typeof path !== "string")
+    throw new Error("Path must be a string");
+  //
+  // Remove null bytes (common attack vector)
+  path = path.replace(/\0/g, "");
+  //
+  // Decode URL-encoded sequences that could hide traversal attempts
+  // e.g., %2e%2e%2f = ../
+  try {
+    // Only decode if there are encoded characters
+    if (path.includes("%")) {
+      path = decodeURIComponent(path);
+      // Check for double-encoded sequences after first decode
+      if (path.match(/%/))
+        throw new Error("Path contains suspicious encoded sequences");
+    }
+  }
+  catch {
+    // If decoding fails or suspicious encoding detected
+    throw new Error("Invalid or suspicious URL encoding in path");
+  }
+  //
+  // Convert Windows path separators to Unix style
   path = path.replace(/\\/g, "/");
   //
+  // Check for Unicode/UTF-8 variants of dots and slashes
+  // These could be used to bypass filters
+  if (path.match(/[\u2024\u2025\u2026\uFF0E\uFF0F]/))
+    throw new Error("Path contains suspicious Unicode characters");
+  //
+  // Reject absolute paths (starting with / or drive letters like C:)
+  if (path.match(/^\/|^[a-zA-Z]:/))
+    throw new Error("Absolute paths are not allowed");
+  //
+  // First normalize the path to resolve all . and .. segments
   let parts = path.split("/");
+  let normalizedParts = [];
   for (let i = 0; i < parts.length; i++) {
-    switch (parts[i]) {
+    let part = parts[i];
+    //
+    // Check for segments with three or more consecutive dots
+    // Allow "." and ".." as they're handled below
+    // Allow filenames like "file..txt" or "fi.le.txt"
+    if (part.match(/^\.{3,}$/))
+      throw new Error("Multiple consecutive dots not allowed");
+    //
+    switch (part) {
       case ".":
-        parts.splice(i, 1);
-        i--;
-        break;
+      case "":
+        // Skip empty and current directory references
+        continue;
+
       case "..":
-        if (i === 0)
-          throw new Error(`Invalid path ${path}`);
-        parts.splice(i - 1, 2);
-        i -= 2;
+        if (normalizedParts.length > 0) // Go up one level if possible
+          normalizedParts.pop();
+        else // We're trying to go above root - this is a traversal attempt
+          throw new Error("Path traversal above root not allowed");
+        break;
+
+      default:
+        // Allow dots in filenames (e.g., "file.txt", "fi..le.txt")
+        // The ".." case is already handled above, so any other use of dots is allowed
+        normalizedParts.push(part);
         break;
     }
   }
   //
-  return parts.join("/");
+  // Build the final path
+  let normalizedPath = normalizedParts.join("/");
+  //
+  // Final validation: ensure no traversal patterns remain after normalization
+  // This shouldn't happen if the above logic is correct, but it's a safety net
+  if (normalizedPath.includes("../") || normalizedPath.startsWith(".."))
+    throw new Error("Path contains traversal pattern after normalization");
+  //
+  return normalizedPath;
 };
 
 

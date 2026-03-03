@@ -1,10 +1,60 @@
 # cloud-connector
 
+## Versione
+**Versione attuale**: 26.0.0
+**Node.js richiesto**: v22.21.1 o superiore
+**Compatibilità**: Instant Developer Cloud, IndeRT
+
+## Descrizione
+
 Il Cloud Connector è uno strumento che permette di connettersi a uno o più database remoti da applicazioni sviluppate con Instant Developer Cloud.
 
 Normalmente sono le applicazioni che si connettono al database ed è necessario aprire almeno una porta verso il mondo esterno sul database server.
 
 Con il Cloud Connector installato sul server dove risiede il database, o in un server della stessa rete locale, è il database stesso ad aprire una connessione verso l'applicazione. Questo fa si che non occorra aprire specifiche porte verso l'esterno aumentando di molto la sicurezza.
+
+## Architettura
+
+### Struttura del Progetto
+```
+cloud-connector/
+├── public_html/              # Directory principale dell'applicazione
+│   ├── cloudServer.js        # Entry point principale del server
+│   ├── server.js             # Client Socket.IO per connessione ai server remoti
+│   ├── utils.js              # Funzioni di utilità e crittografia
+│   ├── logger.js             # Sistema di logging centralizzato
+│   ├── config.json           # File di configurazione (da creare da config_example.json)
+│   ├── config_example.json   # Template di configurazione di esempio
+│   ├── db/                   # Connettori database
+│   │   ├── datamodel.js      # Classe base per tutti i datamodel
+│   │   ├── mysql.js          # Connettore MySQL
+│   │   ├── postgres.js       # Connettore PostgreSQL
+│   │   ├── oracle.js         # Connettore Oracle
+│   │   ├── sqlserver.js      # Connettore SQL Server
+│   │   └── odbc.js           # Connettore ODBC generico
+│   ├── fs/                   # Modulo file system
+│   │   ├── nodedriver.js     # Driver principale per operazioni file system
+│   │   ├── fs.js             # Classe per gestione file system
+│   │   ├── file.js           # Operazioni su file
+│   │   ├── directory.js      # Operazioni su directory
+│   │   └── url.js            # Gestione download da URL
+│   ├── plugins/              # Sistema plugin estensibile
+│   │   ├── plugin.js         # Classe base per i plugin
+│   │   └── activedirectory/  # Plugin Active Directory
+│   │       ├── index.js      # Implementazione plugin AD
+│   │       └── package.json  # Dipendenze plugin AD
+│   ├── utils/                # Directory utility (attualmente vuota)
+│   ├── node_modules/         # Dipendenze NPM
+│   ├── restart.bat           # Script per riavvio su Windows
+│   └── update_node_modules.bat # Script per aggiornamento dipendenze
+├── README.md                # Questa documentazione
+├── CLAUDE.md                # Documentazione per sviluppatori
+└── .gitignore              # File da ignorare in Git
+```
+
+### Flusso di Comunicazione
+Il Cloud Connector utilizza Socket.IO per la comunicazione bidirezionale con i server Instant Developer Cloud:
+1. **Connessione inversa**: Il connector si connette ai server remoti (no porte in ingresso)
 
 ## Installazione
 
@@ -78,11 +128,11 @@ Per esempio:
 Per esempio:  
 `"remoteUserNames": ["https://ide1-pro-gamma.instantdevelopercloud.com@paolo-giannelli"],` 
 - Nella sezione `datamodels` devono essere impostate le informazioni di connessione ai database che si vuole esporre. È possibile elencare più database. Ogni tipo di database ha parametri di connessione specifici. È possibile collegare i seguenti tipi di database:
-  - Oracle
-  - Postgres
-  - SQLServer
-  - MySQL
-  - ODBC  
+  - Oracle (oracledb 6.10.0)
+  - Postgres (pg 8.16.3)
+  - SQLServer (mssql 12.0.0)
+  - MySQL (mysql2 3.15.2)
+  - ODBC (odbc 2.4.9)
 - Un esempio di configurazione SQL server è il seguente:
   ```js
   "datamodels": [  
@@ -171,7 +221,130 @@ Per eseguire pm2 come servizio la procedura è diversa a seconda del tipo di ser
 - per Windows [https://github.com/Unitech/PM2/issues/1079](https://github.com/Unitech/PM2/issues/1079).
 
 ## Controllo remoto
- Per consentire la configurazione da remoto (riavvio, modifica di config.js, aggiornamento del software) occorre impostare il parametro `remoteConfigurationKey` nel config.json.  
-   
-## Guida 
+ Per consentire la configurazione da remoto (riavvio, modifica di config.js, aggiornamento del software) occorre impostare il parametro `remoteConfigurationKey` nel config.json.
+
+## Troubleshooting
+
+### Problemi Comuni e Soluzioni
+
+#### 1. Errore di connessione al database
+- **Problema**: Il connector non riesce a connettersi al database
+- **Soluzione**:
+  - Verificare che le credenziali nel `config.json` siano corrette
+  - Controllare che il database sia raggiungibile dal server del connector
+  - Per MySQL 8, usare autenticazione `legacy` invece di `caching_sha2_password`
+
+#### 2. APIKey non valida
+- **Problema**: Messaggio "The APIKey of dataModel is set to the default value and will be ignored"
+- **Soluzione**: Generare un nuovo GUID e sostituire il valore `00000000-0000-0000-0000-000000000000` nel config.json
+
+#### 3. Certificati SSL non validi
+- **Problema**: Errore di certificato SSL in ambiente di sviluppo
+- **Soluzione** (solo per sviluppo):
+  ```json
+  "connectionOptions": {
+    "rejectUnauthorized": false
+  }
+  ```
+  **ATTENZIONE**: Non usare in produzione!
+
+#### 4. Password non criptate correttamente
+- **Problema**: Le password nel config.json non vengono criptate
+- **Soluzione**: Impostare la variabile d'ambiente `%CC_KEY%` PRIMA del primo avvio
+
+#### 5. Plugin ActiveDirectory non funzionante
+- **Problema**: Il plugin AD non si connette
+- **Soluzione**:
+  - Entrare in `public_html/plugins/activedirectory` ed eseguire `npm update`
+  - Verificare URL LDAP e credenziali nel config.json
+
+### Log e Debug
+- **Posizione log**: I log sono salvati nella console di sistema
+- **Logger centralizzato**: Utilizza `logger.js` per logging strutturato
+- **Livelli di log**: ERROR, WARNING, INFO, DEBUG
+
+## Performance e Best Practices
+
+### Connection Pooling
+Configurare adeguatamente il pooling per ogni database:
+- **MySQL/PostgreSQL**: Pool size predefinito 10 connessioni
+- **SQL Server**: `max: 100` nel connectionOptions
+- **Oracle**: Gestione automatica del pool
+
+### Sicurezza
+1. **Sempre** utilizzare una chiave privata personalizzata per `passwordPrivateKey`
+2. **Mai** esporre il Cloud Connector direttamente su internet
+3. **Limitare** i permessi dell'utente database al minimo necessario
+4. **Aggiornare** regolarmente Node.js e le dipendenze
+
+### Monitoraggio
+- Utilizzare PM2 per monitoraggio e restart automatico
+- Configurare alert per disconnessioni database
+- Monitorare utilizzo memoria e CPU del processo Node.js
+
+## Esempi di Configurazione
+
+### Configurazione Multi-Database Completa
+```json
+{
+  "name": "my-connector",
+  "passwordPrivateKey": "%CC_KEY%",
+  "remoteServers": ["prod1.instantdevelopercloud.com"],
+  "remoteUserNames": ["https://ide.instantdevelopercloud.com@username"],
+  "datamodels": [
+    {
+      "name": "main-db",
+      "class": "MySQL",
+      "APIKey": "550e8400-e29b-41d4-a716-446655440001",
+      "connectionOptions": {
+        "host": "localhost",
+        "database": "maindb",
+        "user": "app_user",
+        "password": "encrypted_password"
+      }
+    },
+    {
+      "name": "analytics-db",
+      "class": "Postgres",
+      "APIKey": "550e8400-e29b-41d4-a716-446655440002",
+      "connectionOptions": {
+        "host": "10.0.0.5",
+        "database": "analytics",
+        "user": "readonly_user",
+        "password": "encrypted_password",
+        "ssl": true
+      }
+    }
+  ],
+  "fileSystems": [
+    {
+      "name": "documents",
+      "path": "/var/documents",
+      "permissions": "r",
+      "APIKey": "550e8400-e29b-41d4-a716-446655440003"
+    }
+  ]
+}
+```
+
+### Script di Deployment con PM2
+```bash
+#!/bin/bash
+# deploy.sh
+
+# Aggiorna codice
+git pull origin master
+
+# Aggiorna dipendenze
+cd public_html
+npm update
+
+# Riavvia con PM2
+pm2 restart cloudServer --update-env
+
+# Salva configurazione PM2
+pm2 save
+```
+
+## Guida
 Per maggiori informazioni sul Cloud Connector è possibile leggere questa [guida](https://storage.googleapis.com/inde-downloads/doc/02-Struttura%20del%20database.pdf#page=18).

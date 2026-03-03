@@ -3,9 +3,9 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global process, child_process, Promise, __dirname */
 
 var Node = Node || {};
+
 // Import global modules
 Node.fs = require("fs").promises;
 Node.https = require("https");
@@ -580,29 +580,35 @@ Node.CloudServer.prototype.onMessage = async function (msg)
 
 
 /**
+ * Check remote configuration key
+ * @param {String} key - the key to validate
+ * @param {String} operation - operation name for error message
+ */
+Node.CloudServer.prototype.checkRemoteConfigurationKey = function (key, operation)
+{
+  if (!this.remoteConfigurationKey)
+    throw new Error(`${operation} is not allowed.\nFor allow it you need to set the remoteConfigurationKey in the config.`);
+  //
+  if (key !== this.remoteConfigurationKey)
+    throw new Error("Key for remote configuration is wrong");
+};
+
+
+/**
  * Restart cloud connector
  * @param {Object} msg - message received
  */
 Node.CloudServer.prototype.restart = async function (msg)
 {
+  // Check the key
   if (msg) {
-    // Check the key
     let options = msg.args[0];
-    if (!this.remoteConfigurationKey)
-      throw new Error("Restart is not allowed.\nFor allow it you need to set the remoteConfigurationKey in the config.");
-    if (!options || options.key !== this.remoteConfigurationKey)
-      throw new Error("Key for remote configuration is wrong");
+    this.checkRemoteConfigurationKey(options?.key, "Restart");
   }
   //
-  // Execute restart batch in another process
-  let child_process = require("child_process");
-  let batch = `"${__dirname}/restart.bat"`;
-  if (process.platform === "win32")
-    child_process.spawn("cmd.exe", ["/c", batch]).unref();
-  else {
-    await Node.fs.chmod(batch, 0o777);
-    child_process.spawn("bash", ["-c", batch]).unref();
-  }
+  // Execute restart
+  await Node.Utils.executeScript("restart.bat", this.logger, {detached: true});
+  this.logger.log("Restart initiated successfully");
 };
 
 
@@ -614,10 +620,7 @@ Node.CloudServer.prototype.changeConfig = async function (msg)
 {
   // Check the key
   let options = msg.args[1];
-  if (!this.remoteConfigurationKey)
-    throw new Error("Change of config is not allowed.\nFor allow it you need to set the remoteConfigurationKey in the config.");
-  if (!options || options.key !== this.remoteConfigurationKey)
-    throw new Error("Key for remote configuration is wrong");
+  this.checkRemoteConfigurationKey(options?.key, "Change of config");
   //
   let config = msg.args[0];
   if (typeof config === "string")
@@ -635,30 +638,39 @@ Node.CloudServer.prototype.changeCode = async function (msg)
 {
   // Check the key
   let options = msg.args[1];
-  if (!this.remoteConfigurationKey)
-    throw new Error("Change of source code is not allowed.\nFor allow it you need to set the remoteConfigurationKey in the config.");
-  if (!options || options.key !== this.remoteConfigurationKey)
-    throw new Error("Key for remote configuration is wrong");
+  this.checkRemoteConfigurationKey(options?.key, "Change of source code");
   //
-  // Unpack new source code
+  // Validate and sanitize extraction path
+  let path = require("path");
+  let extractPath = path.resolve(__dirname);
+  //
+  // Unpack new source code with proper validation
   let tar = require("tar");
-  let unpack = tar.extract({cwd: __dirname});
+  let unpack = tar.extract({
+    cwd: extractPath,
+    // Additional security options
+    strip: 0,
+    onentry: entry => {
+      // Validate each entry to prevent path traversal
+      let entryPath = path.resolve(extractPath, entry.path);
+      if (!entryPath.startsWith(extractPath)) {
+        entry.abort();
+        throw new Error(`Security: Path traversal attempt detected in tar entry: ${entry.path}`);
+      }
+    }
+  });
+  //
   await new Promise((resolve, reject) => {
     unpack.on("close", resolve);
     unpack.on("error", reject);
     Node.Utils.bufferToStream(msg.args[0]).pipe(unpack);
   });
   //
-  // Update node_modules
-  let util = require("util");
-  let execFile = util.promisify(require("child_process").execFile);
-  let batch = `"${__dirname}/update_node_modules.bat"`;
-  if (process.platform === "win32")
-    await execFile("cmd.exe", ["/c", batch], {cwd: __dirname});
-  else {
-    await Node.fs.chmod(batch, 0o777);
-    await execFile("bash", ["-c", batch], {cwd: __dirname});
-  }
+  this.logger.log("Source code unpacked successfully");
+  //
+  // Update node_modules using secure script execution
+  await Node.Utils.executeScript("update_node_modules.bat", this.logger);
+  this.logger.log("Node modules updated successfully");
   //
   // Restart if required
   if (options.restart)
