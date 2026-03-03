@@ -79,7 +79,6 @@ Node.File.prototype.getDebugInfo = function ()
  * @throws {Error} If attempting to create a resource type file
  * @note UTF-8 files automatically get a BOM (Byte Order Mark) prepended
  */
- */
 Node.File.prototype.create = async function (encoding)
 {
   // String containing the encoding of the file, null only for binary files
