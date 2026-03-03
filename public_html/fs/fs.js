@@ -94,20 +94,20 @@ Node.FS.normalizePath = function (path)
     throw new Error("Path must be a string");
   //
   // Remove null bytes (common attack vector)
-  path = path.replace(/\0/g, '');
+  path = path.replace(/\0/g, "");
   //
   // Decode URL-encoded sequences that could hide traversal attempts
   // e.g., %2e%2e%2f = ../
   try {
     // Only decode if there are encoded characters
-    if (path.includes('%')) {
+    if (path.includes("%")) {
       path = decodeURIComponent(path);
       // Check for double-encoded sequences after first decode
       if (path.match(/%/))
         throw new Error("Path contains suspicious encoded sequences");
     }
   }
-  catch (e) {
+  catch {
     // If decoding fails or suspicious encoding detected
     throw new Error("Invalid or suspicious URL encoding in path");
   }
@@ -158,15 +158,16 @@ Node.FS.normalizePath = function (path)
   }
   //
   // Build the final path
-  let result = normalizedParts.join("/");
+  let normalizedPath = normalizedParts.join("/");
   //
   // Final validation: ensure no traversal patterns remain after normalization
   // This shouldn't happen if the above logic is correct, but it's a safety net
-  if (result.includes("../") || result.startsWith(".."))
+  if (normalizedPath.includes("../") || normalizedPath.startsWith(".."))
     throw new Error("Path contains traversal pattern after normalization");
   //
-  return result;
+  return normalizedPath;
 };
+
 
 /**
  * Notified when a server disconnects
