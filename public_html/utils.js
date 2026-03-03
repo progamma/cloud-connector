@@ -7,6 +7,10 @@
 /* global module */
 
 var Node = Node || {};
+
+Node.path = require("path");
+Node.fs = require("fs").promises;
+
 Node.Utils = function ()
 {
 };
@@ -90,6 +94,67 @@ Node.Utils.stdTimezoneOffset = function ()
 Node.Utils.isDstObserved = function (d)
 {
   return d.getTimezoneOffset() < Node.Utils.stdTimezoneOffset();
+};
+
+
+/**
+ * Execute a script safely with proper validation and sanitization
+ * @param {String} scriptFile - Script to execute
+ * @param {Object} logger - Logger instance for logging
+ * @param {Object} options - Execution options
+ * @returns {Promise} - Promise that resolves when script execution completes
+ */
+Node.Utils.executeScript = async function(scriptFile, logger, options = {})
+{
+  let child_process = require("child_process");
+  let util = require("util");
+  let execFile = util.promisify(child_process.execFile);
+  //
+  let scriptPath = Node.path.join(__dirname, scriptFile);
+  try {
+    let realPath = await Node.fs.realpath(scriptPath);
+    //
+    // Platform-specific permission checks
+    let isWindows = process.platform === "win32";
+    if (!isWindows) {
+      let stats = await Node.fs.stat(realPath);
+      if (stats.mode & 0o002)
+        throw new Error('Script has unsafe permissions: world-writable');
+      await Node.fs.chmod(realPath, 0o750); // Owner: rwx, Group: r-x, Others: ---
+    }
+    //
+    logger.log(`Executing script: ${scriptFile} at path: ${realPath}`);
+    //
+    // Build execution configuration
+    let command = isWindows ? realPath : "/bin/bash";
+    let args = isWindows ? [] : [realPath];
+    //
+    // Execute based on mode (detached or regular)
+    if (options.detached) {
+      let spawnOptions = {
+        detached: true,
+        stdio: "ignore",
+        ...(isWindows && {windowsHide: true})
+      };
+      //
+      let child = child_process.spawn(command, args, spawnOptions);
+      let.unref();
+      return child;
+    }
+    else {
+      let execOptions = {
+        cwd: __dirname,
+        timeout: options.timeout || 30000,
+        ...(isWindows && {windowsHide: true})
+      };
+      //
+      return await execFile(command, args, execOptions);
+    }
+  }
+  catch (error) {
+    logger.error(`Script execution failed for ${scriptFile}: ${error.message}`);
+    throw new Error(`Failed to execute script '${scriptFile}': ${error.message}`);
+  }
 };
 
 
