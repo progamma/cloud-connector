@@ -45,6 +45,26 @@ Node.NodeDriver.prototype.getAbsolutePath = function (obj)
   if (absPath.endsWith("/"))
     absPath = absPath.slice(0, -1);
   //
+  let sepRealPath = absPath.split("/");
+  //
+  // validPath fills with paths accepted
+  let validPaths = [];
+  validPaths.push(this.path.split("/"));
+  //
+  let validPathsNumber = validPaths.length;
+  for (let i = 0; i < validPaths.length; i++) {
+    for (let j = 0; j < validPaths[i].length; j++) {
+      if (validPaths[i][j] !== sepRealPath[j]) {
+        validPathsNumber--;
+        break;
+      }
+    }
+  }
+  //
+  // If the path is invalid throw exception otherwise realpath
+  if (validPathsNumber === 0)
+    throw new Error(`Path traversal detected: '${obj.path}' is outside the allowed directory`);
+  //
   return absPath;
 };
 
