@@ -3,9 +3,9 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global process, child_process, Promise, __dirname */
 
 var Node = Node || {};
+
 // Import global modules
 Node.fs = require("fs").promises;
 Node.https = require("https");
@@ -580,19 +580,29 @@ Node.CloudServer.prototype.onMessage = async function (msg)
 
 
 /**
+ * Check remote configuration key
+ * @param {String} key - the key to validate
+ * @param {String} operation - operation name for error message
+ */
+Node.CloudServer.prototype.checkRemoteConfigurationKey = function (key, operation)
+{
+  if (!this.remoteConfigurationKey)
+    throw new Error(`${operation} is not allowed.\nFor allow it you need to set the remoteConfigurationKey in the config.`);
+  //
+  if (key !== this.remoteConfigurationKey)
+    throw new Error("Key for remote configuration is wrong");
+};
+
+
+/**
  * Restart cloud connector
  * @param {Object} msg - message received
  */
 Node.CloudServer.prototype.restart = async function (msg)
 {
-  if (msg) {
-    // Check the key
-    let options = msg.args[0];
-    if (!this.remoteConfigurationKey)
-      throw new Error("Restart is not allowed.\nFor allow it you need to set the remoteConfigurationKey in the config.");
-    if (!options || options.key !== this.remoteConfigurationKey)
-      throw new Error("Key for remote configuration is wrong");
-  }
+  // Check the key
+  let options = msg?.args[0];
+  this.checkRemoteConfigurationKey(options?.key, "Restart");
   //
   // Execute restart batch in another process
   let child_process = require("child_process");
@@ -614,10 +624,7 @@ Node.CloudServer.prototype.changeConfig = async function (msg)
 {
   // Check the key
   let options = msg.args[1];
-  if (!this.remoteConfigurationKey)
-    throw new Error("Change of config is not allowed.\nFor allow it you need to set the remoteConfigurationKey in the config.");
-  if (!options || options.key !== this.remoteConfigurationKey)
-    throw new Error("Key for remote configuration is wrong");
+  this.checkRemoteConfigurationKey(options?.key, "Change of config");
   //
   let config = msg.args[0];
   if (typeof config === "string")
@@ -635,10 +642,7 @@ Node.CloudServer.prototype.changeCode = async function (msg)
 {
   // Check the key
   let options = msg.args[1];
-  if (!this.remoteConfigurationKey)
-    throw new Error("Change of source code is not allowed.\nFor allow it you need to set the remoteConfigurationKey in the config.");
-  if (!options || options.key !== this.remoteConfigurationKey)
-    throw new Error("Key for remote configuration is wrong");
+  this.checkRemoteConfigurationKey(options?.key, "Change of source code");
   //
   // Unpack new source code
   let tar = require("tar");
