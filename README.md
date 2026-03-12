@@ -107,9 +107,10 @@ Ecco una guida su come gestire questi privilegi:
 La configurazione del Cloud Connector avviene mediante il file config.json che si trova nella directory `public_html`:
 - La sezione principale indica il nome del connettore così come sarà visto dai server di produzione e dai server IDE.   
 
-In questa sezione è riportata anche l'impostazione della chiave privata di criptaggio delle password utilizzate nei singoli `datamodels` che è recuperata da una variabile di ambiente del server nel quale è installato il Cloud Connector.  
-L'impostazione di default nel file di esempio della configurazione (config_example.json) è questa `"passwordPrivateKey": "%CC_KEY%",`   
-La variabile `%CC_KEY%` deve essere impostata da comando di sistema operativo; può anche essere utilizzato un nome diverso da quello indicato.  
+In questa sezione è riportata anche l'impostazione della chiave privata di criptaggio delle password utilizzate nei singoli `datamodels` che è recuperata da una variabile di ambiente del server nel quale è installato il Cloud Connector.
+L'impostazione di default nel file di esempio della configurazione (config_example.json) è questa `"passwordPrivateKey": "%CC_KEY%",`
+La variabile `%CC_KEY%` deve essere impostata da comando di sistema operativo; può anche essere utilizzato un nome diverso da quello indicato.
+**IMPORTANTE**: La chiave privata deve essere lunga almeno 32 caratteri per garantire un livello adeguato di sicurezza nella crittografia.
 È importante scegliere una chiave privata robusta e non predicibile, generata in modo sicuro. Per approfondimenti: [https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation).   
    
 Se non viene definita questa variabile di ambiente il Cloud Connector utilizza un suo valore di default. Tuttavia si raccomanda di impostare sempre un valore personalizzato per la proprietà `passwordPrivateKey`, in quanto l'utilizzo del valore di default rende i dati cifrati più vulnerabili a potenziali attacchi.   
@@ -135,22 +136,24 @@ Per esempio:
   - ODBC (odbc 2.4.9)
 - Un esempio di configurazione SQL server è il seguente:
   ```js
-  "datamodels": [  
-    {  
-      "name": "nwind-db",  
-      "class": "SQLServer",  
-      "APIKey": "00000000-0000-0000-0000-000000000000",  
-      "connectionOptions": {  
-      "server": "127.0.0.1\\SQLEXPRESS",  
-      "database": "nome-database",  
-      "user": "utente",  
-      "password": "password",  
-      "options": {  
-        "useUTC": false  
-      }  
-    }  
+  "datamodels": [
+    {
+      "name": "nwind-db",
+      "class": "SQLServer",
+      "APIKey": "00000000-0000-0000-0000-000000000000",
+      "connectionOptions": {
+      "server": "127.0.0.1\\SQLEXPRESS",
+      "database": "nome-database",
+      "user": "utente",
+      "password": "password",
+      "options": {
+        "useUTC": false
+        // "trustServerCertificate": true  // Decommentare solo se necessario (vedi nota sotto)
+      }
+    }
   }],
   ```
+  **Nota**: Il parametro `trustServerCertificate: true` nelle options di SQL Server permette di connettersi a database con certificati SSL autofirmati o non validi. Utilizzare questa opzione solo in ambiente di sviluppo o quando si è certi della sicurezza della connessione, in quanto bypassa la validazione del certificato SSL.
 - Un esempio di configurazione ODBC è il seguente:
   ```js
   "datamodels": [ 
