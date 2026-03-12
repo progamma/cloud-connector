@@ -193,6 +193,10 @@ Node.Utils.replaceEnvVariables = function (obj)
  */
 Node.Utils.processPasswords = function (config, key, encrypt)
 {
+  // Validate key length for security
+  if (key && key.length < 32)
+    throw new Error("passwordPrivateKey must be at least 32 characters long");
+  //
   config.datamodels?.forEach(dm => {
     let password = dm.connectionOptions.password;
     if (!password)
