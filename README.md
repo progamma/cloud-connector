@@ -204,7 +204,7 @@ Per usarlo occorre aggiungere alla sezione un oggetto simile al seguente:
 Attualmente Cloud Connector non supporta il `caching_sha2_password` come metodo di autenticazione su MySQL 8. Si consiglia invece di utilizzare il metodo di autenticazione `legacy`.  
 
 Nel file config.json tutte le `APIKey` sono impostate per default al valore `00000000-0000-0000-0000-000000000000` ed è importante modificarle con un guid effettivo in quanto il Cloud Connector se trova il valore impostato a tutti zero trasmette una stringa vuota e quindi la connessione non funziona nemmeno se nel database su di un porgetto nell'ide di Instant Developer Cloud impostato il valore `00000000-0000-0000-0000-000000000000` nella proprietà APIKey.  
-In questo caso nEl log del Cloud Connector viene inserito il messaggio `The APIKey of dataModel '${this.name}' is set to the default value and will be ignored`.
+In questo caso nel log del Cloud Connector viene inserito il messaggio `The APIKey of dataModel '${this.name}' is set to the default value and will be ignored`.
 
 ## Installazione come servizio
 
