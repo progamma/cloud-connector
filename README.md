@@ -109,13 +109,38 @@ La configurazione del Cloud Connector avviene mediante il file config.json che s
 
 In questa sezione è riportata anche l'impostazione della chiave privata di criptaggio delle password utilizzate nei singoli `datamodels` che è recuperata da una variabile di ambiente del server nel quale è installato il Cloud Connector.
 L'impostazione di default nel file di esempio della configurazione (config_example.json) è questa `"passwordPrivateKey": "%CC_KEY%",`
-La variabile `%CC_KEY%` deve essere impostata da comando di sistema operativo; può anche essere utilizzato un nome diverso da quello indicato.
-**IMPORTANTE**: La chiave privata deve essere lunga almeno 32 caratteri per garantire un livello adeguato di sicurezza nella crittografia.
-È importante scegliere una chiave privata robusta e non predicibile, generata in modo sicuro. Per approfondimenti: [https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation).   
-   
-Se non viene definita questa variabile di ambiente il Cloud Connector utilizza un suo valore di default. Tuttavia si raccomanda di impostare sempre un valore personalizzato per la proprietà `passwordPrivateKey`, in quanto l'utilizzo del valore di default rende i dati cifrati più vulnerabili a potenziali attacchi.   
-   
-Le password vengono criptate al primo avvio del Cloud Connector quindi occorre settare la variabile di ambiente `%CC_KEY%` prima di avviarlo.
+
+**CC_KEY è una variabile d'ambiente** che deve essere configurata nel sistema operativo prima di avviare il Cloud Connector. La sintassi `%CC_KEY%` nel config.json indica al sistema di leggere il valore dalla variabile d'ambiente chiamata `CC_KEY`.
+
+### Come impostare la variabile d'ambiente CC_KEY:
+
+**Windows (Command Prompt):**
+```batch
+set CC_KEY=la-tua-chiave-segreta-di-almeno-32-caratteri
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:CC_KEY="la-tua-chiave-segreta-di-almeno-32-caratteri"
+```
+
+**Linux/Mac:**
+```bash
+export CC_KEY="la-tua-chiave-segreta-di-almeno-32-caratteri"
+```
+
+**Per rendere la variabile permanente:**
+- **Windows**: Aggiungerla nelle Variabili d'ambiente di sistema (Pannello di controllo → Sistema → Impostazioni avanzate di sistema → Variabili d'ambiente)
+- **Linux/Mac**: Aggiungere l'export nel file `~/.bashrc`, `~/.bash_profile` o `/etc/environment`
+
+**IMPORTANTE**:
+- La chiave privata deve essere lunga **almeno 32 caratteri** per garantire un livello adeguato di sicurezza nella crittografia
+- È possibile utilizzare un nome diverso per la variabile d'ambiente modificando il valore nel config.json (es: `"passwordPrivateKey": "%MY_SECRET_KEY%"`)
+- È importante scegliere una chiave privata robusta e non predicibile, generata in modo sicuro. Per approfondimenti: [https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation)
+
+Se non viene definita questa variabile di ambiente il Cloud Connector utilizza un suo valore di default. Tuttavia si raccomanda di impostare sempre un valore personalizzato per la proprietà `passwordPrivateKey`, in quanto l'utilizzo del valore di default rende i dati cifrati più vulnerabili a potenziali attacchi.
+
+Le password vengono criptate al primo avvio del Cloud Connector quindi occorre settare la variabile di ambiente `CC_KEY` **PRIMA** di avviarlo.
 - È possibile aggiungere una sezione `connectionOptions` al file di configurazione del Cloud Connector per indicare al sistema che deve accettare connessioni anche da server con certificati non validi o autofirmati.  
 Attenzione questa impostazione va utilizzata solamente in ambiente di sviluppo in quanto rende insicura l'installazione del Cloud Connector.  
 Per abilitare questa impostazione occorre aggiungere questa sezione al dile config.json:  
