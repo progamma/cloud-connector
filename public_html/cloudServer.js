@@ -316,17 +316,17 @@ Node.CloudServer.prototype.createFileSystem = function (config)
   try {
     // Import local module
     Node.NodeDriver = require("./fs/nodedriver");
+    //
+    // Create fileSystem from config
+    let f = new Node.NodeDriver(this, config);
+    this.fileSystems.push(f);
+    this.log("INFO", `FileSystem '${f.name}' initialized`);
+    this.configChanged = true;
   }
   catch (e) {
     this.log("ERROR", `Error creating file system ${config.name}: ${e}`,
-            {source: "Node.CloudServer.prototype.createFS"});
+            {source: "Node.CloudServer.prototype.createFileSystem"});
   }
-  //
-  // Create fileSystem from config
-  let f = new Node.NodeDriver(this, config);
-  this.fileSystems.push(f);
-  this.log("INFO", `FileSystem '${f.name}' initialized`);
-  this.configChanged = true;
 };
 
 

@@ -160,6 +160,7 @@ Node.Directory.prototype.copy = async function (newPath)
  * @returns {Promise<Array<Node.File|Node.Directory>>} Array of File and Directory objects found in the directory
  * @throws {Error} If the directory doesn't exist or cannot be read
  */
+Node.Directory.prototype.list = async function (depth = 0)
 {
   return await this.fs.readDirectory(this, depth);
 };

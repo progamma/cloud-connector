@@ -430,7 +430,7 @@ Node.NodeDriver.prototype.unzip = async function (file, directory)
   let zipFile = await require("yauzl-promise").open(file.absolutePath);
   try {
     let {pipeline} = require("stream/promises");
-    for await (const entry of zipFile) {
+    for await (let entry of zipFile) {
       if (entry.filename.endsWith("/"))
         await this.directory(`${directory.path}/${entry.filename}`).create();
       else {
@@ -523,7 +523,7 @@ Node.NodeDriver.prototype.copyDir = async function (srcDir, dstDir)
  * @param {Node.Directory} directory - The directory to read
  * @param {Number} [depth=0] - How many levels deep to read (0 = current level only)
  * @returns {Promise<Array<Node.File|Node.Directory>>} - Array of Node.File and Node.Directory objects
- * @throws {Error} If parameter is not an instance of Node..Directory
+ * @throws {Error} If parameter is not an instance of Node.Directory
  */
 Node.NodeDriver.prototype.readDirectory = async function (directory, depth = 0)
 {
