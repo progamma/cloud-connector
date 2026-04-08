@@ -4,9 +4,6 @@
  * All rights reserved
  */
 
-
-/* global module */
-
 var Node = Node || {};
 
 
@@ -41,10 +38,14 @@ Node.Directory = function (fs, path)
 
 
 /**
- * @property {string} path - The normalized relative path of the directory
- * @property {string} absolutePath - The absolute path of the directory (read-only)
+ * Define dynamic properties for the Directory class.
  */
 Object.defineProperties(Node.Directory.prototype, {
+  /**
+   * Gets or sets the directory path.
+   * Automatically normalizes the path when set.
+   * @type {String}
+   */
   path: {
     get() {
       return this._path;
@@ -53,6 +54,11 @@ Object.defineProperties(Node.Directory.prototype, {
       this._path = Node.FS.normalizePath(newValue);
     }
   },
+  /**
+   * Gets the absolute path to the directory.
+   * @type {String}
+   * @readonly
+   */
   absolutePath: {
     get() {
       return this.fs.getAbsolutePath(this);
@@ -63,6 +69,7 @@ Object.defineProperties(Node.Directory.prototype, {
 
 /**
  * Returns debug information about this Directory instance for the DTT module.
+ * Used internally by the framework for debugging and logging purposes.
  * @returns {Object} Debug info object containing _class, path and type properties
  */
 Node.Directory.prototype.getDebugInfo = function ()
@@ -76,6 +83,7 @@ Node.Directory.prototype.getDebugInfo = function ()
 
 /**
  * Returns the directory name (last part of the path).
+ * Extracts the final directory name from the full path, removing any parent directories.
  * @returns {String} Directory name without path prefix
  */
 Node.Directory.prototype.name = function ()
@@ -87,7 +95,8 @@ Node.Directory.prototype.name = function ()
 /**
  * Creates the directory physically on the file system.
  * Parent directories are created automatically if they don't exist (recursive).
- * @returns {Promise<void>} Resolves when the directory is created
+ * If the directory already exists, the operation completes without error.
+ * @see Node.Directory#exists - To check if directory exists before creation
  */
 Node.Directory.prototype.create = async function ()
 {
@@ -97,7 +106,8 @@ Node.Directory.prototype.create = async function ()
 
 /**
  * Checks whether the directory exists on the file system.
- * @returns {Promise<Boolean>} Resolves to true if directory exists, false otherwise
+ * Does not throw an error if the directory doesn't exist, simply returns false.
+ * @returns {Promise<Boolean>} True if directory exists, false otherwise
  */
 Node.Directory.prototype.exists = async function ()
 {
@@ -108,8 +118,9 @@ Node.Directory.prototype.exists = async function ()
 /**
  * Renames or moves the directory to a new location.
  * Updates the directory's path property after successful rename.
- * @param {String|App.Directory} newDir - New directory name or path
- * @returns {Promise<void>} Resolves when the rename is complete
+ * If newDir ends with "/", the directory is moved into that location keeping its current name.
+ * @param {String|App.Directory} newDir - New directory name or path (string for rename, Directory object for move)
+ * @throws {Error} If the rename operation fails due to permissions or invalid paths
  */
 Node.Directory.prototype.rename = async function (newDir)
 {
@@ -129,8 +140,10 @@ Node.Directory.prototype.rename = async function (newDir)
 /**
  * Copies the entire directory and all its contents to a new location.
  * Creates a complete recursive copy including all subdirectories and files.
+ * The original directory remains unchanged.
  * @param {String} newPath - Destination path where the directory will be copied
- * @returns {Promise<Node.Directory>} Resolves to the new Directory object
+ * @returns {Promise<Node.Directory} The new Directory object representing the copied directory
+ * @throws {Error} If the copy operation fails due to permissions or disk space
  */
 Node.Directory.prototype.copy = async function (newPath)
 {
@@ -143,10 +156,10 @@ Node.Directory.prototype.copy = async function (newPath)
 /**
  * Reads the content of the directory and returns an array of files and folders.
  * Can recursively list subdirectories based on the specified depth level.
- * @param {Number} [depth=0] - Depth level for recursive listing (0=immediate children, -1=full recursive)
- * @returns {Promise<Array<Node.File|Node.Directory>>} Resolves to array of File and Directory objects
+ * @param {Number} [depth=0] - Depth level for recursive listing (0 for immediate children only, -1 for full recursive scan, positive numbers for specific depth levels)
+ * @returns {Promise<Array<Node.File|Node.Directory>>} Array of File and Directory objects found in the directory
+ * @throws {Error} If the directory doesn't exist or cannot be read
  */
-Node.Directory.prototype.list = async function (depth = 0)
 {
   return await this.fs.readDirectory(this, depth);
 };
@@ -154,8 +167,11 @@ Node.Directory.prototype.list = async function (depth = 0)
 
 /**
  * Compresses the directory and all its contents into a ZIP file.
- * The ZIP file is created in the same location with .zip extension.
- * @returns {Promise<Node.File>} Resolves to the File object representing the created ZIP file
+ * The ZIP file is created in the same location with .zip extension added to the directory name.
+ * All subdirectories and files are included recursively in the archive.
+ * @returns {Promise<Node.File>} File object representing the created ZIP file
+ * @throws {Error} If compression fails or insufficient disk space
+ * @see Node.File#unzip - To extract the created ZIP file
  */
 Node.Directory.prototype.zip = async function ()
 {
@@ -167,8 +183,9 @@ Node.Directory.prototype.zip = async function ()
 
 /**
  * Removes the entire directory and all its contents recursively.
- * This operation is irreversible and permanently deletes all data.
- * @returns {Promise<void>} Resolves when the directory is removed
+ * This operation is irreversible and permanently deletes all subdirectories and files.
+ * **Note:** Use with caution as this operation cannot be undone.
+ * @throws {Error} If the directory cannot be removed due to permissions or if it's in use
  */
 Node.Directory.prototype.remove = async function ()
 {
