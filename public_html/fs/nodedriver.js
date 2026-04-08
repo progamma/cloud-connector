@@ -692,11 +692,26 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
       throw new Error(`The URL '${uri}' is not included in the list of permitted URLs`);
   }
   //
-  // I make the header keys lowercase
-  let headers = {};
-  for (let key in options.headers)
-    headers[key.toLowerCase()] = options.headers[key];
-  options.headers = headers;
+  // Helper functions for case-insensitive header operations
+  let getHeaderKey = name => {
+    let lowerName = name.toLowerCase();
+    for (let key in options.headers)
+      if (key.toLowerCase() === lowerName)
+        return key;
+  };
+  //
+  let getHeader = name => {
+    let key = getHeaderKey(name);
+    return key ? options.headers[key] : undefined;
+  };
+  //
+  let setHeader = (name, value, skipIfExists = false) => {
+    let key = getHeaderKey(name);
+    if (!key)
+      options.headers[name] = value;
+    else if (!skipIfExists)
+      options.headers[key] = value;
+  };
   //
   let multiPart = false;
   let download = false;
@@ -719,7 +734,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
   }
   //
   // If not specified, the post request type is multipart
-  if (options.headers["content-type"])
+  if (getHeader("Content-Type"))
     multiPart = false;
   //
   // Create internal request options object
@@ -744,23 +759,23 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
       opts.data = options.body;
       //
       if (typeof options.bodyType === "string")
-        opts.headers["content-type"] = options.bodyType;
+        setHeader("Content-Type", options.bodyType);
       //
       // Types allowed for the custom body are: string and ArrayBuffer, but you can pass an object to
       // get a JSON custom body
       if (options.body instanceof ArrayBuffer)
-        opts.headers["content-type"] = opts.headers["content-type"] || "application/octet-stream";
+        setHeader("Content-Type", "application/octet-stream", true);
       else if (typeof options.body === "object") {
         try {
           opts.data = JSON.stringify(options.body);
-          opts.headers["content-type"] = opts.headers["content-type"] || "application/json";
+          setHeader("Content-Type", "application/json", true);
         }
         catch (e) {
           throw new Error(`Cannot stringify custom body: ${e.message}`);
         }
       }
       else if (typeof options.body === "string")
-        opts.headers["content-type"] = opts.headers["content-type"] || "text/plain";
+        setHeader("Content-Type", "text/plain", true);
       else
         throw new Error("Custom body must be String, Object or ArrayBuffer");
     }
@@ -786,7 +801,7 @@ Node.NodeDriver.prototype.httpRequest = async function (url, method, options)
       // opts.headers = {...opts.headers, ...formData.getHeaders() };
       opts.headers = Object.assign(opts.headers, formData.getHeaders());
     }
-    else if (opts.headers["content-type"] === "application/x-www-form-urlencoded") {
+    else if (getHeader("Content-Type") === "application/x-www-form-urlencoded") {
       delete opts.params;
       opts.data = options.params;
     }
