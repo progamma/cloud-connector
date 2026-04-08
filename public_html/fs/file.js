@@ -3,14 +3,11 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-
-/* global Client */
-
 var Node = Node || {};
 
 
 /**
- * @class File
+ * @class Node.File
  * Represents a file object
  * @param {Node.FS} fs
  * @param {String} path
@@ -35,7 +32,15 @@ Node.File = function (fs, path, id)
 };
 
 
+/**
+ * Define dynamic properties for the File class.
+ */
 Object.defineProperties(Node.File.prototype, {
+  /**
+   * Gets or sets the file path.
+   * Automatically normalizes the path when set.
+   * @type {String}
+   */
   path: {
     get() {
       return this._path;
@@ -44,6 +49,11 @@ Object.defineProperties(Node.File.prototype, {
       this._path = Node.FS.normalizePath(newValue);
     }
   },
+  /**
+   * Gets the parent directory of this file.
+   * @type {App.Directory}
+   * @readonly
+   */
   parentDirectory: {
     get() {
       let path = this.path.split("/");
@@ -51,6 +61,11 @@ Object.defineProperties(Node.File.prototype, {
       return this.fs.directory(path.join("/"), this.type);
     }
   },
+  /**
+   * Gets the absolute path to the file.
+   * @type {String}
+   * @readonly
+   */
   absolutePath: {
     get() {
       return this.fs.getAbsolutePath(this);
@@ -60,9 +75,9 @@ Object.defineProperties(Node.File.prototype, {
 
 
 /**
- * Get debug information about this file object
- * @returns {Object} Debug info containing class name, path, type, and public URL
- * @note Used by DTT (Debug Telemetry Tools) module for diagnostics
+ * Returns debug information about this File instance for the DTT module.
+ * Note: Used internally by the framework for debugging and logging purposes.
+ * @returns {Object} Debug info containing _class, and path properties
  */
 Node.File.prototype.getDebugInfo = function ()
 {
@@ -74,10 +89,12 @@ Node.File.prototype.getDebugInfo = function ()
 
 
 /**
- * Creates the file physically (opens and overwrites if exists)
+ * Creates the file physically on the filesystem.
+ * Opens and overwrites if the file already exists.
+ * Temporary files are automatically tracked for cleanup on termination.
+ * **Note:** UTF-8 files automatically get a BOM (Byte Order Mark) prepended.
  * @param {String} [encoding] - File encoding ('utf8', 'utf-8', 'ascii', etc.). Null for binary files
  * @throws {Error} If attempting to create a resource type file
- * @note UTF-8 files automatically get a BOM (Byte Order Mark) prepended
  */
 Node.File.prototype.create = async function (encoding)
 {
@@ -92,8 +109,9 @@ Node.File.prototype.create = async function (encoding)
 
 
 /**
- * Opens the file for reading
- * @note File must be closed after reading operations are complete
+ * Opens the file for reading operations.
+ * **Note:** File must be closed after reading operations are complete to free resources.
+ * @see Node.File#close - To close the file after reading
  */
 Node.File.prototype.open = async function ()
 {
@@ -102,9 +120,10 @@ Node.File.prototype.open = async function ()
 
 
 /**
- * Opens the file to append data at the end
+ * Opens the file to append data at the end.
+ * **Note:** File must be closed after append operations are complete to free resources.
  * @throws {Error} If attempting to append to a resource type file
- * @note File must be closed after append operations are complete
+ * @see Node.File#close - To close the file after appending
  */
 Node.File.prototype.append = async function ()
 {
@@ -113,8 +132,8 @@ Node.File.prototype.append = async function ()
 
 
 /**
- * Closes an open file handle
- * @note Always close files after open/append operations to free resources
+ * Closes an open file handle.
+ * **Note:** Always close files after open/append operations to free system resources.
  */
 Node.File.prototype.close = async function ()
 {
@@ -123,7 +142,8 @@ Node.File.prototype.close = async function ()
 
 
 /**
- * Checks the existence of the file
+ * Checks whether the file exists on the filesystem.
+ * **Note:** Does not throw an error if the file doesn't exist, simply returns false.
  * @returns {Promise<Boolean>} True if file exists, false otherwise
  */
 Node.File.prototype.exists = async function ()
@@ -133,11 +153,12 @@ Node.File.prototype.exists = async function ()
 
 
 /**
- * Reads a block of data from the file
+ * Reads a block of data from the file.
+ * **Note:** File must be opened before calling this method.
  * @param {Number} [length] - Number of bytes to read (omit to read entire file)
  * @param {Number} [offset] - Starting position in the file
  * @returns {Promise<Buffer>} Node Buffer or ArrayBuffer with the data
- * @note File must be opened before calling this method
+ * @throws {Error} If length is less than 1 (when specified)
  */
 Node.File.prototype.read = async function (length, offset)
 {
@@ -150,10 +171,11 @@ Node.File.prototype.read = async function (length, offset)
 
 
 /**
- * Read the entire file as text
+ * Reads the entire file as text.
+ * **Note:** Default encoding is 'utf-8' if not specified.
+ * **Note:** UTF-8 BOM is automatically removed if present.
+ * **Note:** Resource files are downloaded via HTTP if needed.
  * @returns {Promise<String>} File contents as string
- * @note Default encoding is 'utf-8' if not specified
- * @note UTF-8 BOM is automatically removed if present
  */
 Node.File.prototype.readAll = async function ()
 {
@@ -171,13 +193,13 @@ Node.File.prototype.readAll = async function ()
 
 
 /**
- * Writes data to the file
- * @param {string|Buffer} data - Data to write (string or buffer)
+ * Writes data to the file.
+ * **Note:** Default encoding is 'utf-8' for string data if not specified.
+ * **Note:** File must be opened/created before writing.
+ * @param {String|Buffer} data - Data to write (string or buffer)
  * @param {Number} [offset] - Offset within the buffer to start writing from
  * @param {Number} [size] - Number of bytes to write
  * @param {Number} [position] - Position in file where to start writing
- * @note Default encoding is 'utf-8' for string data if not specified
- * @note File must be opened/created before writing
  */
 Node.File.prototype.write = async function (data, offset, size, position)
 {
@@ -193,7 +215,8 @@ Node.File.prototype.write = async function (data, offset, size, position)
 
 
 /**
- * Copy the file to a new location
+ * Copies the file to a new location.
+ * The original file remains unchanged.
  * @param {String} newPath - Destination path for the copy
  * @returns {Promise<Node.File>} The new File object
  * @throws {Error} If attempting to copy a resource type file
@@ -207,11 +230,10 @@ Node.File.prototype.copy = async function (newPath)
 
 
 /**
- * Rename or move a file
+ * Renames or moves the file.
+ * If newFile is a Directory or path ending with '/', keeps the original filename.
+ * Updates the file's path and public URL after successful rename.
  * @param {String|Node.File|Node.Directory} newFile - New name, path, File object, or Directory to move into
- * @throws {Error} If attempting to rename to a resource type file
- * @note If newFile is a Directory or path ending with '/', keeps the original filename
- * @note Updates the file's path and public URL after successful rename
  */
 Node.File.prototype.rename = async function (newFile)
 {
@@ -231,7 +253,7 @@ Node.File.prototype.rename = async function (newFile)
 
 
 /**
- * Get the file size in bytes
+ * Gets the file size in bytes.
  * @returns {Promise<Number>} File size in bytes
  */
 Node.File.prototype.length = async function ()
@@ -241,7 +263,7 @@ Node.File.prototype.length = async function ()
 
 
 /**
- * Get the filename including extension
+ * Gets the filename including extension.
  * @returns {String} Filename with extension (e.g., 'document.pdf')
  */
 Node.File.prototype.name = function ()
@@ -251,8 +273,8 @@ Node.File.prototype.name = function ()
 
 
 /**
- * Get the file extension without the dot
- * @returns {String|null} Extension (e.g., 'pdf') or null if no extension
+ * Gets the file extension without the dot.
+ * @returns {String} Extension (e.g., 'pdf') or empty string if no extension
  */
 Node.File.prototype.extension = function ()
 {
@@ -268,7 +290,7 @@ Node.File.prototype.extension = function ()
 
 
 /**
- * Get the last modified date of the file
+ * Gets the last modified date of the file.
  * @returns {Promise<Date>} Last modified date as Date object
  */
 Node.File.prototype.dateTime = async function ()
@@ -278,9 +300,9 @@ Node.File.prototype.dateTime = async function ()
 
 
 /**
- * Delete the file from the filesystem
+ * Deletes the file from the filesystem.
+ * **Note:** This operation is permanent and cannot be undone.
  * @throws {Error} If attempting to remove a resource type file
- * @note This operation is permanent and cannot be undone
  */
 Node.File.prototype.remove = async function ()
 {
@@ -289,10 +311,10 @@ Node.File.prototype.remove = async function ()
 
 
 /**
- * Compress the file into a ZIP archive
+ * Compresses the file into a ZIP archive.
+ * **Note:** Creates a .zip file with the same name in the same directory.
  * @returns {Promise<Node.File>} New File object for the created .zip file
  * @throws {Error} If attempting to zip a resource type file
- * @note Creates a .zip file with the same name in the same directory
  */
 Node.File.prototype.zip = async function ()
 {
@@ -303,7 +325,7 @@ Node.File.prototype.zip = async function ()
 
 
 /**
- * Extract a ZIP archive to a directory
+ * Extracts a ZIP archive to a directory.
  * @param {String} path - Destination directory path for extraction
  * @returns {Promise<Node.Directory>} Directory object where files were extracted
  * @throws {Error} If attempting to unzip a resource type file

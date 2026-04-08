@@ -12,7 +12,7 @@ Node.Directory = require("./directory");
 Node.Url = require("./url");
 
 /**
- * @class FS
+ * @class Node.FS
  * Represents a file system object, parent of files and directories classes
  * @param {Object} parent
  * @param {Object} config
