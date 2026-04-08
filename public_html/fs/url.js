@@ -93,7 +93,7 @@ Node.Url.prototype.patch = async function (options)
  * @param {Object} options - Request options (headers, timeout, etc.)
  * @returns {Promise<Object>} Response object with status and headers
  */
-App.Url.prototype.head = async function (options, callback) {
+Node.Url.prototype.head = async function (options)
 {
   return await this.fs.httpRequest(this, "HEAD", options);
 };
