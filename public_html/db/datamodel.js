@@ -8,9 +8,36 @@
 var Node = Node || {};
 
 /**
- * @class Definition of DataModel object
- * @param {Node.CloudConnector} parent
- * @param {Object} config
+ * @class Node.DataModel
+ * @classdesc
+ * Base class for all database connectors in the Cloud Connector.
+ * Provides a unified interface for database operations across different database systems
+ * (PostgreSQL, MySQL, MS SQL Server, Oracle, ODBC).
+ * Manages connection pooling, transactions, and metadata operations.
+ *
+ * Key features:
+ * - **Connection pooling**: Efficient connection management with configurable pool limits
+ * - **Transaction support**: Full ACID transaction support with begin/commit/rollback
+ * - **Metadata operations**: Schema introspection for tables, columns, keys, and relationships
+ * - **Parameter binding**: Safe parameter binding with SQL injection prevention
+ * - **Multi-database support**: Unified API across different database systems
+ * - **API key security**: All operations require valid API key authentication
+ *
+ * @property {Node.CloudServer} parent - Parent CloudServer instance
+ * @property {Object} connections - Active connections mapped by connection ID
+ * @property {Object} pool - Database connection pool
+ * @property {String} name - Name of this datamodel instance
+ * @property {String} class - Database driver class name
+ * @property {String} APIKey - API key for authentication
+ * @property {Object} connectionOptions - Database connection parameters
+ * @property {String} moduleName - Node module name for the database driver
+ *
+ * @param {Node.CloudServer} parent - Parent CloudServer instance
+ * @param {Object} config - Datamodel configuration
+ * @param {String} config.name - Name of the datamodel
+ * @param {String} config.class - Database driver class
+ * @param {String} config.APIKey - API key for authentication
+ * @param {Object} config.connectionOptions - Connection parameters
  */
 Node.DataModel = function (parent, config)
 {
@@ -29,24 +56,44 @@ Node.DataModel = function (parent, config)
 };
 
 
+/**
+ * Command types supported by the DataModel for database operations
+ * @enum {String}
+ */
 Node.DataModel.commandTypes = {
+  /** Open a new database connection */
   open: "open",
+  /** Close an existing database connection */
   close: "close",
+  /** Execute a SQL query or statement */
   execute: "execute",
+  /** Begin a new transaction */
   begin: "begin",
+  /** Commit the current transaction */
   commit: "commit",
+  /** Rollback the current transaction */
   rollback: "rollback",
+  /** List all tables in the database */
   listTables: "listTables",
+  /** List primary keys for a table */
   listTablePrimaryKeys: "listTablePrimaryKeys",
+  /** List columns for a table */
   listTableColumns: "listTableColumns",
+  /** List foreign keys for a table */
   listTableForeignKeys: "listTableForeignKeys",
+  /** Keep-alive ping command */
   ping: "ping"
 };
 
 
 /**
- * Received a message
- * @param {Object} msg
+ * Routes incoming messages to appropriate command handlers.
+ * Central message dispatcher for all database operations.
+ * @param {Object} msg - Message object containing command and parameters
+ * @param {String} msg.cmd - Command type from Node.DataModel.commandTypes
+ * @param {Object} msg.args - Command arguments
+ * @returns {Promise<Object>} Command execution result
+ * @throws {Error} If command is not supported
  */
 Node.DataModel.prototype.onMessage = async function (msg)
 {
@@ -54,31 +101,42 @@ Node.DataModel.prototype.onMessage = async function (msg)
     case Node.DataModel.commandTypes.open:
       await this.openConnection(msg);
       break;
+
     case Node.DataModel.commandTypes.close:
       await this.closeConnection(msg);
       break;
+
     case Node.DataModel.commandTypes.execute:
       return await this.execute(msg);
+
     case Node.DataModel.commandTypes.begin:
       await this.beginTransaction(msg);
       break;
+
     case Node.DataModel.commandTypes.commit:
       await this.commitTransaction(msg);
       break;
+
     case Node.DataModel.commandTypes.rollback:
       await this.rollbackTransaction(msg);
       break;
+
     case Node.DataModel.commandTypes.listTables:
       return await this.listTables(msg);
+
     case Node.DataModel.commandTypes.listTablePrimaryKeys:
       return await this.listTablePrimaryKeys(msg);
+
     case Node.DataModel.commandTypes.listTableColumns:
       return await this.listTableColumns(msg);
+
     case Node.DataModel.commandTypes.listTableForeignKeys:
       return await this.listTableForeignKeys(msg);
+
     case Node.DataModel.commandTypes.ping:
       this.ping(msg);
       break;
+      
     default:
       throw new Error(`Command '${msg.cmd}' not supported`);
   }
@@ -86,7 +144,9 @@ Node.DataModel.prototype.onMessage = async function (msg)
 
 
 /**
- * Load module
+ * Loads the database driver module if not already loaded.
+ * Uses global cache to avoid reloading modules.
+ * @returns {Boolean} True if module loaded successfully, false otherwise
  */
 Node.DataModel.prototype.loadModule = function ()
 {
@@ -102,7 +162,8 @@ Node.DataModel.prototype.loadModule = function ()
 
 
 /**
- * Init the application pool
+ * Initializes the database connection pool if not already created.
+ * Delegates to driver-specific _initPool implementation.
  */
 Node.DataModel.prototype.getPool = async function ()
 {
@@ -114,8 +175,8 @@ Node.DataModel.prototype.getPool = async function ()
 
 
 /**
- * Close the connection pool and release all resources
- * @returns {Promise<void>} Promise that resolves when the pool is closed
+ * Closes the connection pool and releases all resources.
+ * Delegates to driver-specific _closePool implementation.
  */
 Node.DataModel.prototype.closePool = async function ()
 {
@@ -275,6 +336,7 @@ Node.DataModel.prototype.bindParameters = function (sql, params)
 /**
  * Returns the placeholder name for a query parameter at given index.
  * Default implementation returns "?" for positional parameters.
+ * Override in subclasses for different parameter styles.
  * @param {Number} index - Zero-based parameter index
  * @returns {String} Parameter placeholder (e.g., "?", "$1", ":p1")
  */
@@ -311,12 +373,11 @@ Node.DataModel.quoteString = function (s)
 
 
 /**
- * Open a new connection to the database and register it with the connection pool
+ * Opens a new connection to the database and registers it with the connection pool.
  * @param {Object} msg - Message object containing connection parameters
  * @param {String} msg.cid - Connection ID for tracking this connection
  * @param {Node.Server} msg.server - Server instance associated with this connection
  * @throws {Error} Throws error if driver module not found or connection fails
- * @returns {Promise<void>} Promise that resolves when connection is established
  */
 Node.DataModel.prototype.openConnection = async function (msg)
 {
@@ -332,11 +393,10 @@ Node.DataModel.prototype.openConnection = async function (msg)
 
 
 /**
- * Close an active database connection and remove it from the connection pool
+ * Closes an active database connection and removes it from the connection pool.
  * @param {Object} msg - Message object containing disconnection parameters
  * @param {String} msg.cid - Connection ID identifying the connection to close
  * @throws {Error} Throws error if connection closing fails
- * @returns {Promise<void>} Promise that resolves when connection is closed and cleaned up
  */
 Node.DataModel.prototype.closeConnection = async function (msg)
 {
@@ -401,11 +461,10 @@ Node.DataModel.prototype.convertValue = function (value)
 
 
 /**
- * Begin a database transaction on the specified connection
+ * Begins a database transaction on the specified connection.
  * @param {Object} msg - Message object containing transaction parameters
  * @param {String} msg.cid - Connection ID identifying the database connection
  * @throws {Error} Throws error if connection is closed or transaction fails
- * @returns {Promise<void>} Promise that resolves when transaction is started
  */
 Node.DataModel.prototype.beginTransaction = async function (msg)
 {
@@ -418,11 +477,10 @@ Node.DataModel.prototype.beginTransaction = async function (msg)
 
 
 /**
- * Commit the current database transaction on the specified connection
+ * Commits the current database transaction on the specified connection.
  * @param {Object} msg - Message object containing transaction parameters
  * @param {String} msg.cid - Connection ID identifying the database connection
  * @throws {Error} Throws error if connection is closed or commit fails
- * @returns {Promise<void>} Promise that resolves when transaction is committed successfully
  */
 Node.DataModel.prototype.commitTransaction = async function (msg)
 {
@@ -443,11 +501,10 @@ Node.DataModel.prototype.commitTransaction = async function (msg)
 
 
 /**
- * Rollback the current database transaction on the specified connection
+ * Rolls back the current database transaction on the specified connection.
  * @param {Object} msg - Message object containing transaction parameters
  * @param {String} msg.cid - Connection ID identifying the database connection
  * @throws {Error} Throws error if connection is closed or rollback fails
- * @returns {Promise<void>} Promise that resolves when transaction is rolled back successfully
  */
 Node.DataModel.prototype.rollbackTransaction = async function (msg)
 {
@@ -552,7 +609,6 @@ Node.DataModel.prototype.listTableForeignKeys = async function (msg)
  * Health check endpoint for verifying connection status
  * @param {Object} msg - Message object for ping request
  * @param {String} msg.cid - Connection ID to verify (optional)
- * @returns {void} No return value - used for keep-alive and health checks
  */
 Node.DataModel.prototype.ping = function (msg)
 {
@@ -560,10 +616,9 @@ Node.DataModel.prototype.ping = function (msg)
 
 
 /**
- * Event handler called when a server connection is lost
- * Automatically closes all database connections associated with the disconnected server
+ * Event handler called when a server connection is lost.
+ * Automatically closes all database connections associated with the disconnected server.
  * @param {Node.Server} server - Server instance that has disconnected
- * @returns {Promise<void>} Promise that resolves when all connections are closed
  */
 Node.DataModel.prototype.onServerDisconnected = async function (server)
 {
@@ -573,10 +628,9 @@ Node.DataModel.prototype.onServerDisconnected = async function (server)
 
 
 /**
- * Close all database connections, optionally filtering by server
+ * Closes all database connections, optionally filtering by server.
  * @param {Node.Server} [server] - Optional server instance to filter connections (if provided, only closes connections to this server)
  * @throws {Error} Throws error with connection details if closing fails
- * @returns {Promise<void>} Promise that resolves when all targeted connections are closed
  */
 Node.DataModel.prototype.disconnect = async function (server)
 {

@@ -11,10 +11,27 @@ var Node = Node || {};
 Node.io = require("socket.io-client");
 
 /**
- * @class Definition of Client object
- * @param {Node.CloudServer} parent
- * @param {String} url - server url
- * @param {String} username
+ * @class Node.Server
+ * @classdesc
+ * Socket.IO client that manages connections to remote Instant Developer Cloud servers.
+ * Handles bidirectional WebSocket communication between the Cloud Connector and remote servers.
+ * Supports both IDE user connections and application server connections.
+ *
+ * Key features:
+ * - **WebSocket communication**: Uses Socket.IO for real-time message exchange
+ * - **Automatic reconnection**: Configurable reconnection with exponential backoff
+ * - **Event handling**: Manages connection lifecycle events (connect, disconnect, errors)
+ * - **Message routing**: Forwards messages between Cloud Connector and remote servers
+ * - **Security**: Sanitizes sensitive data in logs (passwords, API keys)
+ *
+ * @property {Node.CloudServer} parent - Parent CloudServer instance for callbacks
+ * @property {String} serverUrl - URL of the remote server to connect to
+ * @property {String} ideUserName - Username for IDE connections (optional)
+ * @property {Object} socket - Socket.IO client instance
+ *
+ * @param {Node.CloudServer} parent - Parent CloudServer instance
+ * @param {String} url - Server URL to connect to
+ * @param {String} [username] - Username for IDE connections
  */
 Node.Server = function (parent, url, username)
 {
@@ -25,8 +42,15 @@ Node.Server = function (parent, url, username)
 
 
 /**
- * Connect this client to the given target
- * @param {Object} options
+ * Establishes connection to the remote server using Socket.IO.
+ * Sets up all necessary event handlers for connection lifecycle and message handling.
+ * Applies default connection options with configurable overrides.
+ * @param {Object} [options] - Socket.IO connection options
+ * @param {Boolean} [options.forceNew=true] - Force a new connection
+ * @param {Boolean} [options.reconnection=true] - Enable automatic reconnection
+ * @param {Number} [options.reconnectionDelay=30000] - Initial reconnection delay in ms
+ * @param {Number} [options.reconnectionDelayMax=50000] - Maximum reconnection delay in ms
+ * @param {Number} [options.timeout=30000] - Connection timeout in ms
  */
 Node.Server.prototype.connect = function (options)
 {
@@ -84,7 +108,8 @@ Node.Server.prototype.connect = function (options)
 
 
 /**
- * Disconnect this client to the given target
+ * Disconnects from the remote server.
+ * Safely closes the Socket.IO connection if it exists.
  */
 Node.Server.prototype.disconnect = function ()
 {
@@ -96,8 +121,13 @@ Node.Server.prototype.disconnect = function ()
 
 
 /**
- * Send a message to server
- * @param {Object} msg to send
+ * Sends a message to the connected remote server.
+ * Automatically adds username for IDE connections.
+ * Uses the 'cloudConnector' event channel for message transmission.
+ * @param {Object} msg - Message object to send
+ * @param {String} msg.type - Message type
+ * @param {Object} msg.data - Message payload
+ * @param {String} [msg.userName] - Username (automatically added for IDE connections)
  */
 Node.Server.prototype.sendMessage = function (msg)
 {

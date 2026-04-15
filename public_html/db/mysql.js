@@ -11,14 +11,31 @@ Node.DataModel = require("./datamodel");
 
 
 /**
- * @class MySQL database connector implementation
- * @classdesc Provides MySQL-specific database operations including connection management,
- * transaction handling, schema operations, and SQL generation. Extends the base Database
- * class with MySQL-specific features like JSON support, custom data type handling, and
- * MySQL-specific SQL syntax.
- * @param {Node.CloudConnector} parent
- * @param {Object} config
+ * @class Node.MySQL
+ * @classdesc
+ * MySQL database connector implementation for the Cloud Connector.
+ * Provides MySQL-specific database operations including connection management,
+ * transaction handling, and query execution. Uses mysql2/promise driver for
+ * async/await support and connection pooling.
+ *
+ * Key features:
+ * - **Connection pooling**: Efficient connection management via mysql2
+ * - **Transaction support**: Full ACID transaction support
+ * - **Date handling**: Automatic conversion of dates to strings
+ * - **Native async/await**: Uses mysql2/promise for modern async patterns
+ * - **Prepared statements**: Support for parameterized queries
+ *
  * @extends Node.DataModel
+ * @param {Node.CloudServer} parent - Parent CloudServer instance
+ * @param {Object} config - MySQL configuration
+ * @param {String} config.name - Name of this datamodel instance
+ * @param {String} config.APIKey - API key for authentication
+ * @param {Object} config.connectionOptions - MySQL connection parameters
+ * @param {String} config.connectionOptions.host - Database host
+ * @param {Number} config.connectionOptions.port - Database port
+ * @param {String} config.connectionOptions.database - Database name
+ * @param {String} config.connectionOptions.user - Database user
+ * @param {String} config.connectionOptions.password - Database password
  */
 Node.MySQL = function (parent, config)
 {
@@ -46,7 +63,9 @@ Node.MySQL.prototype._openConnection = async function ()
 
 
 /**
- * Init the application pool
+ * Initializes the MySQL connection pool using mysql2/promise.
+ * @private
+ * @returns {Promise<Object>} MySQL connection pool instance
  */
 Node.MySQL.prototype._initPool = async function ()
 {
@@ -55,10 +74,9 @@ Node.MySQL.prototype._initPool = async function ()
 
 
 /**
- * Closes the current database connection and returns it to the pool
- * Handles connection release errors by destroying the connection if needed
+ * Closes the current database connection and returns it to the pool.
  * @private
- * @returns {Promise<void>}
+ * @param {Object} conn - MySQL connection object to close
  */
 Node.MySQL.prototype._closeConnection = async function (conn)
 {
@@ -67,7 +85,8 @@ Node.MySQL.prototype._closeConnection = async function (conn)
 
 
 /**
- * Close the connection pool
+ * Closes the MySQL connection pool and releases all resources.
+ * @private
  */
 Node.MySQL.prototype._closePool = async function ()
 {
@@ -76,9 +95,14 @@ Node.MySQL.prototype._closePool = async function ()
 
 
 /**
- * Execute a command on the database
- * @param {Object} conn
- * @param {Object} msg - message received
+ * Executes a SQL command on the MySQL database.
+ * Handles result set serialization and metadata extraction.
+ * @private
+ * @param {Object} conn - MySQL connection object
+ * @param {Object} msg - Message containing SQL and parameters
+ * @param {String} msg.sql - SQL statement to execute
+ * @param {Array} [msg.pars] - Query parameters
+ * @returns {Promise<Object>} Result set with cols, rows, rowsAffected, and insertId
  */
 Node.MySQL.prototype._execute = async function (conn, msg)
 {
@@ -112,10 +136,9 @@ Node.MySQL.prototype._execute = async function (conn, msg)
 
 
 /**
- * Begins a database transaction
+ * Begins a database transaction on the MySQL connection.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - MySQL connection object
  * @throws {Error} Transaction start errors
  */
 Node.MySQL.prototype._beginTransaction = async function (conn)
@@ -125,10 +148,9 @@ Node.MySQL.prototype._beginTransaction = async function (conn)
 
 
 /**
- * Commits the current database transaction
+ * Commits the current database transaction.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - MySQL connection object
  * @throws {Error} Transaction commit errors
  */
 Node.MySQL.prototype._commitTransaction = async function (conn)
@@ -138,10 +160,9 @@ Node.MySQL.prototype._commitTransaction = async function (conn)
 
 
 /**
- * Rolls back the current database transaction
+ * Rolls back the current database transaction.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - MySQL connection object
  * @throws {Error} Transaction rollback errors
  */
 Node.MySQL.prototype._rollbackTransaction = async function (conn)

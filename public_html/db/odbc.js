@@ -12,13 +12,28 @@ Node.DataModel = require("./datamodel");
 
 
 /**
- * ODBC Database Connector
- * Provides database connectivity through ODBC (Open Database Connectivity) drivers.
- * Supports various database systems including MS Access, SQL Server, Oracle, MySQL, and any ODBC-compliant database.
- * Handles connection pooling, query execution, transaction management, and schema introspection.
- * @param {Node.CloudConnector} parent
- * @param {Object} config
+ * @class Node.ODBC
+ * @classdesc
+ * ODBC database connector implementation for the Cloud Connector.
+ * Provides database connectivity through ODBC (Open Database Connectivity) drivers,
+ * supporting various database systems including MS Access, SQL Server, Oracle, MySQL,
+ * and any ODBC-compliant database.
+ *
+ * Key features:
+ * - **Universal connectivity**: Works with any ODBC-compliant database
+ * - **Connection pooling**: Efficient connection management
+ * - **Transaction support**: Full ACID transactions (when supported by driver)
+ * - **Parametric queries**: Safe parameter binding (with fallback for unsupported drivers)
+ * - **Schema introspection**: Metadata operations for tables, columns, keys
+ * - **Driver compatibility**: Automatic detection of driver capabilities
+ *
  * @extends Node.DataModel
+ * @param {Node.CloudServer} parent - Parent CloudServer instance
+ * @param {Object} config - ODBC configuration
+ * @param {String} config.name - Name of this datamodel instance
+ * @param {String} config.APIKey - API key for authentication
+ * @param {Object} config.connectionOptions - ODBC connection parameters
+ * @param {String} config.connectionOptions.connectionString - ODBC connection string
  */
 Node.ODBC = function (parent, config)
 {
@@ -51,7 +66,9 @@ Node.ODBC.prototype._openConnection = async function ()
 
 
 /**
- * Init the application pool
+ * Initializes the ODBC connection pool.
+ * @private
+ * @returns {Promise<Object>} ODBC connection pool instance
  */
 Node.ODBC.prototype._initPool = async function ()
 {
@@ -60,11 +77,10 @@ Node.ODBC.prototype._initPool = async function ()
 
 
 /**
- * Closes the current database connection and returns it to the pool
+ * Closes the current database connection and returns it to the pool.
  * The connection is not destroyed but returned to the pool for reuse.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - ODBC connection object
  */
 Node.ODBC.prototype._closeConnection = async function (conn)
 {
@@ -73,7 +89,8 @@ Node.ODBC.prototype._closeConnection = async function (conn)
 
 
 /**
- * Close the connection pool
+ * Closes the ODBC connection pool and releases all resources.
+ * @private
  */
 Node.ODBC.prototype._closePool = async function ()
 {
@@ -82,9 +99,15 @@ Node.ODBC.prototype._closePool = async function ()
 
 
 /**
- * Execute a command on the database
- * @param {Object} conn - connection object
- * @param {Object} msg - message received
+ * Executes a SQL command on the ODBC database.
+ * Automatically detects driver support for parametric queries and falls back to
+ * manual parameter binding if not supported.
+ * @private
+ * @param {Object} conn - ODBC connection object
+ * @param {Object} msg - Message containing SQL and parameters
+ * @param {String} msg.sql - SQL statement to execute
+ * @param {Array} [msg.pars] - Query parameters
+ * @returns {Promise<Object>} Result set with cols, rows, rowsAffected, and insertId
  */
 Node.ODBC.prototype._execute = async function (conn, msg)
 {
@@ -125,9 +148,10 @@ Node.ODBC.prototype._execute = async function (conn, msg)
 
 
 /**
- * Check if parametric queries are supported
- * @param {Object} conn - connection object
- * @return {Boolean} true if parametric queries are supported, false otherwise
+ * Checks if the ODBC driver supports parametric queries.
+ * Tests driver capability on first call and caches the result.
+ * @param {Object} conn - ODBC connection object
+ * @returns {Promise<Boolean>} True if parametric queries are supported, false otherwise
  */
 Node.ODBC.prototype.isQueryParametricSupported = async function (conn)
 {
@@ -165,9 +189,10 @@ Node.ODBC.prototype.isQueryParametricSupported = async function (conn)
 
 
 /**
- * Check if the ODBC driver supports parametric queries
- * @param {Object} [err] - error object, if available
- * @returns {Boolean} - true if parametric queries are supported, false otherwise
+ * Checks if the ODBC driver supports transactions.
+ * Analyzes error codes to determine driver capabilities and caches the result.
+ * @param {Object} [err] - Error object from transaction attempt
+ * @returns {Boolean} True if transactions are supported, false otherwise
  */
 Node.ODBC.prototype.isTransactionSupported = function(err)
 {
@@ -186,11 +211,10 @@ Node.ODBC.prototype.isTransactionSupported = function(err)
 
 
 /**
- * Begins a database transaction
+ * Begins a database transaction on the ODBC connection.
  * If the ODBC driver doesn't support transactions, logs a warning instead of throwing an error.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - ODBC connection object
  */
 Node.ODBC.prototype._beginTransaction = async function (conn)
 {
@@ -208,11 +232,10 @@ Node.ODBC.prototype._beginTransaction = async function (conn)
 
 
 /**
- * Commits the current database transaction
+ * Commits the current database transaction.
  * Only commits if the ODBC driver supports transactions.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - ODBC connection object
  */
 Node.ODBC.prototype._commitTransaction = async function (conn)
 {
@@ -222,11 +245,10 @@ Node.ODBC.prototype._commitTransaction = async function (conn)
 
 
 /**
- * Rolls back the current database transaction
+ * Rolls back the current database transaction.
  * Only rolls back if the ODBC driver supports transactions.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - ODBC connection object
  */
 Node.ODBC.prototype._rollbackTransaction = async function (conn)
 {
@@ -236,10 +258,13 @@ Node.ODBC.prototype._rollbackTransaction = async function (conn)
 
 
 /**
- * List all tables in the database
- * @param {Object} conn - connection object
- * @param {Object} options - options for the query
- * @return {Array} - list of tables
+ * Lists all tables in the database using ODBC metadata functions.
+ * @private
+ * @param {Object} conn - ODBC connection object
+ * @param {Object} options - Query options
+ * @param {String} [options.filter] - Table name filter pattern
+ * @param {String} [options.type] - Table type filter (TABLE, VIEW, etc.)
+ * @returns {Promise<Array>} Array of table metadata objects
  */ 
 Node.ODBC.prototype._listTables = async function (conn, options)
 {
@@ -248,10 +273,12 @@ Node.ODBC.prototype._listTables = async function (conn, options)
 
 
 /**
- * Read list of primary keys of a table
- * @param {Object} conn - connection object
- * @param {Object} options - options for the query
- * @return {Array} - list of primary keys
+ * Retrieves list of primary key columns for a specific table.
+ * @private
+ * @param {Object} conn - ODBC connection object
+ * @param {Object} options - Query options
+ * @param {String} options.table - Table name to get primary keys for
+ * @returns {Promise<Array>} Array of primary key column metadata
  */
 Node.ODBC.prototype._listTablePrimaryKeys = async function (conn, options)
 {
@@ -260,10 +287,12 @@ Node.ODBC.prototype._listTablePrimaryKeys = async function (conn, options)
 
 
 /**
- * Read list of columns of a table
- * @param {Object} conn - connection object
- * @param {Object} options - options for the query
- * @return {Array} - list of columns
+ * Retrieves detailed column information for a specific table.
+ * @private
+ * @param {Object} conn - ODBC connection object
+ * @param {Object} options - Query options
+ * @param {String} options.table - Table name to get column information for
+ * @returns {Promise<Array>} Array of column metadata with name, type, nullable, etc.
  */
 Node.ODBC.prototype._listTableColumns = async function (conn, options)
 {
@@ -272,10 +301,12 @@ Node.ODBC.prototype._listTableColumns = async function (conn, options)
 
 
 /**
- * Read list of foreign keys of a table
- * @param {Object} conn - connection object
- * @param {Object} options - options for the query
- * @return {Array} - list of foreign keys
+ * Retrieves list of foreign key constraints for a specific table.
+ * @private
+ * @param {Object} conn - ODBC connection object
+ * @param {Object} options - Query options
+ * @param {String} options.table - Table name to get foreign keys for
+ * @returns {Promise<Array>} Array of foreign key constraint metadata
  */
 Node.ODBC.prototype._listTableForeignKeys = async function (conn, options)
 {

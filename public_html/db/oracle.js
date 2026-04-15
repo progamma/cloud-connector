@@ -11,13 +11,31 @@ Node.DataModel = require("./datamodel");
 
 
 /**
- * @class Oracle database connector implementation
- * @classdesc Provides Oracle-specific database operations including connection pooling,
- * transaction handling, schema operations, and SQL generation. Extends the base Database
- * class with Oracle-specific features like PL/SQL support, LOB handling, sequences,
- * and Oracle-specific SQL syntax.
- * @param {Node.CloudConnector} parent
- * @param {Object} config
+ * @class Node.Oracle
+ * @classdesc
+ * Oracle database connector implementation for the Cloud Connector.
+ * Provides Oracle-specific database operations including connection pooling,
+ * transaction handling, and advanced Oracle features. Uses the oracledb driver
+ * for high-performance Oracle Database access.
+ *
+ * Key features:
+ * - **Connection pooling**: Efficient Oracle connection management
+ * - **Transaction support**: Full ACID transactions with implicit begin
+ * - **LOB handling**: Automatic BLOB/CLOB processing
+ * - **Date handling**: Smart timezone and DST adjustments
+ * - **Named parameters**: Oracle-style :P1, :P2 parameter binding
+ * - **Extended metadata**: Rich column metadata support
+ *
+ * @extends Node.DataModel
+ * @param {Node.CloudServer} parent - Parent CloudServer instance
+ * @param {Object} config - Oracle configuration
+ * @param {String} config.name - Name of this datamodel instance
+ * @param {String} config.APIKey - API key for authentication
+ * @param {Object} config.connectionOptions - Oracle connection parameters
+ * @param {String} config.connectionOptions.user - Database user
+ * @param {String} config.connectionOptions.password - Database password
+ * @param {String} config.connectionOptions.connectString - TNS connect string or Easy Connect
+ * @param {Number} [config.maxRows] - Maximum rows to fetch per query
  */
 Node.Oracle = function (parent, config)
 {
@@ -29,9 +47,11 @@ Node.Oracle = function (parent, config)
 Node.Oracle.prototype = new Node.DataModel();
 
 
-
 /**
- * Load module
+ * Loads and configures the Oracle database module.
+ * Sets up Oracle-specific options like BLOB/CLOB fetching and metadata handling.
+ * @returns {Boolean} True if module loaded successfully, false otherwise
+ * @override
  */
 Node.Oracle.prototype.loadModule = function ()
 {
@@ -53,8 +73,8 @@ Node.Oracle.prototype.loadModule = function ()
 
 
 /**
- * Opens a connection to the Oracle database
- * Gets a connection from the pool and returns it for use
+ * Opens a connection to the Oracle database from the connection pool.
+ * @private
  * @returns {Promise<Object>} Oracle database connection object
  */
 Node.Oracle.prototype._openConnection = async function ()
@@ -64,7 +84,9 @@ Node.Oracle.prototype._openConnection = async function ()
 
 
 /**
- * Init the application pool
+ * Initializes the Oracle connection pool using oracledb.
+ * @private
+ * @returns {Promise<Object>} Oracle connection pool instance
  */
 Node.Oracle.prototype._initPool = async function ()
 {
@@ -73,10 +95,9 @@ Node.Oracle.prototype._initPool = async function ()
 
 
 /**
- * Closes the current database connection
- * Returns the connection to the pool for reuse
- * @param {Object} conn
- * @returns {Promise<void>}
+ * Closes the current database connection and returns it to the pool.
+ * @private
+ * @param {Object} conn - Oracle connection object to close
  */
 Node.Oracle.prototype._closeConnection = async function (conn)
 {
@@ -85,7 +106,8 @@ Node.Oracle.prototype._closeConnection = async function (conn)
 
 
 /**
- * Close the connection pool
+ * Closes the Oracle connection pool and releases all resources.
+ * @private
  */
 Node.Oracle.prototype._closePool = async function ()
 {
@@ -94,9 +116,15 @@ Node.Oracle.prototype._closePool = async function ()
 
 
 /**
- * Execute a command on the database
- * @param {Object} conn
- * @param {Object} msg - message received
+ * Executes a SQL command on the Oracle database.
+ * Handles bind parameters, output parameters for counter fields, and auto-commit.
+ * @private
+ * @param {Object} conn - Oracle connection object
+ * @param {Object} msg - Message containing SQL and parameters
+ * @param {String} msg.sql - SQL statement to execute
+ * @param {Array} [msg.pars] - Query parameters
+ * @param {Boolean} [msg.ct] - Whether to return counter field value
+ * @returns {Promise<Object>} Result set with cols, rows, rowsAffected, and insertId
  */
 Node.Oracle.prototype._execute = async function (conn, msg)
 {
@@ -146,16 +174,18 @@ Node.Oracle.prototype._execute = async function (conn, msg)
 
 
 /**
- * Convert a value
- * @param {Object} value
- * @param {Object} colDef
+ * Converts Oracle-specific data types to JavaScript values.
+ * Handles special date/time conversions with DST adjustments.
+ * @param {*} value - Raw value from Oracle database
+ * @param {Object} colDef - Column definition with type information
+ * @returns {*} Converted JavaScript value
+ * @override
  */
 Node.Oracle.prototype.convertValue = function (value, colDef)
 {
   if (value instanceof Date) {
     switch (colDef.dbType) {
-      case oracledb.DB_TYPE_DATE:
-      {
+      case oracledb.DB_TYPE_DATE: {
         // Some adjustments for daylight savings time
         Node.Utils = require("../utils");
         let stdTimezoneOffset = Node.Utils.stdTimezoneOffset();
@@ -189,11 +219,10 @@ Node.Oracle.prototype.convertValue = function (value, colDef)
 
 
 /**
- * Begins a database transaction
- * Oracle transactions are implicit, so this is a no-op
+ * Begins a database transaction.
+ * Oracle transactions are implicit, so this is a no-op.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - Oracle connection object
  */
 Node.Oracle.prototype._beginTransaction = async function (conn)
 {
@@ -201,10 +230,9 @@ Node.Oracle.prototype._beginTransaction = async function (conn)
 
 
 /**
- * Commits the current database transaction
+ * Commits the current database transaction.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - Oracle connection object
  * @throws {Error} Transaction commit errors
  */
 Node.Oracle.prototype._commitTransaction = async function (conn)
@@ -214,10 +242,9 @@ Node.Oracle.prototype._commitTransaction = async function (conn)
 
 
 /**
- * Rolls back the current database transaction
+ * Rolls back the current database transaction.
  * @private
- * @param {Object} conn
- * @returns {Promise<void>}
+ * @param {Object} conn - Oracle connection object
  * @throws {Error} Transaction rollback errors
  */
 Node.Oracle.prototype._rollbackTransaction = async function (conn)
@@ -227,9 +254,11 @@ Node.Oracle.prototype._rollbackTransaction = async function (conn)
 
 
 /**
- * Gets the Oracle parameter placeholder name for prepared statements
+ * Gets the Oracle parameter placeholder name for prepared statements.
+ * Oracle uses named parameters with colon prefix.
  * @param {Number} index - Zero-based parameter index
  * @returns {String} Parameter placeholder (e.g., ":P1", ":P2")
+ * @override
  */
 Node.Oracle.prototype.getParameterName = function (index)
 {

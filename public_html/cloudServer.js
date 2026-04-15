@@ -17,34 +17,70 @@ Node.Utils = require("./utils");
 
 
 /**
- * @class Definition of Cloud Connector object
+ * @class Node.CloudServer
+ * @classdesc
+ * Main server class for Instant Developer Cloud Connector.
+ * Acts as a reverse proxy that allows databases and file systems to initiate
+ * secure connections to cloud applications rather than exposing ports to the internet.
+ *
+ * Key features:
+ * - **Multi-tenant architecture**: Supports multiple databases, file systems, and plugins simultaneously
+ * - **WebSocket communication**: Uses Socket.IO for real-time message passing instead of REST APIs
+ * - **Dynamic configuration**: Supports hot-reloading of configuration without service restart
+ * - **Security**: API key-based authentication for all resources
+ * - **Extensibility**: Plugin system for additional functionality (e.g., Active Directory)
+ *
+ * @property {Array} servers - List of connected remote servers (IDE/apps)
+ * @property {Array} datamodels - List of configured database connections
+ * @property {Array} fileSystems - List of configured file system shares
+ * @property {Array} plugins - List of loaded plugins
+ * @property {Node.Logger} logger - Logger instance for centralized logging
+ * @property {String} id - Unique identifier for this Cloud Connector instance
+ * @property {String} name - Name of this Cloud Connector from configuration
+ * @property {String} remoteConfigurationKey - Security key for remote configuration changes
  */
 Node.CloudServer = function ()
 {
-  this.servers = [];        // List of servers (IDE/apps)
-  this.datamodels = [];     // List of datamodels (DBs)
-  this.fileSystems = [];    // List of file systems
-  this.plugins = [];        // List of plugins
+  this.servers = [];
+  this.datamodels = [];
+  this.fileSystems = [];
+  this.plugins = [];
   this.logger = new Node.Logger();
   this.id = require("crypto").randomUUID();
 };
 
 
+/**
+ * Message types used for communication between Cloud Connector and remote servers
+ * @enum {String}
+ */
 Node.CloudServer.messageTypes = {
+  /** Initial handshake message sent when server connects */
   init: "init",
+  /** Response message for command execution results */
   response: "response"
 };
 
+/**
+ * Command types supported by the Cloud Connector for remote management
+ * @enum {String}
+ */
 Node.CloudServer.commandTypes = {
+  /** Restart the Cloud Connector service */
   restart: "restart",
+  /** Change configuration dynamically without restart */
   changeConfig: "changeConfig",
+  /** Update source code and optionally restart */
   changeCode: "changeCode",
+  /** Keep-alive ping command */
   ping: "ping"
 };
 
 
 /**
- * Start the cloud connector
+ * Starts the Cloud Connector server.
+ * Initializes the configuration and sets up global error handlers.
+ * This is the main entry point for the application.
  */
 Node.CloudServer.prototype.start = async function ()
 {
@@ -62,10 +98,10 @@ Node.CloudServer.prototype.start = async function ()
 
 
 /**
- * Logs a message
- * @param {String} level
- * @param {String} message
- * @param {Object} data
+ * Logs a message using the centralized logger.
+ * @param {String} level - Log level (ERROR, WARNING, INFO, DEBUG)
+ * @param {String} message - Message to log
+ * @param {Object} [data] - Additional data to log
  */
 Node.CloudServer.prototype.log = function (level, message, data)
 {
@@ -74,8 +110,10 @@ Node.CloudServer.prototype.log = function (level, message, data)
 
 
 /**
- * Given a username returns the server that hosts that user
- * @param {String} username
+ * Queries the Instant Developer Cloud console to find which server hosts a specific user.
+ * @param {String} username - Username to look up
+ * @returns {Promise<String>} Server URL hosting the user
+ * @throws {Error} If user cannot be located or request fails
  */
 Node.CloudServer.serverForUser = async function (username)
 {
@@ -102,8 +140,10 @@ Node.CloudServer.serverForUser = async function (username)
 
 
 /**
- * Read the JSON of the configuration from the file config.json
- * @param {Object} config
+ * Loads and processes the configuration for the Cloud Connector.
+ * Handles environment variable replacement, password encryption/decryption,
+ * and initializes all configured resources (datamodels, file systems, plugins, servers).
+ * @param {Object} [config] - Configuration object, defaults to reading config.json
  */
 Node.CloudServer.prototype.loadConfig = async function (config)
 {
@@ -141,8 +181,10 @@ Node.CloudServer.prototype.loadConfig = async function (config)
 
 
 /**
- * Start all the clients
- * @param {Object} config
+ * Creates and connects all configured remote servers.
+ * Handles both application servers and IDE user connections.
+ * Disconnects from servers that are no longer in configuration.
+ * @param {Object} config - Configuration object containing remoteServers and remoteUserNames
  */
 Node.CloudServer.prototype.createServers = async function (config)
 {
@@ -170,10 +212,11 @@ Node.CloudServer.prototype.createServers = async function (config)
 
 
 /**
- * Start a client
- * @param {String} srvUrl
- * @param {String} username
- * @param {Object} options
+ * Creates and connects a single server instance.
+ * Reuses existing connections when possible, queries console for user location if needed.
+ * @param {String} [srvUrl] - Server URL, can be null for username-based lookup
+ * @param {String} [username] - Username for IDE connections
+ * @param {Object} [options] - Connection options
  */
 Node.CloudServer.prototype.createServer = async function (srvUrl, username, options)
 {
@@ -216,8 +259,9 @@ Node.CloudServer.prototype.createServer = async function (srvUrl, username, opti
 
 
 /**
- * Create all the datamodels
- * @param {Object} config
+ * Creates all configured database connections (datamodels).
+ * Initializes new datamodels and removes ones no longer in configuration.
+ * @param {Object} config - Configuration object containing datamodels array
  */
 Node.CloudServer.prototype.createDataModels = async function (config)
 {
@@ -236,8 +280,10 @@ Node.CloudServer.prototype.createDataModels = async function (config)
 
 
 /**
- * Create a dataModel
- * @param {Object} config
+ * Creates a single datamodel instance.
+ * Loads the appropriate database driver class and initializes the connection.
+ * Reuses existing datamodels when configuration hasn't changed.
+ * @param {Object} config - Datamodel configuration (name, class, APIKey, connectionOptions)
  */
 Node.CloudServer.prototype.createDataModel = function (config)
 {
@@ -277,8 +323,9 @@ Node.CloudServer.prototype.createDataModel = function (config)
 
 
 /**
- * Create all fileSystems
- * @param {Object} config
+ * Creates all configured file system shares.
+ * Initializes new file systems and removes ones no longer in configuration.
+ * @param {Object} config - Configuration object containing fileSystems array
  */
 Node.CloudServer.prototype.createFileSystems = async function (config)
 {
@@ -297,8 +344,9 @@ Node.CloudServer.prototype.createFileSystems = async function (config)
 
 
 /**
- * Create a fileSystem
- * @param {Object} config
+ * Creates a single file system instance.
+ * Initializes the NodeDriver for file system operations.
+ * @param {Object} config - File system configuration (name, path, permissions, APIKey)
  */
 Node.CloudServer.prototype.createFileSystem = function (config)
 {
@@ -331,8 +379,9 @@ Node.CloudServer.prototype.createFileSystem = function (config)
 
 
 /**
- * Create all plugins
- * @param {Object} config
+ * Creates all configured plugins.
+ * Initializes new plugins and removes ones no longer in configuration.
+ * @param {Object} config - Configuration object containing plugins array
  */
 Node.CloudServer.prototype.createPlugins = async function (config)
 {
@@ -351,8 +400,9 @@ Node.CloudServer.prototype.createPlugins = async function (config)
 
 
 /**
- * Create a plugin
- * @param {Object} config
+ * Creates a single plugin instance.
+ * Loads the plugin class from the plugins directory.
+ * @param {Object} config - Plugin configuration (name, class, APIKey)
  */
 Node.CloudServer.prototype.createPlugin = function (config)
 {
@@ -385,8 +435,9 @@ Node.CloudServer.prototype.createPlugin = function (config)
 
 
 /**
- * Returns a datamodel with a specific name
- * @param {String} name
+ * Finds and returns a datamodel by its name.
+ * @param {String} name - Name of the datamodel to find
+ * @returns {Node.DataModel} The datamodel instance or undefined if not found
  */
 Node.CloudServer.prototype.dataModelByName = function (name)
 {
@@ -395,8 +446,9 @@ Node.CloudServer.prototype.dataModelByName = function (name)
 
 
 /**
- * Returns a file system with a specific name
- * @param {String} name
+ * Finds and returns a file system by its name.
+ * @param {String} name - Name of the file system to find
+ * @returns {Node.NodeDriver} The file system instance or undefined if not found
  */
 Node.CloudServer.prototype.getFileSystemByName = function (name)
 {
@@ -405,8 +457,9 @@ Node.CloudServer.prototype.getFileSystemByName = function (name)
 
 
 /**
- * Returns a plugin with a specific name
- * @param {String} name
+ * Finds and returns a plugin by its name.
+ * @param {String} name - Name of the plugin to find
+ * @returns {Node.Plugin} The plugin instance or undefined if not found
  */
 Node.CloudServer.prototype.getPluginByName = function (name)
 {
@@ -415,8 +468,9 @@ Node.CloudServer.prototype.getPluginByName = function (name)
 
 
 /**
- * Notified when a server connects
- * @param {Server} server
+ * Event handler called when a remote server establishes connection.
+ * Sends initialization message with all available resources (datamodels, file systems, plugins).
+ * @param {Node.Server} server - The connected server instance
  */
 Node.CloudServer.prototype.onServerConnected = function (server)
 {
@@ -463,8 +517,9 @@ Node.CloudServer.prototype.onServerConnected = function (server)
 
 
 /**
- * Notified when a server disconnects
- * @param {Server} server
+ * Event handler called when a remote server disconnects.
+ * Notifies all resources (datamodels, file systems, plugins) about the disconnection.
+ * @param {Node.Server} server - The disconnected server instance
  */
 Node.CloudServer.prototype.onServerDisconnected = async function (server)
 {
@@ -483,9 +538,11 @@ Node.CloudServer.prototype.onServerDisconnected = async function (server)
 
 
 /**
- * Notified when received a message from a server
- * @param {Server} server
- * @param {Object} data
+ * Event handler for incoming messages from remote servers.
+ * Routes messages to appropriate resources (datamodels, file systems, plugins) based on message type.
+ * @param {Node.Server} server - The server that sent the message
+ * @param {Object} data - Message data containing command and parameters
+ * @returns {Promise<Object>} Response message with execution result or error
  */
 Node.CloudServer.prototype.onServerMessage = async function (server, data)
 {
@@ -551,8 +608,10 @@ Node.CloudServer.prototype.onServerMessage = async function (server, data)
 
 
 /**
- * Received a message
- * @param {Object} msg
+ * Processes Cloud Connector management commands.
+ * Handles restart, configuration changes, code updates, and ping operations.
+ * @param {Object} msg - Message containing command type and arguments
+ * @throws {Error} If command type is unknown
  */
 Node.CloudServer.prototype.onMessage = async function (msg)
 {
@@ -580,9 +639,10 @@ Node.CloudServer.prototype.onMessage = async function (msg)
 
 
 /**
- * Check remote configuration key
- * @param {String} key - the key to validate
- * @param {String} operation - operation name for error message
+ * Validates the remote configuration key for security-sensitive operations.
+ * @param {String} key - The key to validate against remoteConfigurationKey
+ * @param {String} operation - Operation name for error message
+ * @throws {Error} If key is invalid or remote configuration is not enabled
  */
 Node.CloudServer.prototype.checkRemoteConfigurationKey = function (key, operation)
 {
@@ -595,8 +655,9 @@ Node.CloudServer.prototype.checkRemoteConfigurationKey = function (key, operatio
 
 
 /**
- * Restart cloud connector
- * @param {Object} msg - message received
+ * Restarts the Cloud Connector service.
+ * Validates remote configuration key before executing restart script.
+ * @param {Object} [msg] - Message containing restart options and security key
  */
 Node.CloudServer.prototype.restart = async function (msg)
 {
@@ -613,8 +674,9 @@ Node.CloudServer.prototype.restart = async function (msg)
 
 
 /**
- * Change the config
- * @param {Object} msg - message received
+ * Dynamically updates the Cloud Connector configuration without restart.
+ * Validates remote configuration key before applying changes.
+ * @param {Object} msg - Message containing new configuration and security key
  */
 Node.CloudServer.prototype.changeConfig = async function (msg)
 {
@@ -631,8 +693,10 @@ Node.CloudServer.prototype.changeConfig = async function (msg)
 
 
 /**
- * Change the source code
- * @param {Object} msg - message received
+ * Updates the Cloud Connector source code remotely.
+ * Unpacks new code from tar archive, updates node modules, and optionally restarts.
+ * Includes security checks to prevent path traversal attacks.
+ * @param {Object} msg - Message containing tar archive buffer, options, and security key
  */
 Node.CloudServer.prototype.changeCode = async function (msg)
 {
@@ -679,8 +743,9 @@ Node.CloudServer.prototype.changeCode = async function (msg)
 
 
 /**
- * Do nothing
- * @param {Object} msg - message received
+ * Handles ping command for keep-alive purposes.
+ * Does nothing but acknowledge the message.
+ * @param {Object} msg - Ping message
  */
 Node.CloudServer.prototype.ping = function (msg)
 {

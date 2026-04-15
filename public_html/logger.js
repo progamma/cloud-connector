@@ -11,7 +11,24 @@ var Node = Node || {};
 // Node.fs = require("fs");
 
 /**
- * Class Logger
+ * @class Node.Logger
+ * @classdesc
+ * Lightweight logging utility for the Cloud Connector.
+ * Provides centralized logging with support for different log levels.
+ * Currently outputs to console with JSON formatting.
+ *
+ * Key features:
+ * - **JSON formatted output**: Structured logging for easy parsing
+ * - **Multiple log levels**: Support for ERROR, WARNING, INFO, DEBUG levels
+ * - **Extensible design**: Prepared for file-based logging (currently commented out)
+ * - **Daily log rotation support**: Infrastructure for date-based log files
+ *
+ * Note: File-based logging is currently disabled but the infrastructure remains
+ * for future activation.
+ *
+ * @property {String} date - Date for log file rotation (when file logging is enabled)
+ * @property {Stream} stream - File stream for general logs (when file logging is enabled)
+ * @property {Stream} errStream - File stream for error logs (when file logging is enabled)
  */
 Node.Logger = function ()
 {
@@ -21,7 +38,9 @@ Node.Logger = function ()
 
 
 /**
- * Inits the logger
+ * Initializes the logger instance.
+ * Sets up file streams for daily log rotation when file logging is enabled.
+ * Currently a placeholder as file-based logging is disabled.
  */
 Node.Logger.prototype.init = function ()
 {
@@ -38,10 +57,12 @@ Node.Logger.prototype.init = function ()
 
 
 /**
- * Logs a message
- * @param {String} level
- * @param {String} message
- * @param {Object} data
+ * Logs a message with the specified level and optional data.
+ * Outputs JSON-formatted log entries to the console.
+ * When file logging is enabled, would also write to daily log files.
+ * @param {String} level - Log level (ERROR, WARNING, INFO, DEBUG)
+ * @param {String} message - The message to log
+ * @param {Object} [data] - Additional data to include in the log entry
  */
 Node.Logger.prototype.log = function (level, message, data)
 {
