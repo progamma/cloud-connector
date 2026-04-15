@@ -155,7 +155,7 @@ Node.Utils.executeScript = async function(scriptFile, logger, options = {})
   let util = require("util");
   let execFile = util.promisify(child_process.execFile);
   //
-  let scriptPath = Node.path.join(__dirname, "Scripts", scriptFile);
+  let scriptPath = Node.path.join(__dirname, "scripts", scriptFile);
   try {
     let realPath = await Node.fs.realpath(scriptPath);
     //
