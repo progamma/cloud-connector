@@ -4,10 +4,9 @@
  * All rights reserved
  */
 
-
 var Node = Node || {};
-if (module)
-  Node.FS = require("./fs");
+
+Node.FS = require("./fs");
 
 /**
  * @class Node.NodeDriver
@@ -404,7 +403,7 @@ Node.NodeDriver.prototype.zipFile = async function (file, zipFile)
       });
       //
       // Listen to close finalization archive
-      output.on('close', done);
+      output.on("close", done);
     });
   });
 };

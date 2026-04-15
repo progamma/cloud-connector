@@ -3,7 +3,6 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global module, global, Buffer, Promise */
 
 var Node = Node || {};
 
@@ -155,7 +154,7 @@ Node.DataModel.prototype.loadModule = function ()
       global[this.moduleName] = require(this.moduleName);
     return true;
   }
-  catch (ex) {
+  catch {
     return false;
   }
 };
@@ -407,9 +406,6 @@ Node.DataModel.prototype.closeConnection = async function (msg)
   try {
     await this._closeConnection(conn);
   }
-  catch (e) {
-    throw e;
-  }
   finally {
     delete this.connections[msg.cid];
   }
@@ -491,9 +487,6 @@ Node.DataModel.prototype.commitTransaction = async function (msg)
   try {
     await this._commitTransaction(conn);
   }
-  catch (e) {
-    throw e;
-  }
   finally {
     delete conn.transaction;
   }
@@ -514,9 +507,6 @@ Node.DataModel.prototype.rollbackTransaction = async function (msg)
   //
   try {
     await this._rollbackTransaction(conn);
-  }
-  catch (e) {
-    throw e;
   }
   finally {
     delete conn.transaction;
@@ -602,7 +592,6 @@ Node.DataModel.prototype.listTableForeignKeys = async function (msg)
   //
   return await this._listTableForeignKeys(conn, msg.options);
 };
-
 
 
 /**

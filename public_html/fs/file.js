@@ -3,8 +3,8 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-var Node = Node || {};
 
+var Node = Node || {};
 
 /**
  * @class Node.File

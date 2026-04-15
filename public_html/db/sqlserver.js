@@ -3,7 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global module, mssql */
+/* global mssql */
 
 var Node = Node || {};
 

@@ -4,7 +4,6 @@
  * All rights reserved
  */
 
-
 var Node = Node || {};
 
 Node.File = require("./file");
@@ -195,7 +194,7 @@ Node.FS.prototype.disconnect = async function (server)
     try {
       await f.close();
     }
-    catch (e) {
+    catch {
 //      throw new Error(`Error closing file '${f.path}': ${error}`);
     }
   }

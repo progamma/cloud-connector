@@ -4,8 +4,6 @@
  * All rights reserved
  */
 
-/* global module */
-
 var Node = Node || {};
 
 Node.path = require("path");
@@ -166,7 +164,7 @@ Node.Utils.executeScript = async function(scriptFile, logger, options = {})
     if (!isWindows) {
       let stats = await Node.fs.stat(realPath);
       if (stats.mode & 0o002)
-        throw new Error('Script has unsafe permissions: world-writable');
+        throw new Error("Script has unsafe permissions: world-writable");
       await Node.fs.chmod(realPath, 0o750); // Owner: rwx, Group: r-x, Others: ---
     }
     //
@@ -258,7 +256,7 @@ Node.Utils.processPasswords = function (config, key, encrypt)
       // Try to decrypt the password; I may not be able to do this if the password is still in clear text
       dm.connectionOptions.password = Node.Utils.decrypt(password, key, dm.iv);
     }
-    catch (e) {
+    catch {
     }
     //
     if (encrypt) {

@@ -4,9 +4,6 @@
  * All rights reserved
  */
 
-
-/* global module */
-
 var Node = Node || {};
 
 

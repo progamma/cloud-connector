@@ -3,7 +3,6 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global module */
 
 var Node = Node || {};
 
@@ -34,7 +33,6 @@ Node.Logger = function ()
 {
   this.init();
 };
-
 
 
 /**

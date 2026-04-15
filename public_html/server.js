@@ -3,7 +3,6 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global module, Buffer */
 
 var Node = Node || {};
 
@@ -81,7 +80,7 @@ Node.Server.prototype.connect = function (options)
         });
       }
       else if (["remoteConfigurationKey", "APIKey", "password"].includes(k))
-        v = "****";
+        return "****";
       else
         return v;
     }));

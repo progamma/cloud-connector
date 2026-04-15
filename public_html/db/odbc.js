@@ -3,7 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-/* global module, pg, parseInt */
+/* global odbc */
 
 var Node = Node || {};
 
@@ -164,14 +164,14 @@ Node.ODBC.prototype.isQueryParametricSupported = async function (conn)
     }
     catch (e) {
       let sqlState = e.odbcErrors?.[0]?.state;
-      let msg = (e.odbcErrors?.[0]?.message || e.message || '').toLowerCase();
+      let msg = (e.odbcErrors?.[0]?.message || e.message || "").toLowerCase();
       //
       // Detect specific errors for unsupported parametric queries
-      this.pool.isQueryParametricSupported = !(sqlState === 'HYC00' ||
-        sqlState === '0A000' || // feature not supported (standard SQL)
-        sqlState === 'HY092' || // invalid attribute/option identifier
-        sqlState === '07009' || // invalid descriptor index
-        sqlState === 'IM001' || // driver does not support this function (Access/ODBC)
+      this.pool.isQueryParametricSupported = !(sqlState === "HYC00" ||
+        sqlState === "0A000" || // feature not supported (standard SQL)
+        sqlState === "HY092" || // invalid attribute/option identifier
+        sqlState === "07009" || // invalid descriptor index
+        sqlState === "IM001" || // driver does not support this function (Access/ODBC)
         /driver.*non.*supporta.*questa.*funzione/.test(msg) || // Access Italian
         /driver.*does.*not.*support.*this.*function/.test(msg) || // Access English
         /parameter.*not.*support(ed)?/.test(msg) ||  // parameters not supported
@@ -198,10 +198,10 @@ Node.ODBC.prototype.isTransactionSupported = function(err)
 {
   if (this.pool.isTransactionSupported === undefined) {
     let sqlState = err.odbcErrors?.[0]?.state;
-    let msg = (err.odbcErrors?.[0]?.message || err.message || '').toLowerCase();
+    let msg = (err.odbcErrors?.[0]?.message || err.message || "").toLowerCase();
     //
-    this.pool.isTransactionSupported = !(sqlState === 'HYC00' ||
-      sqlState === '0A000' || // feature not supported (standard SQL)
+    this.pool.isTransactionSupported = !(sqlState === "HYC00" ||
+      sqlState === "0A000" || // feature not supported (standard SQL)
       /transazion.*non.*supportata/.test(msg) ||  // italiano
       /not support(ed)?/.test(msg)); // generico inglese fallback
   }

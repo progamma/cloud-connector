@@ -3,6 +3,7 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
+/* global pg */
 
 var Node = Node || {};
 
