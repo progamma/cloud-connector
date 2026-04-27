@@ -263,6 +263,34 @@ Il Cloud Connector supporta diversi tipi di database:
 }
 ```
 
+##### Supporto server Oracle legacy (< 12.1)
+
+Il driver `oracledb` usa di default la modalità **Thin** (puro JavaScript), che supporta solo Oracle Database 12.1 e successivi. Tentando di connettersi a server più vecchi (10.2, 11.1, 11.2) si ottiene l'errore `NJS-138`.
+
+Per supportare server legacy il Cloud Connector può attivare la modalità **Thick**, che richiede una copia locale di **Oracle Instant Client** sul server dove gira il connector. Per abilitarla impostare la variabile d'ambiente `ORACLE_INSTANT_CLIENT_DIR` con il path della directory dell'Instant Client, **prima** di avviare il connector:
+
+###### Windows (Command Prompt):
+```batch
+set ORACLE_INSTANT_CLIENT_DIR=C:\oracle\instantclient_23_5
+```
+
+###### Windows (PowerShell):
+```powershell
+$env:ORACLE_INSTANT_CLIENT_DIR="C:\oracle\instantclient_23_5"
+```
+
+###### Linux/Mac:
+```bash
+export ORACLE_INSTANT_CLIENT_DIR="/opt/oracle/instantclient_23_5"
+```
+
+**Note**:
+- Scaricare Instant Client da [oracle.com/database/technologies/instant-client.html](https://www.oracle.com/database/technologies/instant-client.html). Si raccomanda la versione **19c o superiore**, che supporta server da 11.2 a 23c.
+- L'architettura dell'Instant Client deve corrispondere a quella di Node.js (32/64 bit, x64/ARM64).
+- **Windows**: richiede Microsoft Visual C++ Redistributable.
+- **macOS (ARM64)**: dopo aver scompattato l'archivio, rimuovere la quarantena con `xattr -d com.apple.quarantine instantclient_*/*`.
+- L'attivazione è a livello di processo: tutte le connessioni Oracle del connector useranno Thick mode (resta retrocompatibile con i server moderni).
+
 #### ODBC
 ```json
 {
@@ -446,6 +474,10 @@ Per abilitare la configurazione remota, impostare `remoteConfigurationKey` nel c
 - Verificare credenziali nel config.json
 - Controllare raggiungibilità database
 - Per MySQL 8: usare autenticazione `legacy`
+
+#### Oracle: errore `NJS-138` (server < 12.1)
+- Il driver `oracledb` in modalità Thin non supporta server Oracle precedenti alla 12.1
+- Soluzione: installare Oracle Instant Client e impostare `ORACLE_INSTANT_CLIENT_DIR` (vedi [Supporto server Oracle legacy](#supporto-server-oracle-legacy--121))
 
 #### APIKey non valida
 - Messaggio: "The APIKey of dataModel is set to the default value"

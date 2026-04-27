@@ -86,12 +86,33 @@ Node.Oracle.prototype._openConnection = async function ()
 
 /**
  * Initializes the Oracle connection pool using oracledb.
+ * On first pool creation, if the ORACLE_INSTANT_CLIENT_DIR environment variable is set,
+ * enables node-oracledb Thick mode to support Oracle servers older than 12.1.
  * @private
  * @returns {Promise<Object>} Oracle connection pool instance
  */
 Node.Oracle.prototype._initPool = async function ()
 {
-  return await oracledb.createPool(this.connectionOptions);
+  // Enable Thick mode before the first pool is created, if requested via env var.
+  // initOracleClient is process-wide and must be called once before any createPool/getConnection.
+  if (!Node.Oracle.thickInitialized && process.env.ORACLE_INSTANT_CLIENT_DIR) {
+    try {
+      oracledb.initOracleClient({libDir: process.env.ORACLE_INSTANT_CLIENT_DIR});
+    }
+    catch (e) {
+      throw new Error(`Oracle Thick mode initialization failed: ${e.message}. Verify that ORACLE_INSTANT_CLIENT_DIR points to a valid Oracle Instant Client installation matching the Node.js architecture.`, {cause: e});
+    }
+    Node.Oracle.thickInitialized = true;
+  }
+  //
+  try {
+    return await oracledb.createPool(this.connectionOptions);
+  }
+  catch (e) {
+    if (e.message?.includes("NJS-138"))
+      throw new Error("The Oracle server version is older than 12.1 and is not supported in node-oracledb Thin mode. Install Oracle Instant Client on the IDS server and set the ORACLE_INSTANT_CLIENT_DIR environment variable to the client directory path to enable Thick mode.", {cause: e});
+    throw e;
+  }
 };
 
 
