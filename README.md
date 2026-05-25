@@ -203,8 +203,6 @@ Il Cloud Connector supporta diversi tipi di database:
 }
 ```
 
-**Nota**: MySQL 8 richiede autenticazione `legacy` invece di `caching_sha2_password`.
-
 #### PostgreSQL
 ```json
 {
@@ -485,7 +483,6 @@ Per abilitare la configurazione remota, impostare `remoteConfigurationKey` nel c
 #### Errore connessione database
 - Verificare credenziali nel config.json
 - Controllare raggiungibilità database
-- Per MySQL 8: usare autenticazione `legacy`
 
 #### Oracle: errore `NJS-138` (server < 12.1)
 - Il driver `oracledb` in modalità Thin non supporta server Oracle precedenti alla 12.1
