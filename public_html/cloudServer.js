@@ -9,6 +9,7 @@ var Node = Node || {};
 // Import global modules
 Node.fs = require("fs").promises;
 Node.https = require("https");
+Node.path = require("path");
 
 // Import local modules
 Node.Server = require("./server");
@@ -176,7 +177,7 @@ Node.CloudServer.prototype.loadConfig = async function (config)
   //
   // Resave the config with the passwords encrypted
   Node.Utils.processPasswords(config, key, true, this);
-  await Node.fs.writeFile("config.json", JSON.stringify(config, null, 2), {encoding: "utf8"});
+  await Node.fs.writeFile(Node.path.join(__dirname, "config.json"), JSON.stringify(config, null, 2), {encoding: "utf8"});
 };
 
 
