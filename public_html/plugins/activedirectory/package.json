@@ -3,5 +3,10 @@
   "version": "1.0.0",
   "dependencies": {
     "activedirectory": "0.7.2"
+  },
+  "overrides": {
+    "activedirectory": {
+      "ldapjs": "2.3.3"
+    }
   }
 }
