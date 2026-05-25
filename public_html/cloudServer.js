@@ -192,7 +192,7 @@ Node.CloudServer.prototype.createServers = async function (config)
   //
   // First attach app servers
   for (let s of config.remoteServers)
-    await this.createServer(s);
+    await this.createServer(s, config.connectionOptions);
   //
   // Next, attach "IDE" servers
   for (let uname of config.remoteUserNames) {
@@ -202,7 +202,7 @@ Node.CloudServer.prototype.createServers = async function (config)
     if (uname.startsWith("http://") || uname.startsWith("https://"))
       [url, uname] = uname.split("@");
     //
-    await this.createServer(url, uname, config.connectionOptions);
+    await this.createServer(url, config.connectionOptions, uname);
   }
   //
   // Disconnect from the remaining servers
@@ -215,10 +215,10 @@ Node.CloudServer.prototype.createServers = async function (config)
  * Creates and connects a single server instance.
  * Reuses existing connections when possible, queries console for user location if needed.
  * @param {String} [srvUrl] - Server URL, can be null for username-based lookup
- * @param {String} [username] - Username for IDE connections
  * @param {Object} [options] - Connection options
+ * @param {String} [username] - Username for IDE connections
  */
-Node.CloudServer.prototype.createServer = async function (srvUrl, username, options)
+Node.CloudServer.prototype.createServer = async function (srvUrl, options, username)
 {
   if (username) {
     if (!srvUrl) {
