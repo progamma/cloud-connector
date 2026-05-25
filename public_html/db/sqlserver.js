@@ -70,7 +70,7 @@ Node.SQLServer.prototype._openConnection = async function ()
   }
   catch (e) {
     let msg = e?.message || "";
-    if (/cannot call write after a stream was destroyed|wrong version number|tlsv1 alert|unsupported protocol/i.test(msg)) {
+    if (/cannot call write after a stream was destroyed|wrong version number|tlsv1 alert/i.test(msg)) {
       let hint = new Error(`${msg} - this may indicate a TLS version mismatch with an older SQL Server. Set "cryptoCredentialsDetails": {"minVersion": "TLSv1"} inside connectionOptions.options for datamodel '${this.name}', or upgrade SQL Server. See https://support.microsoft.com/en-us/help/3135244`);
       hint.cause = e;
       throw hint;
