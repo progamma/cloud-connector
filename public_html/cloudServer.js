@@ -9,6 +9,7 @@ var Node = Node || {};
 // Import global modules
 Node.fs = require("fs").promises;
 Node.https = require("https");
+Node.path = require("path");
 
 // Import local modules
 Node.Server = require("./server");
@@ -153,7 +154,7 @@ Node.CloudServer.prototype.loadConfig = async function (config)
   Node.Utils.replaceEnvVariables(resolvedConfig);
   //
   let key = resolvedConfig.passwordPrivateKey;
-  Node.Utils.processPasswords(resolvedConfig, key);
+  Node.Utils.processPasswords(resolvedConfig, key, false, this);
   //
   this.configChanged = (this.name !== resolvedConfig.name);
   this.name = resolvedConfig.name;
@@ -175,8 +176,8 @@ Node.CloudServer.prototype.loadConfig = async function (config)
   this.log("INFO", "Configuration loaded with success");
   //
   // Resave the config with the passwords encrypted
-  Node.Utils.processPasswords(config, key, true);
-  await Node.fs.writeFile("config.json", JSON.stringify(config, null, 2), {encoding: "utf8"});
+  Node.Utils.processPasswords(config, key, true, this);
+  await Node.fs.writeFile(Node.path.join(__dirname, "config.json"), JSON.stringify(config, null, 2), {encoding: "utf8"});
 };
 
 
@@ -192,7 +193,7 @@ Node.CloudServer.prototype.createServers = async function (config)
   //
   // First attach app servers
   for (let s of config.remoteServers)
-    await this.createServer(s);
+    await this.createServer(s, config.connectionOptions);
   //
   // Next, attach "IDE" servers
   for (let uname of config.remoteUserNames) {
@@ -202,7 +203,7 @@ Node.CloudServer.prototype.createServers = async function (config)
     if (uname.startsWith("http://") || uname.startsWith("https://"))
       [url, uname] = uname.split("@");
     //
-    await this.createServer(url, uname, config.connectionOptions);
+    await this.createServer(url, config.connectionOptions, uname);
   }
   //
   // Disconnect from the remaining servers
@@ -215,10 +216,10 @@ Node.CloudServer.prototype.createServers = async function (config)
  * Creates and connects a single server instance.
  * Reuses existing connections when possible, queries console for user location if needed.
  * @param {String} [srvUrl] - Server URL, can be null for username-based lookup
- * @param {String} [username] - Username for IDE connections
  * @param {Object} [options] - Connection options
+ * @param {String} [username] - Username for IDE connections
  */
-Node.CloudServer.prototype.createServer = async function (srvUrl, username, options)
+Node.CloudServer.prototype.createServer = async function (srvUrl, options, username)
 {
   if (username) {
     if (!srvUrl) {
