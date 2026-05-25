@@ -17,7 +17,7 @@
         "user": "{username}",
         "password": "{password}",
         "connectionTimeoutMillis": 30000,
-        "max": 100
+        "max": 10
       }
     },
     {
@@ -31,12 +31,11 @@
         "password": "{password}",
         "connectionTimeout": 30000,
         "pool": {
-          "max": 100
+          "max": 10
         },
         "options": {
           "useUTC": false,
-          "encrypt": true,
-          "trustServerCertificate": true
+          "encrypt": true
         }
       }
     },
@@ -49,7 +48,7 @@
         "connectString": "{hostname/databaseName}",
         "user": "{username}",
         "password": "{password}",
-        "poolMax": 100
+        "poolMax": 10
       }
     },
     {
@@ -61,7 +60,7 @@
         "database": "{databaseName}",
         "user": "{username}",
         "password": "{password}",
-        "connectionLimit": 100,
+        "connectionLimit": 10,
         "connectTimeout": 30000
       }
     },
@@ -71,7 +70,7 @@
       "APIKey": "00000000-0000-0000-0000-000000000000",
       "connectionOptions": {
         "connectionString": "DSN={dsnName};UID={username};PWD={password}",
-        "maxSize": 100,
+        "maxSize": 10,
         "connectionTimeout": 30
       }
     }
