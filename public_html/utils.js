@@ -258,9 +258,9 @@ Node.Utils.processPasswords = function (config, key, encrypt, logger)
       dm.connectionOptions.password = Node.Utils.decrypt(password, key, dm.iv);
     }
     catch (e) {
-      // Only warn when the value looks like AES-256-CBC ciphertext (hex string, length multiple of 32):
-      // otherwise the password is almost certainly in clear text and the failure is expected.
-      if (/^[0-9a-f]+$/i.test(password) && password.length >= 32 && password.length % 32 === 0) {
+      // dm.iv is set only when this connector previously encrypted the password;
+      // without it the value is in clear text and the failure is expected.
+      if (dm.iv) {
         let msg = `Unable to decrypt the password of datamodel '${dm.name}': ${e.message}`;
         if (logger)
           logger.log("WARNING", msg);
