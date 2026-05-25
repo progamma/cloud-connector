@@ -248,6 +248,18 @@ Il Cloud Connector supporta diversi tipi di database:
 
 **Nota**: `trustServerCertificate: true` bypassa la validazione SSL. Usare solo in sviluppo!
 
+##### Supporto SQL Server legacy (TLS)
+
+`mssql` / `tedious` negozia la connessione usando le impostazioni TLS di Node, che dalla v12 richiedono **TLS 1.2 come minimo**. SQL Server **<= 2014 (12.0.4439.1)** — e alcune installazioni di **SQL Server 2016** senza CU recenti — parlano solo TLS 1.0/1.1. L'handshake fallisce con messaggi criptici tipo `Cannot call write after a stream was destroyed`.
+
+Il Cloud Connector intercetta gli errori tipici di questo scenario e li ri-lancia con un suggerimento operativo. Per risolvere il problema all'origine, applicare la patch consigliata da Microsoft sul server SQL ([KB 3135244](https://support.microsoft.com/en-us/help/3135244)). Come workaround temporaneo, abbassare il minimo TLS lato connector aggiungendo a `connectionOptions.options`:
+
+```json
+"cryptoCredentialsDetails": { "minVersion": "TLSv1" }
+```
+
+**Sconsigliato per produzione**: lasciare aperto TLS 1.0 espone a vulnerabilità note. Preferire l'upgrade del SQL Server.
+
 #### Oracle
 ```json
 {
@@ -478,6 +490,11 @@ Per abilitare la configurazione remota, impostare `remoteConfigurationKey` nel c
 #### Oracle: errore `NJS-138` (server < 12.1)
 - Il driver `oracledb` in modalità Thin non supporta server Oracle precedenti alla 12.1
 - Soluzione: installare Oracle Instant Client e impostare `ORACLE_INSTANT_CLIENT_DIR` (vedi [Supporto server Oracle legacy](#supporto-server-oracle-legacy--121))
+
+#### SQL Server: errore `Cannot call write after a stream was destroyed`
+- Tipicamente indica un mismatch TLS con un SQL Server vecchio (<= 2014 12.0.4439.1, alcune installazioni 2016)
+- Soluzione raccomandata: applicare [KB Microsoft 3135244](https://support.microsoft.com/en-us/help/3135244) per abilitare TLS 1.2 sul SQL Server
+- Workaround temporaneo: vedi [Supporto SQL Server legacy](#supporto-sql-server-legacy-tls)
 
 #### APIKey non valida
 - Messaggio: "The APIKey of dataModel is set to the default value"

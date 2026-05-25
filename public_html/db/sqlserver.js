@@ -56,12 +56,27 @@ Node.SQLServer.prototype = new Node.DataModel();
 /**
  * Opens a connection to the SQL Server database.
  * Connects the pool if not already connected and returns an empty connection object.
+ * If the connect attempt fails with a signature typical of a TLS handshake mismatch
+ * (modern Node defaults to TLS 1.2 minimum; SQL Server <= 2014 12.0.4439.1 and some
+ * 2016 installs only speak TLS 1.0/1.1) the original error is rewrapped with an
+ * actionable hint pointing to `cryptoCredentialsDetails.minVersion`.
  * @private
  * @returns {Promise<Object>} Empty connection object (pool manages connections internally)
  */
 Node.SQLServer.prototype._openConnection = async function ()
 {
-  await this.pool.connect();
+  try {
+    await this.pool.connect();
+  }
+  catch (e) {
+    let msg = e?.message || "";
+    if (/cannot call write after a stream was destroyed|wrong version number|tlsv1 alert|unsupported protocol/i.test(msg)) {
+      let hint = new Error(`${msg} - this may indicate a TLS version mismatch with an older SQL Server. Set "cryptoCredentialsDetails": {"minVersion": "TLSv1"} inside connectionOptions.options for datamodel '${this.name}', or upgrade SQL Server. See https://support.microsoft.com/en-us/help/3135244`);
+      hint.cause = e;
+      throw hint;
+    }
+    throw e;
+  }
   return {};
 };
 
