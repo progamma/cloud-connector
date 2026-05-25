@@ -239,7 +239,7 @@ Node.Utils.replaceEnvVariables = function (obj)
  * @param {Object} config - Configuration object containing datamodels
  * @param {String} key - Encryption/decryption key (must be at least 32 characters)
  * @param {Boolean} [encrypt] - If true, encrypt passwords; if false or omitted, decrypt
- * @param {Object} [logger] - Logger with a log(level, message) method used to surface decryption warnings
+ * @param {Object} logger - Logger with a log(level, message) method used to surface decryption warnings
  * @throws {Error} If key is too short or encryption fails
  */
 Node.Utils.processPasswords = function (config, key, encrypt, logger)
@@ -260,13 +260,8 @@ Node.Utils.processPasswords = function (config, key, encrypt, logger)
     catch (e) {
       // dm.iv is set only when this connector previously encrypted the password;
       // without it the value is in clear text and the failure is expected.
-      if (dm.iv) {
-        let msg = `Unable to decrypt the password of datamodel '${dm.name}': ${e.message}`;
-        if (logger)
-          logger.log("WARNING", msg);
-        else
-          console.warn(msg);
-      }
+      if (dm.iv)
+        logger.log("WARNING", `Unable to decrypt the password of datamodel '${dm.name}': ${e.message}`);
     }
     //
     if (encrypt) {
