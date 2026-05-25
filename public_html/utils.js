@@ -239,9 +239,10 @@ Node.Utils.replaceEnvVariables = function (obj)
  * @param {Object} config - Configuration object containing datamodels
  * @param {String} key - Encryption/decryption key (must be at least 32 characters)
  * @param {Boolean} [encrypt] - If true, encrypt passwords; if false or omitted, decrypt
+ * @param {Object} [logger] - Logger with a log(level, message) method used to surface decryption warnings
  * @throws {Error} If key is too short or encryption fails
  */
-Node.Utils.processPasswords = function (config, key, encrypt)
+Node.Utils.processPasswords = function (config, key, encrypt, logger)
 {
   // Validate key length for security
   if (key && key.length < 32)
@@ -256,7 +257,16 @@ Node.Utils.processPasswords = function (config, key, encrypt)
       // Try to decrypt the password; I may not be able to do this if the password is still in clear text
       dm.connectionOptions.password = Node.Utils.decrypt(password, key, dm.iv);
     }
-    catch {
+    catch (e) {
+      // Only warn when the value looks like AES-256-CBC ciphertext (hex string, length multiple of 32):
+      // otherwise the password is almost certainly in clear text and the failure is expected.
+      if (/^[0-9a-f]+$/i.test(password) && password.length >= 32 && password.length % 32 === 0) {
+        let msg = `Unable to decrypt the password of datamodel '${dm.name}': ${e.message}`;
+        if (logger)
+          logger.log("WARNING", msg);
+        else
+          console.warn(msg);
+      }
     }
     //
     if (encrypt) {

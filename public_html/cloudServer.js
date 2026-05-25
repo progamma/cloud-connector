@@ -153,7 +153,7 @@ Node.CloudServer.prototype.loadConfig = async function (config)
   Node.Utils.replaceEnvVariables(resolvedConfig);
   //
   let key = resolvedConfig.passwordPrivateKey;
-  Node.Utils.processPasswords(resolvedConfig, key);
+  Node.Utils.processPasswords(resolvedConfig, key, false, this);
   //
   this.configChanged = (this.name !== resolvedConfig.name);
   this.name = resolvedConfig.name;
@@ -175,7 +175,7 @@ Node.CloudServer.prototype.loadConfig = async function (config)
   this.log("INFO", "Configuration loaded with success");
   //
   // Resave the config with the passwords encrypted
-  Node.Utils.processPasswords(config, key, true);
+  Node.Utils.processPasswords(config, key, true, this);
   await Node.fs.writeFile("config.json", JSON.stringify(config, null, 2), {encoding: "utf8"});
 };
 
