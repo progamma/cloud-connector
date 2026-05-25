@@ -88,7 +88,24 @@ Node.Server.prototype.connect = function (options)
   });
   //
   this.socket.on("connect_error", error => {
-    this.parent.log("ERROR", `Connect error to ${this.serverUrl}: ${error}`);
+    let details = [`${error}`];
+    //
+    // error.description may be an Error (e.g. DNS/TCP failure), an HTTP status code, or a context object
+    let desc = error?.description;
+    if (desc instanceof Error) {
+      details.push(`cause: ${desc.message}`);
+      if (desc.code)
+        details.push(`code: ${desc.code}`);
+    }
+    else if (desc !== undefined && desc !== null)
+      details.push(`cause: ${desc.message || desc}`);
+    //
+    // error.context may carry HTTP status/statusText from the polling transport
+    let ctx = error?.context;
+    if (ctx?.status)
+      details.push(`status: ${ctx.status}${ctx.statusText ? ` ${ctx.statusText}` : ""}`);
+    //
+    this.parent.log("ERROR", `Connect error to ${this.serverUrl}: ${details.join(" - ")}`);
   });
   //
   this.socket.on("connect_timeout", () => {
