@@ -402,13 +402,14 @@ LdapClient.prototype._searchWithRanges = async function (baseDN, options)
 
 
 /**
- * Resolves a user or group identifier (DN, sAMAccountName, UPN, or CN) into
- * its canonical distinguishedName. Used by membership queries that need to
- * pin the chained-matching rule against a fully-qualified DN. Returns the
- * identifier unchanged when it already looks like a DN.
+ * Resolves a user or group identifier into its canonical distinguishedName.
+ * Used by membership queries that need to pin the chained-matching rule
+ * against a fully-qualified DN. Returns the identifier unchanged when it
+ * already looks like a DN. Matching attributes depend on `kind`: user uses
+ * `sAMAccountName` OR `userPrincipalName`, group uses `cn`.
  * @param {Object} client - Bound `ldapts.Client` to reuse
  * @param {String} kind - Either `"user"` or `"group"` — drives the lookup filter
- * @param {String} identifier - User/group identifier
+ * @param {String} identifier - User (DN, sAMAccountName, UPN) or group (DN, CN) identifier
  * @returns {Promise<String|null>} The DN, or `null` if no entry matches
  * @private
  */
