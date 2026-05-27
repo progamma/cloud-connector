@@ -3,42 +3,45 @@
  * Copyright Pro Gamma Spa 2000-2021
  * All rights reserved
  */
-
 var Node = Node || {};
 
-
-Node.AD = require("activedirectory");
 Node.Plugin = require("../plugin");
+
 
 /**
  * @class Node.ActiveDirectory
  * @classdesc
- * Active Directory authentication and management plugin for the Cloud Connector.
- * Provides comprehensive LDAP/Active Directory operations including authentication,
- * user and group management, and directory queries. Uses the activedirectory module
- * to interface with Microsoft Active Directory services.
+ * Active Directory integration plugin for the Cloud Connector.
+ * Provides methods to authenticate users and query Active Directory information through LDAP.
  *
  * Key features:
- * - **Authentication**: Validate user credentials against AD
- * - **User management**: Find, check existence, and retrieve user information
- * - **Group management**: Query groups, memberships, and relationships
- * - **LDAP queries**: Execute custom LDAP filters and searches
- * - **Membership verification**: Check user/group membership relationships
- * - **Recycle bin**: Access deleted objects in AD recycle bin
+ * - **User Authentication**: Validate credentials against Active Directory
+ * - **User and Group Management**: Query and verify users and groups
+ * - **Group Membership**: Check and retrieve membership information (transitive via LDAP_MATCHING_RULE_IN_CHAIN)
+ * - **LDAP Search**: Perform complex LDAP queries with filters
  *
  * @extends Node.Plugin
+ * @property {Object} config - Configuration object for the Active Directory connection
+ * @property {Object} ad - Local LDAP client instance
  * @param {Node.CloudServer} parent - Parent CloudServer instance
- * @param {Object} config - Active Directory configuration
+ * @param {Object} config - Configuration object containing connection parameters
  * @param {String} config.name - Name of this plugin instance
- * @param {String} config.APIKey - API key for authentication
- * @param {String} config.url - LDAP URL (e.g., ldap://dc.domain.com)
- * @param {String} config.baseDN - Base DN for searches
- * @param {String} config.username - Service account username
- * @param {String} config.password - Service account password
+ * @param {String} config.APIKey - API key for plugin authentication
+ * @param {String} [config.url] - LDAP URL for the Active Directory server
+ * @param {String} [config.baseDN] - Base Distinguished Name for searches
+ * @param {String} [config.username] - Username (DN or UPN) for binding to Active Directory
+ * @param {String} [config.password] - Password for binding to Active Directory
+ * @param {Object} [config.tlsOptions] - Options forwarded to the TLS layer for `ldaps://` URLs
+ * @param {Number} [config.timeout] - Operation timeout in milliseconds
+ * @param {Number} [config.connectTimeout] - TCP connection timeout in milliseconds
  */
 Node.ActiveDirectory = function (parent, config)
 {
   Node.Plugin.call(this, parent, config);
+  //
+  this.config = config;
+  let LdapClient = require("./ldapclient");
+  this.ad = new LdapClient(this.config);
 };
 
 
@@ -47,36 +50,26 @@ Node.ActiveDirectory.prototype = new Node.Plugin();
 
 
 /**
- * Executes a command on the Active Directory instance.
- * Creates a new AD connection and invokes the specified method with provided arguments.
+ * Executes an Active Directory command.
+ * Dispatches the call to the internal LDAP client.
+ * @param {String} cid - Command identifier to execute
+ * @param {Array} args - Arguments to pass to the command
+ * @returns {Promise<*>} Result from the Active Directory command
  * @private
- * @param {String} cid - Command identifier (method name to invoke on AD instance)
- * @param {Array} args - Arguments to pass to the AD method
- * @returns {Promise<*>} Result from the Active Directory operation
- * @throws {Error} Active Directory errors or connection failures
  */
 Node.ActiveDirectory.prototype.exec = async function (cid, args)
 {
-  let ad = new Node.AD(this.config);
-  //
-  let argsArray = [];
-  for (let i = 0; i < args.length; i++)
-    argsArray.push(args[i]);
-  //
-  return await new Promise((resolve, reject) => {
-    argsArray.push((err, res) => err ? reject(err) : resolve(res));
-    ad[cid].apply(ad, argsArray);
-  });
+  return await this.ad[cid].apply(this.ad, args);
 };
 
 
 /**
  * Authenticates a user against Active Directory using username and password.
- * Validates credentials and returns authentication status.
- * @param {String} username - The username to authenticate (can be UPN, DN, or sAMAccountName)
- * @param {String} password - The password to use for authentication
+ * Validates the provided credentials by attempting to bind to the LDAP server.
+ * @param {String} username - Username to authenticate (can be UPN, DN, or simple username)
+ * @param {String} password - Password to use for authentication
  * @returns {Promise<Boolean>} True if authentication successful, false otherwise
- * @throws {Error} LDAP connection or authentication errors
+ * @throws {Error} Throws error if connection to Active Directory fails
  */
 Node.ActiveDirectory.authenticate = async function (username, password)
 {
@@ -86,17 +79,16 @@ Node.ActiveDirectory.authenticate = async function (username, password)
 
 /**
  * Checks if a user is a member of a specific group.
- * Performs recursive membership checking including nested groups.
+ * Recursively checks nested group memberships.
  * @param {Object} [options] - Optional LDAP query parameters
- * @param {String} [options.scope] - Search scope (base, one, sub)
- * @param {String} [options.filter] - LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
+ * @param {String} [options.filter] - Additional LDAP filter to apply
+ * @param {Array<String>} [options.attributes] - Attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @param {String} username - The username to check for membership
- * @param {String} groupName - The group to check for membership
- * @returns {Promise<Boolean>} True if user is member of group, false otherwise
- * @throws {Error} LDAP query errors or connection issues
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @param {String} username - Username to check for membership (can be UPN, DN, or simple username)
+ * @param {String} groupName - Group name to check for membership (can be CN or DN)
+ * @returns {Promise<Boolean>} True if user is member of the group, false otherwise
  */
 Node.ActiveDirectory.isUserMemberOf = async function (options, username, groupName)
 {
@@ -105,16 +97,15 @@ Node.ActiveDirectory.isUserMemberOf = async function (options, username, groupNa
 
 
 /**
- * Performs a generic search and returns both groups and users that match the specified filter.
- * Searches across all object types in the directory.
- * @param {Object|String} [options] - LDAP query parameters or filter string. If string, treated as LDAP filter
- * @param {String} [options.scope] - Search scope (base, one, sub)
+ * Performs a generic LDAP search returning both groups and users.
+ * Searches the entire directory for objects matching the specified filter.
+ * @param {Object|String} [options] - LDAP query parameters or filter string
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve
+ * @param {Array<String>} [options.attributes] - Attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @returns {Promise<Object>} Search results with users and groups arrays
- * @throws {Error} LDAP query errors or invalid filter syntax
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @returns {Promise<Object>} Search results containing groups and users
  */
 Node.ActiveDirectory.find = async function (options)
 {
@@ -124,16 +115,15 @@ Node.ActiveDirectory.find = async function (options)
 
 /**
  * Finds a user by username and retrieves their information.
- * Searches for user objects in Active Directory by sAMAccountName, userPrincipalName, or DN.
+ * Searches for the user in the Active Directory and returns their attributes.
  * @param {Object} [options] - Optional LDAP query parameters
- * @param {String} [options.scope] - Search scope (base, one, sub)
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @param {String} username - The username to retrieve (sAMAccountName, UPN, or DN)
- * @returns {Promise<Object>} User object with requested attributes or null if not found
- * @throws {Error} LDAP query errors or connection issues
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @param {String} username - Username to search for (can be UPN, DN, or simple username)
+ * @returns {Promise<Object>} User object with attributes or null if not found
  */
 Node.ActiveDirectory.findUser = async function (options, username)
 {
@@ -143,16 +133,15 @@ Node.ActiveDirectory.findUser = async function (options, username)
 
 /**
  * Finds a group by name and retrieves its information.
- * Searches for group objects in Active Directory by common name (cn) or DN.
+ * Searches for the group in the Active Directory and returns its attributes.
  * @param {Object} [options] - Optional LDAP query parameters
- * @param {String} [options.scope] - Search scope (base, one, sub)
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @param {String} groupName - The group name (cn) or DN to retrieve
- * @returns {Promise<Object>} Group object with requested attributes or null if not found
- * @throws {Error} LDAP query errors or connection issues
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @param {String} groupName - Group name to search for (can be CN or DN)
+ * @returns {Promise<Object>} Group object with attributes or null if not found
  */
 Node.ActiveDirectory.findGroup = async function (options, groupName)
 {
@@ -161,16 +150,15 @@ Node.ActiveDirectory.findGroup = async function (options, groupName)
 
 
 /**
- * Finds all users that match the specified filter.
- * Searches for user objects across the directory with optional filtering.
- * @param {Object|String} [options] - LDAP query parameters or filter string. If string, appended to default user filter (objectClass=user)
- * @param {String} [options.scope] - Search scope (base, one, sub)
- * @param {String} [options.filter] - LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve
+ * Finds all users matching the specified filter.
+ * Returns an array of user objects with their attributes.
+ * @param {Object|String} [options] - LDAP query parameters or filter string
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
+ * @param {String} [options.filter] - LDAP filter to apply (appended to default user filter)
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @returns {Promise<Array<Object>>} Array of user objects with requested attributes
- * @throws {Error} LDAP query errors or invalid filter syntax
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @returns {Promise<Array<Object>>} Array of user objects matching the filter
  */
 Node.ActiveDirectory.findUsers = async function (options)
 {
@@ -179,16 +167,15 @@ Node.ActiveDirectory.findUsers = async function (options)
 
 
 /**
- * Finds all groups that match the specified filter.
- * Searches for group objects across the directory with optional filtering.
- * @param {Object|String} [options] - LDAP query parameters or filter string. If string, appended to default group filter (objectClass=group)
- * @param {String} [options.scope] - Search scope (base, one, sub)
- * @param {String} [options.filter] - LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve
+ * Finds all groups matching the specified filter.
+ * Returns an array of group objects with their attributes.
+ * @param {Object|String} [options] - LDAP query parameters or filter string
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
+ * @param {String} [options.filter] - LDAP filter to apply (appended to default group filter)
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @returns {Promise<Array<Object>>} Array of group objects with requested attributes
- * @throws {Error} LDAP query errors or invalid filter syntax
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @returns {Promise<Array<Object>>} Array of group objects matching the filter
  */
 Node.ActiveDirectory.findGroups = async function (options)
 {
@@ -198,16 +185,14 @@ Node.ActiveDirectory.findGroups = async function (options)
 
 /**
  * Checks if a group exists in Active Directory.
- * Verifies the existence of a group by name without retrieving full details.
  * @param {Object} [options] - Optional LDAP query parameters
- * @param {String} [options.scope] - Search scope (base, one, sub)
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve (minimal for existence check)
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @param {String} groupName - The group name (cn) to check for existence
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @param {String} groupName - Group name to check (can be CN or DN)
  * @returns {Promise<Boolean>} True if the group exists, false otherwise
- * @throws {Error} LDAP query errors or connection issues
  */
 Node.ActiveDirectory.groupExists = async function (options, groupName)
 {
@@ -217,16 +202,14 @@ Node.ActiveDirectory.groupExists = async function (options, groupName)
 
 /**
  * Checks if a user exists in Active Directory.
- * Verifies the existence of a user by username without retrieving full details.
  * @param {Object} [options] - Optional LDAP query parameters
- * @param {String} [options.scope] - Search scope (base, one, sub)
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve (minimal for existence check)
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @param {String} username - The username to check for existence (sAMAccountName, UPN, or DN)
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @param {String} username - Username to check (can be UPN, DN, or simple username)
  * @returns {Promise<Boolean>} True if the user exists, false otherwise
- * @throws {Error} LDAP query errors or connection issues
  */
 Node.ActiveDirectory.userExists = async function (options, username)
 {
@@ -235,17 +218,16 @@ Node.ActiveDirectory.userExists = async function (options, username)
 
 
 /**
- * Gets all groups that contain the specified group as a member.
- * Retrieves the group membership hierarchy including nested group memberships.
+ * Gets all groups that a group is a member of (nested group membership).
+ * Recursively retrieves parent groups up the hierarchy.
  * @param {Object} [options] - Optional LDAP query parameters
- * @param {String} [options.scope] - Search scope (base, one, sub)
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve for each group
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @param {String} groupName - The group name (cn) to retrieve membership for
- * @returns {Promise<Array<Object>>} Array of group objects that contain this group
- * @throws {Error} LDAP query errors or connection issues
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @param {String} groupName - Group name to retrieve membership for (can be CN or DN)
+ * @returns {Promise<Array<Object>>} Array of parent group objects
  */
 Node.ActiveDirectory.getGroupMembershipForGroup = async function (options, groupName)
 {
@@ -254,17 +236,16 @@ Node.ActiveDirectory.getGroupMembershipForGroup = async function (options, group
 
 
 /**
- * Gets all groups that the specified user belongs to.
- * Retrieves direct and nested group memberships for the user.
+ * Gets all groups that a user belongs to.
+ * Recursively retrieves nested group memberships.
  * @param {Object} [options] - Optional LDAP query parameters
- * @param {String} [options.scope] - Search scope (base, one, sub)
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve for each group
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @param {String} username - The username to retrieve group membership for
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @param {String} username - Username to retrieve membership for (can be UPN, DN, or simple username)
  * @returns {Promise<Array<Object>>} Array of group objects the user belongs to
- * @throws {Error} LDAP query errors or connection issues
  */
 Node.ActiveDirectory.getGroupMembershipForUser = async function (options, username)
 {
@@ -273,17 +254,16 @@ Node.ActiveDirectory.getGroupMembershipForUser = async function (options, userna
 
 
 /**
- * Gets all users that belong to the specified group.
- * Retrieves direct and nested user members of the group.
+ * Gets all users that belong to a group.
+ * Recursively retrieves users from nested groups.
  * @param {Object} [options] - Optional LDAP query parameters
- * @param {String} [options.scope] - Search scope (base, one, sub)
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
- * @param {Array<String>} [options.attributes] - Attributes to retrieve for each user
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @param {String} groupName - The group name (cn) to retrieve members from
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @param {String} groupName - Group name to retrieve members from (can be CN or DN)
  * @returns {Promise<Array<Object>>} Array of user objects that are members of the group
- * @throws {Error} LDAP query errors or connection issues
  */
 Node.ActiveDirectory.getUsersForGroup = async function (options, groupName)
 {
@@ -292,12 +272,11 @@ Node.ActiveDirectory.getUsersForGroup = async function (options, groupName)
 
 
 /**
- * Gets the root DSE (Directory Server Entry) for the specified LDAP server.
- * Retrieves server capabilities, supported controls, naming contexts, and other metadata.
- * @param {String} url - The LDAP URL to retrieve the root DSE from (e.g., ldap://dc.domain.com)
- * @param {Array<String>} [attributes] - Optional list of attributes to retrieve. Returns all if not specified
- * @returns {Promise<Object>} Root DSE object with server metadata and capabilities
- * @throws {Error} LDAP connection or query errors
+ * Gets the root DSE (Directory Server Entry) for the specified LDAP URL.
+ * The root DSE provides server capabilities and configuration information.
+ * @param {String} url - LDAP URL to retrieve the root DSE from
+ * @param {Array<String>} [attributes] - Optional list of attributes to retrieve (returns all if not specified)
+ * @returns {Promise<Object>} Root DSE object containing server information
  */
 Node.ActiveDirectory.getRootDSE = async function (url, attributes)
 {
@@ -306,16 +285,16 @@ Node.ActiveDirectory.getRootDSE = async function (url, attributes)
 
 
 /**
- * Gets items from the Active Directory recycle bin.
- * Retrieves deleted objects that can potentially be restored if the AD recycle bin is enabled.
- * @param {Object|String} [options] - LDAP query parameters or filter string. If string, used as LDAP filter for deleted objects
- * @param {String} [options.scope] - Search scope (base, one, sub)
+ * Finds deleted objects in the Active Directory Recycle Bin.
+ * Retrieves objects that have been deleted but not yet purged from the directory.
+ * Note: Requires Active Directory Recycle Bin feature to be enabled.
+ * @param {Object|String} [options] - LDAP query parameters or filter string
+ * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - LDAP filter to apply to deleted objects
- * @param {Array<String>} [options.attributes] - Attributes to retrieve
+ * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
- * @param {Number} [options.timeLimit] - Maximum time in seconds for search
- * @returns {Promise<Array<Object>>} Array of deleted objects from the AD recycle bin
- * @throws {Error} LDAP query errors or if recycle bin is not enabled
+ * @param {Number} [options.timelimit] - Maximum time in seconds for the search
+ * @returns {Promise<Array<Object>>} Array of deleted objects from the Recycle Bin
  */
 Node.ActiveDirectory.findDeletedObjects = async function (options)
 {
