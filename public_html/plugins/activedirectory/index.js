@@ -80,19 +80,19 @@ Node.ActiveDirectory.authenticate = async function (username, password)
 /**
  * Checks if a user is a member of a specific group.
  * Recursively checks nested group memberships.
+ * @param {String} username - Username to check for membership (can be UPN, DN, or simple username)
+ * @param {String} groupName - Group name to check for membership (can be CN or DN)
  * @param {Object} [options] - Optional LDAP query parameters
  * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
  * @param {Array<String>} [options.attributes] - Attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
  * @param {Number} [options.timelimit] - Maximum time in seconds for the search
- * @param {String} username - Username to check for membership (can be UPN, DN, or simple username)
- * @param {String} groupName - Group name to check for membership (can be CN or DN)
  * @returns {Promise<Boolean>} True if user is member of the group, false otherwise
  */
-Node.ActiveDirectory.isUserMemberOf = async function (options, username, groupName)
+Node.ActiveDirectory.isUserMemberOf = async function (username, groupName, options)
 {
-  return await this.exec("isUserMemberOf", [options, username, groupName]);
+  return await this.exec("isUserMemberOf", [username, groupName, options]);
 };
 
 
@@ -116,36 +116,36 @@ Node.ActiveDirectory.find = async function (options)
 /**
  * Finds a user by username and retrieves their information.
  * Searches for the user in the Active Directory and returns their attributes.
+ * @param {String} username - Username to search for (can be UPN, DN, or simple username)
  * @param {Object} [options] - Optional LDAP query parameters
  * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
  * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
  * @param {Number} [options.timelimit] - Maximum time in seconds for the search
- * @param {String} username - Username to search for (can be UPN, DN, or simple username)
  * @returns {Promise<Object>} User object with attributes or null if not found
  */
-Node.ActiveDirectory.findUser = async function (options, username)
+Node.ActiveDirectory.findUser = async function (username, options)
 {
-  return await this.exec("findUser", [options, username]);
+  return await this.exec("findUser", [username, options]);
 };
 
 
 /**
  * Finds a group by name and retrieves its information.
  * Searches for the group in the Active Directory and returns its attributes.
+ * @param {String} groupName - Group name to search for (can be CN or DN)
  * @param {Object} [options] - Optional LDAP query parameters
  * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
  * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
  * @param {Number} [options.timelimit] - Maximum time in seconds for the search
- * @param {String} groupName - Group name to search for (can be CN or DN)
  * @returns {Promise<Object>} Group object with attributes or null if not found
  */
-Node.ActiveDirectory.findGroup = async function (options, groupName)
+Node.ActiveDirectory.findGroup = async function (groupName, options)
 {
-  return await this.exec("findGroup", [options, groupName]);
+  return await this.exec("findGroup", [groupName, options]);
 };
 
 
@@ -185,89 +185,89 @@ Node.ActiveDirectory.findGroups = async function (options)
 
 /**
  * Checks if a group exists in Active Directory.
+ * @param {String} groupName - Group name to check (can be CN or DN)
  * @param {Object} [options] - Optional LDAP query parameters
  * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
  * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
  * @param {Number} [options.timelimit] - Maximum time in seconds for the search
- * @param {String} groupName - Group name to check (can be CN or DN)
  * @returns {Promise<Boolean>} True if the group exists, false otherwise
  */
-Node.ActiveDirectory.groupExists = async function (options, groupName)
+Node.ActiveDirectory.groupExists = async function (groupName, options)
 {
-  return await this.exec("groupExists", [options, groupName]);
+  return await this.exec("groupExists", [groupName, options]);
 };
 
 
 /**
  * Checks if a user exists in Active Directory.
+ * @param {String} username - Username to check (can be UPN, DN, or simple username)
  * @param {Object} [options] - Optional LDAP query parameters
  * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
  * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
  * @param {Number} [options.timelimit] - Maximum time in seconds for the search
- * @param {String} username - Username to check (can be UPN, DN, or simple username)
  * @returns {Promise<Boolean>} True if the user exists, false otherwise
  */
-Node.ActiveDirectory.userExists = async function (options, username)
+Node.ActiveDirectory.userExists = async function (username, options)
 {
-  return await this.exec("userExists", [options, username]);
+  return await this.exec("userExists", [username, options]);
 };
 
 
 /**
  * Gets all groups that a group is a member of (nested group membership).
  * Recursively retrieves parent groups up the hierarchy.
+ * @param {String} groupName - Group name to retrieve membership for (can be CN or DN)
  * @param {Object} [options] - Optional LDAP query parameters
  * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
  * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
  * @param {Number} [options.timelimit] - Maximum time in seconds for the search
- * @param {String} groupName - Group name to retrieve membership for (can be CN or DN)
  * @returns {Promise<Array<Object>>} Array of parent group objects
  */
-Node.ActiveDirectory.getGroupMembershipForGroup = async function (options, groupName)
+Node.ActiveDirectory.getGroupMembershipForGroup = async function (groupName, options)
 {
-  return await this.exec("getGroupMembershipForGroup", [options, groupName]);
+  return await this.exec("getGroupMembershipForGroup", [groupName, options]);
 };
 
 
 /**
  * Gets all groups that a user belongs to.
  * Recursively retrieves nested group memberships.
+ * @param {String} username - Username to retrieve membership for (can be UPN, DN, or simple username)
  * @param {Object} [options] - Optional LDAP query parameters
  * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
  * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
  * @param {Number} [options.timelimit] - Maximum time in seconds for the search
- * @param {String} username - Username to retrieve membership for (can be UPN, DN, or simple username)
  * @returns {Promise<Array<Object>>} Array of group objects the user belongs to
  */
-Node.ActiveDirectory.getGroupMembershipForUser = async function (options, username)
+Node.ActiveDirectory.getGroupMembershipForUser = async function (username, options)
 {
-  return await this.exec("getGroupMembershipForUser", [options, username]);
+  return await this.exec("getGroupMembershipForUser", [username, options]);
 };
 
 
 /**
  * Gets all users that belong to a group.
  * Recursively retrieves users from nested groups.
+ * @param {String} groupName - Group name to retrieve members from (can be CN or DN)
  * @param {Object} [options] - Optional LDAP query parameters
  * @param {String} [options.scope] - LDAP search scope (base, one, or sub)
  * @param {String} [options.filter] - Additional LDAP filter to apply
  * @param {Array<String>} [options.attributes] - Specific attributes to return
  * @param {Number} [options.sizeLimit] - Maximum number of entries to return
  * @param {Number} [options.timelimit] - Maximum time in seconds for the search
- * @param {String} groupName - Group name to retrieve members from (can be CN or DN)
  * @returns {Promise<Array<Object>>} Array of user objects that are members of the group
  */
-Node.ActiveDirectory.getUsersForGroup = async function (options, groupName)
+Node.ActiveDirectory.getUsersForGroup = async function (groupName, options)
 {
-  return await this.exec("getUsersForGroup", [options, groupName]);
+  return await this.exec("getUsersForGroup", [groupName, options]);
 };
 
 

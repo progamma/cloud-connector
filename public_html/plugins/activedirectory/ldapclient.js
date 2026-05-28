@@ -472,16 +472,16 @@ LdapClient.prototype.authenticate = async function (username, password)
  * `userPrincipalName` when given a plain username, or `distinguishedName`
  * when given a DN. Returns the user's attributes, picking the default set
  * unless `options.attributes` overrides it.
+ * @param {String} username - User identifier (DN, sAMAccountName, or UPN)
  * @param {Object} [options] - Search options
  * @param {String} [options.scope] - LDAP scope (`base`, `one`, or `sub`)
  * @param {String} [options.filter] - Extra filter AND-combined with the user filter
  * @param {Array<String>} [options.attributes] - Attributes to retrieve
  * @param {Number} [options.sizeLimit] - Maximum entries to return
  * @param {Number} [options.timelimit] - Maximum search time in seconds
- * @param {String} username - User identifier (DN, sAMAccountName, or UPN)
  * @returns {Promise<Object|null>} The user attributes, or null if not found
  */
-LdapClient.prototype.findUser = async function (options, username)
+LdapClient.prototype.findUser = async function (username, options)
 {
   let requested = options?.attributes || DEFAULT_USER_ATTRIBUTES;
   let baseOpts = {
@@ -504,16 +504,16 @@ LdapClient.prototype.findUser = async function (options, username)
  * name, or `distinguishedName` when given a DN. Returns the group's
  * attributes, picking the default set unless `options.attributes`
  * overrides it.
+ * @param {String} groupName - Group identifier (DN or CN)
  * @param {Object} [options] - Search options
  * @param {String} [options.scope] - LDAP scope (`base`, `one`, or `sub`)
  * @param {String} [options.filter] - Extra filter AND-combined with the group filter
  * @param {Array<String>} [options.attributes] - Attributes to retrieve
  * @param {Number} [options.sizeLimit] - Maximum entries to return
  * @param {Number} [options.timelimit] - Maximum search time in seconds
- * @param {String} groupName - Group identifier (DN or CN)
  * @returns {Promise<Object|null>} The group attributes, or null if not found
  */
-LdapClient.prototype.findGroup = async function (options, groupName)
+LdapClient.prototype.findGroup = async function (groupName, options)
 {
   let requested = options?.attributes || DEFAULT_GROUP_ATTRIBUTES;
   let baseOpts = {
@@ -612,13 +612,13 @@ LdapClient.prototype.findGroups = async function (options)
 /**
  * Checks whether the given user exists in the directory. Internally performs
  * a `findUser` and casts the result to a boolean.
- * @param {Object} [options] - Search options (see {@link LdapClient#findUser})
  * @param {String} username - User identifier (DN, sAMAccountName, or UPN)
+ * @param {Object} [options] - Search options (see {@link LdapClient#findUser})
  * @returns {Promise<Boolean>} True if the user exists, false otherwise
  */
-LdapClient.prototype.userExists = async function (options, username)
+LdapClient.prototype.userExists = async function (username, options)
 {
-  let user = await this.findUser(options, username);
+  let user = await this.findUser(username, options);
   return !!user;
 };
 
@@ -626,13 +626,13 @@ LdapClient.prototype.userExists = async function (options, username)
 /**
  * Checks whether the given group exists in the directory. Internally performs
  * a `findGroup` and casts the result to a boolean.
- * @param {Object} [options] - Search options (see {@link LdapClient#findGroup})
  * @param {String} groupName - Group identifier (DN or CN)
+ * @param {Object} [options] - Search options (see {@link LdapClient#findGroup})
  * @returns {Promise<Boolean>} True if the group exists, false otherwise
  */
-LdapClient.prototype.groupExists = async function (options, groupName)
+LdapClient.prototype.groupExists = async function (groupName, options)
 {
-  let group = await this.findGroup(options, groupName);
+  let group = await this.findGroup(groupName, options);
   return !!group;
 };
 
@@ -643,12 +643,12 @@ LdapClient.prototype.groupExists = async function (options, groupName)
  * LDAP_MATCHING_RULE_IN_CHAIN (OID `1.2.840.113556.1.4.1941`) so no
  * client-side recursion is performed. Resolves both identifiers to their DNs
  * first; returns false when either cannot be resolved.
- * @param {Object} [options] - Reserved for future use; currently ignored
  * @param {String} username - User identifier (DN, sAMAccountName, or UPN)
  * @param {String} groupName - Group identifier (DN or CN)
+ * @param {Object} [options] - Reserved for future use; currently ignored
  * @returns {Promise<Boolean>} True if the user belongs to the group (directly or transitively)
  */
-LdapClient.prototype.isUserMemberOf = async function (options, username, groupName)
+LdapClient.prototype.isUserMemberOf = async function (username, groupName, options)
 {
   return await this._withClient(async client => {
     let userDN = await this._resolveDN(client, "user", username);
@@ -672,16 +672,16 @@ LdapClient.prototype.isUserMemberOf = async function (options, username, groupNa
  * Returns every group the user belongs to, recursing through nested
  * memberships. Implemented server-side via LDAP_MATCHING_RULE_IN_CHAIN so the
  * server walks the membership graph and returns the full transitive closure.
+ * @param {String} username - User identifier (DN, sAMAccountName, or UPN)
  * @param {Object} [options] - Search options
  * @param {String} [options.scope] - LDAP scope (`base`, `one`, or `sub`)
  * @param {String} [options.filter] - Extra filter AND-combined with the group filter
  * @param {Array<String>} [options.attributes] - Attributes to retrieve on each group
  * @param {Number} [options.sizeLimit] - Maximum entries to return
  * @param {Number} [options.timelimit] - Maximum search time in seconds
- * @param {String} username - User identifier (DN, sAMAccountName, or UPN)
  * @returns {Promise<Array<Object>>} Groups the user is a (transitive) member of
  */
-LdapClient.prototype.getGroupMembershipForUser = async function (options, username)
+LdapClient.prototype.getGroupMembershipForUser = async function (username, options)
 {
   return await this._withClient(async client => {
     let userDN = await this._resolveDN(client, "user", username);
@@ -706,16 +706,16 @@ LdapClient.prototype.getGroupMembershipForUser = async function (options, userna
  * Returns every parent group the given group belongs to, recursing up the
  * hierarchy. Implemented server-side via LDAP_MATCHING_RULE_IN_CHAIN on the
  * `member` attribute.
+ * @param {String} groupName - Group identifier (DN or CN)
  * @param {Object} [options] - Search options
  * @param {String} [options.scope] - LDAP scope (`base`, `one`, or `sub`)
  * @param {String} [options.filter] - Extra filter AND-combined with the group filter
  * @param {Array<String>} [options.attributes] - Attributes to retrieve on each group
  * @param {Number} [options.sizeLimit] - Maximum entries to return
  * @param {Number} [options.timelimit] - Maximum search time in seconds
- * @param {String} groupName - Group identifier (DN or CN)
  * @returns {Promise<Array<Object>>} Parent groups (transitive closure)
  */
-LdapClient.prototype.getGroupMembershipForGroup = async function (options, groupName)
+LdapClient.prototype.getGroupMembershipForGroup = async function (groupName, options)
 {
   return await this._withClient(async client => {
     let groupDN = await this._resolveDN(client, "group", groupName);
@@ -741,16 +741,16 @@ LdapClient.prototype.getGroupMembershipForGroup = async function (options, group
  * groups. Implemented server-side via LDAP_MATCHING_RULE_IN_CHAIN on the
  * `memberOf` attribute, so the matching is performed by the directory and
  * range retrieval is not needed on the group's `member` attribute.
+ * @param {String} groupName - Group identifier (DN or CN)
  * @param {Object} [options] - Search options
  * @param {String} [options.scope] - LDAP scope (`base`, `one`, or `sub`)
  * @param {String} [options.filter] - Extra filter AND-combined with the user filter
  * @param {Array<String>} [options.attributes] - Attributes to retrieve on each user
  * @param {Number} [options.sizeLimit] - Maximum entries to return
  * @param {Number} [options.timelimit] - Maximum search time in seconds
- * @param {String} groupName - Group identifier (DN or CN)
  * @returns {Promise<Array<Object>>} Users that are members (transitive) of the group
  */
-LdapClient.prototype.getUsersForGroup = async function (options, groupName)
+LdapClient.prototype.getUsersForGroup = async function (groupName, options)
 {
   return await this._withClient(async client => {
     let groupDN = await this._resolveDN(client, "group", groupName);
