@@ -168,7 +168,7 @@ class Utils
         await fs.chmod(realPath, 0o750); // Owner: rwx, Group: r-x, Others: ---
       }
       //
-      logger.log(`Executing script: ${scriptFile} at path: ${realPath}`);
+      logger.log("INFO", `Executing script: ${scriptFile} at path: ${realPath}`);
       //
       // Build execution configuration
       let command = isWindows ? realPath : "/bin/bash";
