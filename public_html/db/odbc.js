@@ -194,6 +194,10 @@ class ODBC extends DataModel
   isTransactionSupported(err)
   {
     if (this.pool.isTransactionSupported === undefined) {
+      // No error to inspect: commit/rollback run only after a successful begin
+      if (!err)
+        return (this.pool.isTransactionSupported = true);
+      //
       let sqlState = err.odbcErrors?.[0]?.state;
       let msg = (err.odbcErrors?.[0]?.message || err.message || "").toLowerCase();
       //
