@@ -197,7 +197,7 @@ class Utils
       }
     }
     catch (error) {
-      logger.error(`Script execution failed for ${scriptFile}: ${error.message}`);
+      logger.log("ERROR", `Script execution failed for ${scriptFile}: ${error.message}`);
       throw new Error(`Failed to execute script '${scriptFile}': ${error.message}`);
     }
   }
