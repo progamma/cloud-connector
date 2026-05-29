@@ -75,22 +75,26 @@ Main configuration is in `public_html/config.json` (active configuration, gitign
 
 ### File Structure for Classes
 Follow the pattern in existing classes. Key points:
-- `var Node = Node || {};` namespace declaration (Note: uses `Node` namespace, not `App`)
-- Constructor pattern: `Node.ClassName = function(parent, config) { ... }`
+- Top-level `require` for dependencies: `const Foo = require("./foo");`
+- ES6 class declaration: `class ClassName { constructor(parent, config) { ... } }`
+- No `Node` namespace wrapper — classes are local module bindings, exported via `module.exports`
 - Parent-child relationships for logging and communication
-- Export: `if (module) module.exports = Node.ClassName;`
+- Export: `module.exports = ClassName;`
+- For circular dependencies between sibling modules (e.g. `fs.js` ↔ `file.js`), use a module-level lazy reference: `let FS; ... constructor(...) { FS ??= require("./fs"); }`
 
 ### Variable Declarations
-- Use `let` for all new variable declarations (no `var` or `const`)
-- Namespace `Node` at file top must use `var`
-- This project uses only `Node` namespace (no `App` or `Client` - it's a pure backend service)
+- Use `let` for mutable variable declarations and `const` for module-level immutable bindings (`require` results, registries, etc.)
+- Avoid `var`
+- This project uses ES6 module bindings (no `Node`/`App`/`Client` namespaces — it's a pure backend service)
 
 ### Functions and Methods
-- Use prototype-based inheritance instead of ES6 classes
-- Use arrow functions instead of function declarations (eliminates need for `pthis`)
-- In arrow functions, omit parentheses for single parameters: `item => { ... }`
+- Use ES6 `class` syntax with `extends` for inheritance (not prototype-based inheritance)
+- Call the base constructor with `super(...)` before touching `this` in subclass constructors
+- Override methods using normal class method syntax; call the parent implementation with `super.method(...)`
+- Use `static` for class-level fields/methods (enums, registries, helper functions)
 - Use async/await syntax for asynchronous programming
-- Opening brace: new line for prototype methods, same line for local functions
+- Opening brace: new line for class methods (and `constructor`), same line for local/arrow functions
+- In arrow functions, omit parentheses for single parameters: `item => { ... }`
 
 ### Code Formatting
 - No empty lines in method bodies - use empty comment lines (`//`) to separate blocks
@@ -110,25 +114,41 @@ Follow the pattern in existing classes. Key points:
 
 ### Style Example
 ```javascript
-Node.MyClass.prototype.myMethod = function ()
+class MyClass
 {
-  let result = this.someValue?.property;
-  //
-  if (result)
-    return result;
-  //
-  let processData = () => {
-    let data = this.getData();
-    //
-    // Map items to their names (ternary for default)
-    return data ? data.map(item => item.name) : [];
+  /**
+   * Enum-style static field for class constants.
+   * @enum {String}
+   */
+  static commandTypes = {
+    open: "open",
+    close: "close"
   };
-  //
-  // Set status based on condition
-  this.status = this.isActive ? "active" : "inactive";
-  //
-  return processData();
-};
+
+
+  myMethod()
+  {
+    let result = this.someValue?.property;
+    //
+    if (result)
+      return result;
+    //
+    let processData = () => {
+      let data = this.getData();
+      //
+      // Map items to their names (ternary for default)
+      return data ? data.map(item => item.name) : [];
+    };
+    //
+    // Set status based on condition
+    this.status = this.isActive ? "active" : "inactive";
+    //
+    return processData();
+  }
+}
+
+
+module.exports = MyClass;
 ```
 
 
@@ -234,13 +254,16 @@ Extensible architecture:
 - **Configuration-driven**: All resources defined in `config.json`
 
 ### Command Pattern
-Components define command types as constants:
+Components define command types as `static` class fields:
 ```javascript
-Node.DataModel.commandTypes = {
-  open: "open",
-  execute: "execute",
-  listTables: "listTables"
-  // ...
+class DataModel
+{
+  static commandTypes = {
+    open: "open",
+    execute: "execute",
+    listTables: "listTables"
+    // ...
+  };
 }
 ```
 
