@@ -4,14 +4,11 @@
  * All rights reserved
  */
 
-var Node = Node || {};
-
-// Import local modules
-Node.DataModel = require("./datamodel");
+const DataModel = require("./datamodel");
 
 
 /**
- * @class Node.MySQL
+ * @class MySQL
  * @classdesc
  * MySQL database connector implementation for the Cloud Connector.
  * Provides MySQL-specific database operations including connection management,
@@ -25,8 +22,8 @@ Node.DataModel = require("./datamodel");
  * - **Native async/await**: Uses mysql2/promise for modern async patterns
  * - **Prepared statements**: Support for parameterized queries
  *
- * @extends Node.DataModel
- * @param {Node.CloudServer} parent - Parent CloudServer instance
+ * @extends DataModel
+ * @param {CloudServer} parent - Parent CloudServer instance
  * @param {Object} config - MySQL configuration
  * @param {String} config.name - Name of this datamodel instance
  * @param {String} config.APIKey - API key for authentication
@@ -37,139 +34,140 @@ Node.DataModel = require("./datamodel");
  * @param {String} config.connectionOptions.user - Database user
  * @param {String} config.connectionOptions.password - Database password
  */
-Node.MySQL = function (parent, config)
+class MySQL extends DataModel
 {
-  this.moduleName = "mysql2/promise";
-  Node.DataModel.call(this, parent, config);
-  //
-  // Date, time and datetime -> string
-  this.connectionOptions.dateStrings = true;
-};
-
-// Make Node.MySQL extend Node.DataModel
-Node.MySQL.prototype = new Node.DataModel();
-
-
-/**
- * Opens a connection to the MySQL database from the connection pool
- * @private
- * @returns {Promise<Object>} Database connection object from the pool
- * @throws {Error} Connection errors from the MySQL driver
- */
-Node.MySQL.prototype._openConnection = async function ()
-{
-  return await this.pool.getConnection();
-};
+  constructor(parent, config)
+  {
+    super(parent, config);
+    //
+    this.moduleName = "mysql2/promise";
+    //
+    // Date, time and datetime -> string
+    this.connectionOptions.dateStrings = true;
+  }
 
 
-/**
- * Initializes the MySQL connection pool using mysql2/promise.
- * @private
- * @returns {Promise<Object>} MySQL connection pool instance
- */
-Node.MySQL.prototype._initPool = async function ()
-{
-  return global["mysql2/promise"].createPool(this.connectionOptions);
-};
+  /**
+   * Opens a connection to the MySQL database from the connection pool
+   * @private
+   * @returns {Promise<Object>} Database connection object from the pool
+   * @throws {Error} Connection errors from the MySQL driver
+   */
+  async _openConnection()
+  {
+    return await this.pool.getConnection();
+  }
 
 
-/**
- * Closes the current database connection and returns it to the pool.
- * @private
- * @param {Object} conn - MySQL connection object to close
- */
-Node.MySQL.prototype._closeConnection = async function (conn)
-{
-  conn.release();
-};
+  /**
+   * Initializes the MySQL connection pool using mysql2/promise.
+   * @private
+   * @returns {Promise<Object>} MySQL connection pool instance
+   */
+  async _initPool()
+  {
+    return global["mysql2/promise"].createPool(this.connectionOptions);
+  }
 
 
-/**
- * Closes the MySQL connection pool and releases all resources.
- * @private
- */
-Node.MySQL.prototype._closePool = async function ()
-{
-  await this.pool.end();
-};
+  /**
+   * Closes the current database connection and returns it to the pool.
+   * @private
+   * @param {Object} conn - MySQL connection object to close
+   */
+  async _closeConnection(conn)
+  {
+    conn.release();
+  }
 
 
-/**
- * Executes a SQL command on the MySQL database.
- * Handles result set serialization and metadata extraction.
- * @private
- * @param {Object} conn - MySQL connection object
- * @param {Object} msg - Message containing SQL and parameters
- * @param {String} msg.sql - SQL statement to execute
- * @param {Array} [msg.pars] - Query parameters
- * @returns {Promise<Object>} Result set with cols, rows, rowsAffected, and insertId
- */
-Node.MySQL.prototype._execute = async function (conn, msg)
-{
-  let [result, fields] = await conn.query(msg.sql, msg.pars);
-  //
-  let rs = {
-    cols: [],
-    rows: []
-  };
-  //
-  if (result) {
-    // Serialize rows
-    for (let i = 0; i < result.length; i++) {
-      let row = [];
-      rs.rows.push(row);
+  /**
+   * Closes the MySQL connection pool and releases all resources.
+   * @private
+   */
+  async _closePool()
+  {
+    await this.pool.end();
+  }
+
+
+  /**
+   * Executes a SQL command on the MySQL database.
+   * Handles result set serialization and metadata extraction.
+   * @private
+   * @param {Object} conn - MySQL connection object
+   * @param {Object} msg - Message containing SQL and parameters
+   * @param {String} msg.sql - SQL statement to execute
+   * @param {Array} [msg.pars] - Query parameters
+   * @returns {Promise<Object>} Result set with cols, rows, rowsAffected, and insertId
+   */
+  async _execute(conn, msg)
+  {
+    let [result, fields] = await conn.query(msg.sql, msg.pars);
+    //
+    let rs = {
+      cols: [],
+      rows: []
+    };
+    //
+    if (result) {
+      // Serialize rows
+      for (let i = 0; i < result.length; i++) {
+        let row = [];
+        rs.rows.push(row);
+        //
+        if (i === 0)
+          rs.cols = Object.keys(result[i]);
+        //
+        for (let j = 0; j < rs.cols.length; j++)
+          row.push(this.convertValue(result[i][rs.cols[j]], fields[j]));
+      }
       //
-      if (i === 0)
-        rs.cols = Object.keys(result[i]);
-      //
-      for (let j = 0; j < rs.cols.length; j++)
-        row.push(this.convertValue(result[i][rs.cols[j]], fields[j]));
+      // Serialize extra info
+      rs.rowsAffected = result.affectedRows;
+      rs.insertId = result.insertId;
     }
     //
-    // Serialize extra info
-    rs.rowsAffected = result.affectedRows;
-    rs.insertId = result.insertId;
+    return rs;
   }
-  //
-  return rs;
-};
 
 
-/**
- * Begins a database transaction on the MySQL connection.
- * @private
- * @param {Object} conn - MySQL connection object
- * @throws {Error} Transaction start errors
- */
-Node.MySQL.prototype._beginTransaction = async function (conn)
-{
-  await conn.beginTransaction();
-};
+  /**
+   * Begins a database transaction on the MySQL connection.
+   * @private
+   * @param {Object} conn - MySQL connection object
+   * @throws {Error} Transaction start errors
+   */
+  async _beginTransaction(conn)
+  {
+    await conn.beginTransaction();
+  }
 
 
-/**
- * Commits the current database transaction.
- * @private
- * @param {Object} conn - MySQL connection object
- * @throws {Error} Transaction commit errors
- */
-Node.MySQL.prototype._commitTransaction = async function (conn)
-{
-  await conn.commit();
-};
+  /**
+   * Commits the current database transaction.
+   * @private
+   * @param {Object} conn - MySQL connection object
+   * @throws {Error} Transaction commit errors
+   */
+  async _commitTransaction(conn)
+  {
+    await conn.commit();
+  }
 
 
-/**
- * Rolls back the current database transaction.
- * @private
- * @param {Object} conn - MySQL connection object
- * @throws {Error} Transaction rollback errors
- */
-Node.MySQL.prototype._rollbackTransaction = async function (conn)
-{
-  await conn.rollback();
-};
+  /**
+   * Rolls back the current database transaction.
+   * @private
+   * @param {Object} conn - MySQL connection object
+   * @throws {Error} Transaction rollback errors
+   */
+  async _rollbackTransaction(conn)
+  {
+    await conn.rollback();
+  }
+}
 
 
 // Export module for node
-module.exports = Node.MySQL;
+module.exports = MySQL;
