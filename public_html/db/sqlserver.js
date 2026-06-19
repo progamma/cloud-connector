@@ -158,8 +158,9 @@ class SQLServer extends DataModel
     else {
       // Serialize extra info
       rs.rowsAffected = result.rowsAffected[0];
-      if (result.recordset)
-        rs.insertId = result.recordset && result.recordsets[0][0].Counter;
+      let row = result.recordsets?.[0]?.[0];
+      if (row && Object.prototype.hasOwnProperty.call(row, "Counter"))
+        rs.insertId = row.Counter;
     }
     //
     return rs;
