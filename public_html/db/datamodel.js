@@ -150,6 +150,25 @@ class DataModel
 
 
   /**
+   * Returns a human-readable descriptor of the loaded driver module and its
+   * version, reported alongside errors so the runtime can spot a version/install skew.
+   * @returns {String} Driver descriptor, e.g. "mssql@12.2.1"
+   */
+  getDriverInfo()
+  {
+    let version;
+    try {
+      version = require(`${this.moduleName}/package.json`).version;
+    }
+    catch {
+      version = "unknown";
+    }
+    //
+    return `${this.moduleName}@${version}`;
+  }
+
+
+  /**
    * Initializes the database connection pool if not already created.
    * Delegates to driver-specific _initPool implementation.
    */

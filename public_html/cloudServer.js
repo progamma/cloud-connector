@@ -562,10 +562,11 @@ class CloudServer
       }
     };
     data.server = server;
+    let dm;
     try {
       let result;
       if (data.dm) {
-        let dm = this.dataModelByName(data.dm);
+        dm = this.dataModelByName(data.dm);
         if (!dm)
           throw new Error(`Datamodel '${data.dm}' not found`);
         //
@@ -600,9 +601,15 @@ class CloudServer
       msg.data.result = result;
     }
     catch (e) {
-      e = e.message || e.toString();
-      this.log("ERROR", `Error executing '${data.cmd}': ${e}`);
-      msg.data.error = e;
+      let stack = e.stack;
+      this.log("ERROR", `Error executing '${data.cmd}': ${stack || e.message || e}`);
+      msg.data.error = e.message || e.toString();
+      //
+      // Forward the connector-side stack and driver version so the runtime can
+      // diagnose a version/install skew that the bare error message would hide
+      msg.data.errorStack = stack;
+      if (dm)
+        msg.data.driverInfo = dm.getDriverInfo();
     }
     //
     server.sendMessage(msg);
