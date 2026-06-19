@@ -67,6 +67,7 @@ class Oracle extends DataModel
     // Date, time and datetime -> string
     oracledb.fetchAsString = [oracledb.CLOB];
     oracledb.extendedMetaData = true;
+    oracledb.poolTimeout = 30;
     //
     if (this.maxRows)
       oracledb.maxRows = this.maxRows;

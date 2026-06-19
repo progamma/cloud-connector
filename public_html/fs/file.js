@@ -113,7 +113,7 @@ class File
     //
     // Write utf-8 BOM
     if (this.encoding === "utf-8")
-      await this.write("﻿");
+      await this.write("\ufeff");
   }
 
 

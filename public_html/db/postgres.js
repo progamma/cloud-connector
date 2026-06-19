@@ -63,8 +63,7 @@ class Postgres extends DataModel
     pg.types.setTypeParser(pg.types.builtins.DATE, parseDate);
     pg.types.setTypeParser(pg.types.builtins.TIME, parseDate);
     pg.types.setTypeParser(pg.types.builtins.TIMETZ, parseDate);
-    pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, parseDate);
-  //  pg.types.setTypeParser(pg.types.builtins.TIMESTAMPTZ, parseDate);
+    pg.types.setTypeParser(pg.types.builtins.TIMESTAMPTZ, parseDate);
     //
     return await this.pool.connect();
   }

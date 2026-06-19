@@ -180,7 +180,7 @@ class Directory
    */
   async zip()
   {
-    let zipFile = this.fs.file(this.path + ".zip");
+    let zipFile = this.fs.file(`${this.path}.zip`);
     await this.fs.zipDirectory(this, zipFile);
     return zipFile;
   }

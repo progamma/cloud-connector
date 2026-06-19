@@ -77,7 +77,20 @@ class MySQL extends DataModel
    */
   async _closeConnection(conn)
   {
-    conn.release();
+    try {
+      conn.release();
+    }
+    catch {
+      // Ensure the connection is destroyed if release fails
+      // This removes corrupted connections from the pool
+      try {
+        conn.destroy();
+      }
+      catch {
+        // Ignore destroy errors - connection is already broken
+      }
+      // Don't re-throw - we've handled the error by destroying the connection
+    }
   }
 
 

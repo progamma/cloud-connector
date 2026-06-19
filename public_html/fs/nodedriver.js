@@ -798,13 +798,9 @@ class NodeDriver extends FS
       //
       response = await require("axios")(opts);
       if (download) {
+        let {pipeline} = require("stream/promises");
         let writeStream = require("fs").createWriteStream(options._file.absolutePath);
-        response.data.pipe(writeStream);
-        //
-        await new Promise((resolve, reject) => {
-          writeStream.on("finish", resolve);
-          writeStream.on("error", reject);
-        });
+        await pipeline(response.data, writeStream);
       }
       //
       return {
