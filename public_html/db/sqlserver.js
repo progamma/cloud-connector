@@ -230,8 +230,8 @@ class SQLServer extends DataModel
     let tr = new mssql.Transaction(this.pool);
     await tr.begin();
     //
-    this.onRollback = () => this.parent.log("WARNING", `transaction on ${this.name} aborted unexpectedly`);
-    tr.on("rollback", this.onRollback);
+    tr._onRollback = () => this.parent.log("WARNING", `transaction on ${this.name} aborted unexpectedly`);
+    tr.on("rollback", tr._onRollback);
     //
     return tr;
   }
@@ -256,8 +256,30 @@ class SQLServer extends DataModel
    */
   async _rollbackTransaction(conn)
   {
-    conn.transaction.off("rollback", this.onRollback);
+    let handler = conn.transaction._onRollback;
+    if (handler)
+      conn.transaction.off("rollback", handler);
     await conn.transaction.rollback();
+  }
+
+
+  /**
+   * Appends the tedious transport version to the driver descriptor, so a
+   * mssql/tedious skew (the cause of the rollback-listener error) is visible.
+   * @returns {String} Driver descriptor, e.g. "mssql@12.2.1, tedious@19.2.1"
+   * @override
+   */
+  getDriverInfo()
+  {
+    let info = super.getDriverInfo();
+    try {
+      info += `, tedious@${require("tedious/package.json").version}`;
+    }
+    catch {
+      // tedious version not resolvable
+    }
+    //
+    return info;
   }
 
 
