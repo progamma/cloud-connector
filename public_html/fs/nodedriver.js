@@ -733,6 +733,8 @@ class NodeDriver extends FS
       validateStatus: () => true // for back compatibility
     };
     //
+    // Keep a reference to the upload stream so its file handle can be closed even if the request fails
+    let uploadStream;
     try {
       let response;
       //
@@ -768,7 +770,8 @@ class NodeDriver extends FS
         delete opts.params;
         //
         if (upload) {
-          formData.append(options._nameField, require("fs").createReadStream(options._file.absolutePath), {
+          uploadStream = require("fs").createReadStream(options._file.absolutePath);
+          formData.append(options._nameField, uploadStream, {
             filename: options._fileName,
             contentType: options._fileContentType
           });
@@ -813,6 +816,10 @@ class NodeDriver extends FS
       return {
         error: e
       };
+    }
+    finally {
+      // Close the upload file handle even when the request failed (on success axios already drained it)
+      uploadStream?.destroy();
     }
   }
 
