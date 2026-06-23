@@ -351,52 +351,32 @@ class NodeDriver extends FS
     if (this.permissions === FS.permissions.read)
       throw new Error("Permission denied");
     //
-    let filePath = file.absolutePath;
-    let zipPath = zipFile.absolutePath;
+    // Create the archive object
+    let output = require("fs").createWriteStream(zipFile.absolutePath);
+    let archive = require("archiver")("zip"); //license and detail: https://github.com/ctalkington/node-archiver
     //
-    await new Promise((resolve, reject) => {
-      let error;
-      let done = () => error ? reject(error) : resolve();
-      //
-      // Create the write stream
-      let output = require("fs").createWriteStream(zipPath);
-      //
-      // Create the archive object
-      let archive = require("archiver")("zip"); //license and detail: https://github.com/ctalkington/node-archiver
-      //
-      // Function that deletes the new zip file (if there is an error)
-      let deleteVoidZip = err => {
-        error = err;
-        zipFile.remove();
-        archive.finalize();
-      };
-      //
-      // Listen to next error event
-      output.once("error", deleteVoidZip);
-      //
-      // Listen to error event
-      archive.on("error", deleteVoidZip);
-      //
-      output.on("open", () => {
-        // Push data into the archive
-        archive.pipe(output);
-        //
-        let input = require("fs").createReadStream(filePath);
-        //
-        // Listen to error event
-        input.on("error", deleteVoidZip);
-        //
-        // Listen to error event
-        input.on("open", () => {
-          // Get the file name
-          let sepPath = file.path.split("/");
-          archive.append(input, {name: sepPath[sepPath.length - 1]}).finalize();
-        });
-        //
-        // Listen to close finalization archive
-        output.on("close", done);
-      });
-    });
+    try {
+      // pipeline resolves when the ZIP is fully written, rejecting on archive/output errors.
+      // Route a read error of the source file (e.g. missing file) into the archive so pipeline
+      // rejects, preserving the original "missing input -> fail and delete the zip" behaviour
+      let {pipeline} = require("stream/promises");
+      let written = pipeline(archive, output);
+      let sepPath = file.path.split("/");
+      let input = require("fs").createReadStream(file.absolutePath);
+      input.on("error", err => archive.destroy(err));
+      archive.append(input, {name: sepPath[sepPath.length - 1]});
+      archive.finalize();
+      await written;
+    }
+    catch (err) {
+      // On error delete the partial/void zip (best effort), then propagate the original error
+      try {
+        await zipFile.remove();
+      }
+      catch {
+      }
+      throw err;
+    }
   }
 
 
@@ -568,33 +548,20 @@ class NodeDriver extends FS
     let archive = require("archiver")("zip");
     //
     try {
-      // Create the write stream
+      // Create the write stream; pipeline resolves when the ZIP is fully written, rejecting on
+      // archive/output errors
       let output = require("fs").createWriteStream(zipPath);
+      let {pipeline} = require("stream/promises");
+      let written = pipeline(archive, output);
       //
-      await new Promise((resolve, reject) => {
-        // Listen to next error event
-        output.once("error", reject);
-        //
-        // Listen to close finalization archive
-        output.on("close", resolve);
-        //
-        // Listen to error event
-        archive.on("error", reject);
-        //
-        output.on("open", () => {
-          // Push data into the archive
-          archive.pipe(output);
-          //
-          // Add to archive the folder to compress
-          archive.glob("**/*", {cwd: path});
-          //
-          archive.finalize();
-        });
-      });
+      // Add to archive the folder to compress
+      archive.glob("**/*", {cwd: path});
+      archive.finalize();
+      await written;
     }
     catch (e) {
+      // On error remove the partial/void zip (ignore cleanup failures), then propagate
       try {
-        archive.finalize();
         await zipFile.remove();
       }
       catch {
