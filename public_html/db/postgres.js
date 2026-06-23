@@ -57,13 +57,16 @@ class Postgres extends DataModel
     // Bigserial and bigint -> integer
     pg.types.setTypeParser(pg.types.builtins.INT8, parseInt);
     //
-    // Date, time and datetime -> string
+    // Zone-less date/time -> string (keep as-is): without an offset the native parser would
+    // interpret them in the server local zone and shift the instant.
+    // TIMESTAMPTZ is left to the native parser: it carries an explicit offset, so the resulting Date
+    // is an unambiguous absolute instant; it is serialized over the wire as an ISO string, consistent
+    // with the timezone-aware types of the other drivers (sqlserver DATETIMEOFFSET, oracle TIMESTAMP_TZ).
     let parseDate = val => val;
     pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, parseDate);
     pg.types.setTypeParser(pg.types.builtins.DATE, parseDate);
     pg.types.setTypeParser(pg.types.builtins.TIME, parseDate);
     pg.types.setTypeParser(pg.types.builtins.TIMETZ, parseDate);
-    pg.types.setTypeParser(pg.types.builtins.TIMESTAMPTZ, parseDate);
     //
     return await this.pool.connect();
   }
