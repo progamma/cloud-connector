@@ -96,14 +96,15 @@ class Oracle extends DataModel
    */
   async _initPool()
   {
-    // Enable Thick mode before the first pool is created, if requested via env var.
-    // initOracleClient is process-wide and must be called once before any createPool/getConnection.
+    // Enable Thick mode before the first pool is created, if requested via env var. initOracleClient is
+    // process-wide and must run once before any createPool; the client it loads must be the same one loaded
+    // by the other processes on this machine, or they can no longer open their own connections.
     if (!Oracle.thickInitialized && process.env.ORACLE_INSTANT_CLIENT_DIR) {
       try {
         oracledb.initOracleClient({libDir: process.env.ORACLE_INSTANT_CLIENT_DIR});
       }
       catch (e) {
-        throw new Error(`Oracle Thick mode initialization failed: ${e.message}. Verify that ORACLE_INSTANT_CLIENT_DIR points to a valid Oracle Instant Client installation matching the Node.js architecture.`, {cause: e});
+        throw new Error(`Oracle Thick mode initialization failed: ${e.message}. Verify that ORACLE_INSTANT_CLIENT_DIR points to an Oracle client directory matching the Node.js architecture, and that it is the same client already loaded by the other processes on this machine.`, {cause: e});
       }
       Oracle.thickInitialized = true;
     }
@@ -113,7 +114,7 @@ class Oracle extends DataModel
     }
     catch (e) {
       if (e.message?.includes("NJS-138"))
-        throw new Error("The Oracle server version is older than 12.1 and is not supported in node-oracledb Thin mode. Install Oracle Instant Client on the IDS server and set the ORACLE_INSTANT_CLIENT_DIR environment variable to the client directory path to enable Thick mode.", {cause: e});
+        throw new Error("The Oracle server version is older than 12.1 and is not supported in node-oracledb Thin mode. Set the ORACLE_INSTANT_CLIENT_DIR environment variable to an Oracle client directory to enable Thick mode. Where other processes on this machine already load an Oracle client, point the variable to that same client, that is to the bin directory of its Oracle Home, because two client versions on the same machine stop those processes from opening their own connections. Install a separate Oracle Instant Client only where no Oracle client is present.", {cause: e});
       throw e;
     }
   }
