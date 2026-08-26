@@ -130,6 +130,7 @@ class Oracle extends DataModel
       let onlyLibDir = ["win32", "darwin"].includes(process.platform);
       let attempts = onlyLibDir ? [{libDir}] : [{}, {libDir}];
       let failure;
+      let lastFailure;
       for (let clientOptions of attempts) {
         try {
           // A failed initOracleClient leaves node-oracledb uninitialized, so the next attempt starts over
@@ -141,12 +142,19 @@ class Oracle extends DataModel
           // The first failure is the one that describes the mechanism the platform is meant to use
           if (!failure)
             failure = e;
+          lastFailure = e;
         }
       }
       //
       if (failure) {
         let searched = onlyLibDir ? `in ${libDir} only` : `in the loader search path and then in ${libDir}`;
-        throw new Error(`Oracle Thick mode initialization failed: ${failure.message}. The Oracle client libraries were looked for ${searched}, and they must match the Node.js architecture. ${Oracle.getThickModeHelp()}`, {cause: failure});
+        let message = `Oracle Thick mode initialization failed: ${failure.message}. The Oracle client libraries were looked for ${searched}, and they must match the Node.js architecture.`;
+        //
+        // Where the two attempts fail for different reasons, the second one names the file actually opened
+        if (lastFailure.message !== failure.message)
+          message += ` The attempt in ${libDir} failed with: ${lastFailure.message}`;
+        //
+        throw new Error(`${message} ${Oracle.getThickModeHelp()}`, {cause: failure});
       }
       //
       Oracle.thickInitialized = true;
