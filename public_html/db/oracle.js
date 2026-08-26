@@ -92,7 +92,7 @@ class Oracle extends DataModel
    * How the client is found depends on the platform: node-oracledb loads it from the directory handed to
    * initOracleClient only on Windows and macOS, while elsewhere the libraries must already be in the loader
    * search path when the process starts.
-   * @returns {String} the sentences to append to a message that asks the user to enable Thick mode
+   * @returns {String} the sentences to append to a message about enabling Thick mode on this machine
    */
   static getThickModeHelp()
   {
@@ -106,7 +106,7 @@ class Oracle extends DataModel
     if (process.platform === "darwin")
       return `Set the ORACLE_INSTANT_CLIENT_DIR environment variable to the directory the Oracle client libraries are loaded from, which for an Instant Client is the directory it was unpacked into, to enable Thick mode. ${sameClient}`;
     //
-    return `To enable Thick mode on this platform the Oracle client libraries must already be in the loader search path when the process starts, so add them with ldconfig or LD_LIBRARY_PATH, and set the ORACLE_INSTANT_CLIENT_DIR environment variable to that same directory. ${sameClient}`;
+    return `To enable Thick mode on this platform the Oracle client libraries must already be in the loader search path when the process starts, so add them with ldconfig or LD_LIBRARY_PATH, and set the ORACLE_INSTANT_CLIENT_DIR environment variable to that same directory: here its value does not locate the client, it only asks for Thick mode. ${sameClient}`;
   }
 
 
@@ -123,11 +123,18 @@ class Oracle extends DataModel
     // process-wide and must run once before any createPool; the client it loads must be the same one loaded
     // by the other processes on this machine, or they can no longer open their own connections.
     if (!Oracle.thickInitialized && process.env.ORACLE_INSTANT_CLIENT_DIR) {
+      // libDir is honoured only on Windows and macOS, and it narrows the search to that directory alone:
+      // elsewhere the loader search path the process started with is the only mechanism, so there the variable
+      // just asks for Thick mode and handing over its value would rule out the very libraries that do work.
+      let clientOptions = {};
+      if (["win32", "darwin"].includes(process.platform))
+        clientOptions.libDir = process.env.ORACLE_INSTANT_CLIENT_DIR;
+      //
       try {
-        oracledb.initOracleClient({libDir: process.env.ORACLE_INSTANT_CLIENT_DIR});
+        oracledb.initOracleClient(clientOptions);
       }
       catch (e) {
-        throw new Error(`Oracle Thick mode initialization failed: ${e.message}. Verify that ORACLE_INSTANT_CLIENT_DIR points to an Oracle client directory matching the Node.js architecture, and that it is the same client already loaded by the other processes on this machine.`, {cause: e});
+        throw new Error(`Oracle Thick mode initialization failed: ${e.message}. The Oracle client must match the Node.js architecture. ${Oracle.getThickModeHelp()}`, {cause: e});
       }
       Oracle.thickInitialized = true;
     }
