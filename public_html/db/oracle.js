@@ -88,6 +88,29 @@ class Oracle extends DataModel
 
 
   /**
+   * Builds the instructions for making an Oracle client available to node-oracledb Thick mode.
+   * How the client is found depends on the platform: node-oracledb loads it from the directory handed to
+   * initOracleClient only on Windows and macOS, while elsewhere the libraries must already be in the loader
+   * search path when the process starts.
+   * @returns {String} the sentences to append to a message that asks the user to enable Thick mode
+   */
+  static getThickModeHelp()
+  {
+    // Whatever the platform, the client has to be the one the machine already uses: see _initPool
+    let sameClient = "The client must be the same one already loaded by the other processes on this machine, because two client versions on the same machine stop those processes from opening their own connections. Install a separate Oracle Instant Client only where no Oracle client is present.";
+    //
+    // An Oracle Home keeps its libraries in bin, an Instant Client in the directory it was unpacked into
+    if (process.platform === "win32")
+      return `Set the ORACLE_INSTANT_CLIENT_DIR environment variable to the directory the Oracle client libraries are loaded from, which is the bin directory of an Oracle Home or the Instant Client directory itself, to enable Thick mode. ${sameClient}`;
+    //
+    if (process.platform === "darwin")
+      return `Set the ORACLE_INSTANT_CLIENT_DIR environment variable to the directory the Oracle client libraries are loaded from, which for an Instant Client is the directory it was unpacked into, to enable Thick mode. ${sameClient}`;
+    //
+    return `To enable Thick mode on this platform the Oracle client libraries must already be in the loader search path when the process starts, so add them with ldconfig or LD_LIBRARY_PATH, and set the ORACLE_INSTANT_CLIENT_DIR environment variable to that same directory. ${sameClient}`;
+  }
+
+
+  /**
    * Initializes the Oracle connection pool using oracledb.
    * On first pool creation, if the ORACLE_INSTANT_CLIENT_DIR environment variable is set,
    * enables node-oracledb Thick mode to support Oracle servers older than 12.1.
@@ -114,7 +137,7 @@ class Oracle extends DataModel
     }
     catch (e) {
       if (e.message?.includes("NJS-138"))
-        throw new Error("The Oracle server version is older than 12.1 and is not supported in node-oracledb Thin mode. Set the ORACLE_INSTANT_CLIENT_DIR environment variable to an Oracle client directory to enable Thick mode. Where other processes on this machine already load an Oracle client, point the variable to that same client, that is to the bin directory of its Oracle Home, because two client versions on the same machine stop those processes from opening their own connections. Install a separate Oracle Instant Client only where no Oracle client is present.", {cause: e});
+        throw new Error(`The Oracle server version is older than 12.1 and is not supported in node-oracledb Thin mode. ${Oracle.getThickModeHelp()}`, {cause: e});
       throw e;
     }
   }
