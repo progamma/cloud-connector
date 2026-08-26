@@ -124,8 +124,9 @@ class Oracle extends DataModel
     // by the other processes on this machine, or they can no longer open their own connections.
     if (!Oracle.thickInitialized && process.env.ORACLE_INSTANT_CLIENT_DIR) {
       // Handing over libDir narrows the search to that directory alone, and only on Windows and macOS is that
-      // the mechanism. Elsewhere the loader search path the process started with comes first, and the directory
-      // gets its turn only if that fails, because a client unpacked there and never registered loads from it.
+      // the mechanism. Elsewhere node-oracledb searches on its own first - its own binary directory, the loader
+      // search path, then $ORACLE_HOME/lib - and the configured directory has its turn only if all of them fail,
+      // because a client unpacked there and never registered loads from it and from nowhere else.
       let libDir = process.env.ORACLE_INSTANT_CLIENT_DIR;
       let onlyLibDir = ["win32", "darwin"].includes(process.platform);
       let attempts = onlyLibDir ? [{libDir}] : [{}, {libDir}];
@@ -147,7 +148,7 @@ class Oracle extends DataModel
       }
       //
       if (failure) {
-        let searched = onlyLibDir ? `in ${libDir} only` : `in the loader search path and then in ${libDir}`;
+        let searched = onlyLibDir ? `in ${libDir} only` : `in the loader search path and ORACLE_HOME, and then in ${libDir}`;
         let message = `Oracle Thick mode initialization failed: ${failure.message}. The Oracle client libraries were looked for ${searched}, and they must match the Node.js architecture.`;
         //
         // Where the two attempts fail for different reasons, the second one names the file actually opened
