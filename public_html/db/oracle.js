@@ -89,9 +89,9 @@ class Oracle extends DataModel
 
   /**
    * Builds the instructions for making an Oracle client available to node-oracledb Thick mode.
-   * How the client is found depends on the platform: node-oracledb loads it from the directory handed to
-   * initOracleClient only on Windows and macOS, while elsewhere the libraries must already be in the loader
-   * search path when the process starts.
+   * How the client is found depends on the platform: on Windows and macOS the directory handed to
+   * initOracleClient is the mechanism, while elsewhere the libraries are meant to be in the loader search
+   * path when the process starts.
    * @returns {String} the sentences to append to a message about enabling Thick mode on this machine
    */
   static getThickModeHelp()
@@ -106,7 +106,7 @@ class Oracle extends DataModel
     if (process.platform === "darwin")
       return `Set the ORACLE_INSTANT_CLIENT_DIR environment variable to the directory the Oracle client libraries are loaded from, which for an Instant Client is the directory it was unpacked into, to enable Thick mode. ${sameClient}`;
     //
-    return `To enable Thick mode on this platform the Oracle client libraries must already be in the loader search path when the process starts, so add them with ldconfig or LD_LIBRARY_PATH, and set the ORACLE_INSTANT_CLIENT_DIR environment variable to that same directory: here its value does not locate the client, it only asks for Thick mode. ${sameClient}`;
+    return `To enable Thick mode on this platform the Oracle client libraries must already be in the loader search path when the process starts, so add them with ldconfig or LD_LIBRARY_PATH, and set the ORACLE_INSTANT_CLIENT_DIR environment variable to that same directory. ${sameClient}`;
   }
 
 
@@ -123,19 +123,32 @@ class Oracle extends DataModel
     // process-wide and must run once before any createPool; the client it loads must be the same one loaded
     // by the other processes on this machine, or they can no longer open their own connections.
     if (!Oracle.thickInitialized && process.env.ORACLE_INSTANT_CLIENT_DIR) {
-      // libDir is honoured only on Windows and macOS, and it narrows the search to that directory alone:
-      // elsewhere the loader search path the process started with is the only mechanism, so there the variable
-      // just asks for Thick mode and handing over its value would rule out the very libraries that do work.
-      let clientOptions = {};
-      if (["win32", "darwin"].includes(process.platform))
-        clientOptions.libDir = process.env.ORACLE_INSTANT_CLIENT_DIR;
+      // Handing over libDir narrows the search to that directory alone, and only on Windows and macOS is that
+      // the mechanism. Elsewhere the loader search path the process started with comes first, and the directory
+      // gets its turn only if that fails, because a client unpacked there and never registered loads from it.
+      let libDir = process.env.ORACLE_INSTANT_CLIENT_DIR;
+      let onlyLibDir = ["win32", "darwin"].includes(process.platform);
+      let attempts = onlyLibDir ? [{libDir}] : [{}, {libDir}];
+      let failure;
+      for (let clientOptions of attempts) {
+        try {
+          // A failed initOracleClient leaves node-oracledb uninitialized, so the next attempt starts over
+          oracledb.initOracleClient(clientOptions);
+          failure = undefined;
+          break;
+        }
+        catch (e) {
+          // The first failure is the one that describes the mechanism the platform is meant to use
+          if (!failure)
+            failure = e;
+        }
+      }
       //
-      try {
-        oracledb.initOracleClient(clientOptions);
+      if (failure) {
+        let searched = onlyLibDir ? `in ${libDir} only` : `in the loader search path and then in ${libDir}`;
+        throw new Error(`Oracle Thick mode initialization failed: ${failure.message}. The Oracle client libraries were looked for ${searched}, and they must match the Node.js architecture. ${Oracle.getThickModeHelp()}`, {cause: failure});
       }
-      catch (e) {
-        throw new Error(`Oracle Thick mode initialization failed: ${e.message}. The Oracle client must match the Node.js architecture. ${Oracle.getThickModeHelp()}`, {cause: e});
-      }
+      //
       Oracle.thickInitialized = true;
     }
     //
