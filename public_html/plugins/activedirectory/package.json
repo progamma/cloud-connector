@@ -2,6 +2,6 @@
   "name": "ActiveDirectory",
   "version": "1.0.0",
   "dependencies": {
-    "ldapts": "8.1.8"
+    "ldapts": "9.0.0"
   }
 }
