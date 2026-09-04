@@ -1,138 +1,138 @@
 # Cloud Connector
 
-## Indice
+## Table of Contents
 
-- [Descrizione](#descrizione)
-- [Caratteristiche Principali](#caratteristiche-principali)
-- [Requisiti di Sistema](#requisiti-di-sistema)
-- [Installazione](#installazione)
-  - [Download e Setup](#download-e-setup)
-  - [Configurazione Variabili d'Ambiente](#configurazione-variabili-dambiente)
-  - [Installazione Dipendenze](#installazione-dipendenze)
-- [Configurazione](#configurazione)
-  - [Struttura config.json](#struttura-configjson)
-  - [Sicurezza Password](#sicurezza-password)
-  - [Configurazione Server Remoti](#configurazione-server-remoti)
-  - [Configurazione Database](#configurazione-database)
-  - [Configurazione File System](#configurazione-file-system)
-  - [Configurazione Plugin](#configurazione-plugin)
-- [Installazione come Servizio](#installazione-come-servizio)
-- [Sicurezza](#sicurezza)
-  - [Utente Database](#utente-database)
-  - [Utente Processi](#utente-processi)
-- [Architettura](#architettura)
-  - [Struttura del Progetto](#struttura-del-progetto)
-  - [Flusso di Comunicazione](#flusso-di-comunicazione)
-- [Controllo Remoto](#controllo-remoto)
+- [Description](#description)
+- [Key Features](#key-features)
+- [System Requirements](#system-requirements)
+- [Installation](#installation)
+  - [Download and Setup](#download-and-setup)
+  - [Configuring Environment Variables](#configuring-environment-variables)
+  - [Installing Dependencies](#installing-dependencies)
+- [Configuration](#configuration)
+  - [config.json Structure](#configjson-structure)
+  - [Password Security](#password-security)
+  - [Remote Servers Configuration](#remote-servers-configuration)
+  - [Database Configuration](#database-configuration)
+  - [File System Configuration](#file-system-configuration)
+  - [Plugin Configuration](#plugin-configuration)
+- [Installing as a Service](#installing-as-a-service)
+- [Security](#security)
+  - [Database User](#database-user)
+  - [Process User](#process-user)
+- [Architecture](#architecture)
+  - [Project Structure](#project-structure)
+  - [Communication Flow](#communication-flow)
+- [Remote Control](#remote-control)
 - [Troubleshooting](#troubleshooting)
-- [Performance e Best Practices](#performance-e-best-practices)
-- [Esempi di Configurazione](#esempi-di-configurazione)
-- [Documentazione Aggiuntiva](#documentazione-aggiuntiva)
+- [Performance and Best Practices](#performance-and-best-practices)
+- [Configuration Examples](#configuration-examples)
+- [Additional Documentation](#additional-documentation)
 
-## Descrizione
+## Description
 
-Il Cloud Connector è uno strumento che permette di connettersi a uno o più database remoti da applicazioni sviluppate con Instant Developer Cloud.
+The Cloud Connector is a tool that lets applications built with Instant Developer Cloud connect to one or more remote databases.
 
-Normalmente sono le applicazioni che si connettono al database ed è necessario aprire almeno una porta verso il mondo esterno sul database server. Con il Cloud Connector installato sul server dove risiede il database, o in un server della stessa rete locale, è il database stesso ad aprire una connessione verso l'applicazione. Questo fa sì che non occorra aprire specifiche porte verso l'esterno aumentando di molto la sicurezza.
+Normally it is the application that connects to the database, which means the database server has to expose at least one port to the outside world. With the Cloud Connector installed on the server hosting the database, or on a server in the same local network, it is the database that opens a connection to the application. No specific port needs to be opened to the outside, which greatly increases security.
 
-## Caratteristiche Principali
+## Key Features
 
-- **Connessione inversa**: Nessuna porta in ingresso da aprire sul firewall
-- **Multi-database**: Supporto per MySQL, PostgreSQL, SQL Server, Oracle, ODBC
-- **File System Sharing**: Condivisione sicura di directory locali
-- **Plugin System**: Architettura estensibile (es. Active Directory)
-- **Crittografia**: Password criptate con chiave personalizzabile
-- **Socket.IO**: Comunicazione real-time bidirezionale
+- **Reverse connection**: No inbound port to open on the firewall
+- **Multi-database**: Support for MySQL, PostgreSQL, SQL Server, Oracle, ODBC
+- **File System Sharing**: Secure sharing of local directories
+- **Plugin System**: Extensible architecture (e.g. Active Directory)
+- **Encryption**: Passwords encrypted with a customizable key
+- **Socket.IO**: Real-time bidirectional communication
 
-## Requisiti di Sistema
+## System Requirements
 
-- **Node.js**: v22.21.1 o superiore
-- **Versione**: 26.0.0
-- **Compatibilità**: Instant Developer Cloud, IndeRT
-- **Sistemi Operativi**: Windows, Linux, macOS
+- **Node.js**: v22.21.1 or later
+- **Version**: 26.0.0
+- **Compatibility**: Instant Developer Cloud, IndeRT
+- **Operating systems**: Windows, Linux, macOS
 
-## Installazione
+## Installation
 
-### Download e Setup
+### Download and Setup
 
-1. **Installare Node.js** v22.21.1 o superiore dal sito [nodejs.org](https://nodejs.org)
+1. **Install Node.js** v22.21.1 or later from [nodejs.org](https://nodejs.org)
 
-2. **Scaricare il Cloud Connector**:
+2. **Download the Cloud Connector**:
    ```bash
    wget https://github.com/progamma/cloud-connector/archive/refs/heads/master.zip
-   # oppure scarica manualmente dal link
+   # or download it manually from the link
    ```
 
-3. **Estrarre l'archivio** nella directory desiderata
+3. **Extract the archive** into the directory of your choice
 
-4. **Preparare la configurazione**:
+4. **Prepare the configuration**:
    ```bash
    cd cloud-connector/public_html
    cp config_example.json config.json
    ```
 
-### Configurazione Variabili d'Ambiente
+### Configuring Environment Variables
 
-Prima di avviare il Cloud Connector, è necessario configurare la variabile d'ambiente per la chiave di crittografia.
+Before starting the Cloud Connector you must set the environment variable holding the encryption key.
 
-**CC_KEY è una variabile d'ambiente** che deve essere configurata nel sistema operativo prima di avviare il Cloud Connector. La sintassi `%CC_KEY%` nel config.json indica al sistema di leggere il valore dalla variabile d'ambiente chiamata `CC_KEY`.
+**CC_KEY is an environment variable** and must be set in the operating system before the Cloud Connector starts. The `%CC_KEY%` syntax in config.json tells the connector to read the value from the environment variable named `CC_KEY`.
 
 #### Windows (Command Prompt):
 ```batch
-set CC_KEY=la-tua-chiave-segreta-di-almeno-32-caratteri
+set CC_KEY=your-secret-key-of-at-least-32-characters
 ```
 
 #### Windows (PowerShell):
 ```powershell
-$env:CC_KEY="la-tua-chiave-segreta-di-almeno-32-caratteri"
+$env:CC_KEY="your-secret-key-of-at-least-32-characters"
 ```
 
 #### Linux/Mac:
 ```bash
-export CC_KEY="la-tua-chiave-segreta-di-almeno-32-caratteri"
+export CC_KEY="your-secret-key-of-at-least-32-characters"
 ```
 
-#### Per rendere la variabile permanente:
-- **Windows**: Pannello di controllo → Sistema → Impostazioni avanzate di sistema → Variabili d'ambiente
-- **Linux/Mac**: Aggiungere l'export in `~/.bashrc`, `~/.bash_profile` o `/etc/environment`
+#### Making the variable permanent:
+- **Windows**: Control Panel → System → Advanced system settings → Environment Variables
+- **Linux/Mac**: Add the export to `~/.bashrc`, `~/.bash_profile` or `/etc/environment`
 
-**IMPORTANTE**:
-- La chiave deve essere lunga **almeno 32 caratteri**
-- Impostare la variabile **PRIMA** del primo avvio (le password vengono criptate al primo avvio)
-- È possibile usare un nome diverso modificando `passwordPrivateKey` nel config.json
+**IMPORTANT**:
+- The key must be **at least 32 characters** long
+- Set the variable **BEFORE** the first start (passwords are encrypted on first start)
+- A different name can be used by changing `passwordPrivateKey` in config.json
 
-### Installazione Dipendenze
+### Installing Dependencies
 
-1. **Installare le dipendenze principali**:
+1. **Install the main dependencies**:
    ```bash
    cd public_html
    npm install
    ```
 
-2. **Per il plugin Active Directory** (opzionale):
+2. **For the Active Directory plugin** (optional):
    ```bash
    cd plugins/activedirectory
    npm install
    ```
 
-3. **Avviare il Cloud Connector**:
+3. **Start the Cloud Connector**:
    ```bash
    node cloudServer.js
    ```
 
-## Configurazione
+## Configuration
 
-### Struttura config.json
+### config.json Structure
 
-Il file `config.json` nella directory `public_html` contiene tutte le configurazioni del Cloud Connector:
+The `config.json` file in the `public_html` directory holds the entire Cloud Connector configuration:
 
 ```json
 {
   "name": "my-connector",
   "passwordPrivateKey": "%CC_KEY%",
   "connectionOptions": {
-    // Opzionale: per ambienti di sviluppo con certificati SSL non validi
-    // "rejectUnauthorized": false  // ATTENZIONE: solo per sviluppo!
+    // Optional: for development environments with invalid SSL certificates
+    // "rejectUnauthorized": false  // WARNING: development only!
   },
   "remoteServers": [],
   "remoteUserNames": [],
@@ -142,17 +142,17 @@ Il file `config.json` nella directory `public_html` contiene tutte le configuraz
 }
 ```
 
-### Sicurezza Password
+### Password Security
 
-- **passwordPrivateKey**: Recupera la chiave di crittografia dalla variabile d'ambiente
-- La chiave deve essere lunga **almeno 32 caratteri** per una sicurezza adeguata
-- Se non definita, viene usato un valore di default (sconsigliato)
-- Per approfondimenti: [OWASP Cryptographic Storage](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation)
+- **passwordPrivateKey**: Reads the encryption key from the environment variable
+- The key must be **at least 32 characters** long to provide adequate security
+- If it is not defined, a default value is used (not recommended)
+- Further reading: [OWASP Cryptographic Storage](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation)
 
-### Configurazione Server Remoti
+### Remote Servers Configuration
 
 #### remoteServers
-Server Instant Developer Cloud a cui il connector si collegherà:
+The Instant Developer Cloud servers the connector will connect to:
 ```json
 "remoteServers": [
   "prod1-pro-gamma.instantdevelopercloud.com",
@@ -161,24 +161,24 @@ Server Instant Developer Cloud a cui il connector si collegherà:
 ```
 
 #### remoteUserNames
-Utenti IDE autorizzati alla connessione. Possono essere specificati in diversi formati:
+IDE users allowed to connect. They can be given in different formats:
 ```json
 "remoteUserNames": [
-  "https://ide1-pro-gamma.instantdevelopercloud.com@paolo-rossi",  // Formato completo: server IDE + username
-  "paolo-bianchi",                                                   // Solo username
-  "https://ide1-pro-gamma.instantdevelopercloud.com"               // Solo server IDE (tutti gli utenti)
+  "https://ide1-pro-gamma.instantdevelopercloud.com@paolo-rossi",  // Full form: IDE server + username
+  "paolo-bianchi",                                                   // Username only
+  "https://ide1-pro-gamma.instantdevelopercloud.com"               // IDE server only (all its users)
 ]
 ```
 
 #### remoteConfigurationKey
-Per abilitare il controllo remoto (riavvio, modifica config, aggiornamenti):
+Enables remote control (restart, configuration changes, updates):
 ```json
 "remoteConfigurationKey": "your-secret-key"
 ```
 
-### Configurazione Database
+### Database Configuration
 
-Il Cloud Connector supporta diversi tipi di database:
+The Cloud Connector supports several database types:
 - **MySQL** (mysql2 3.15.2)
 - **PostgreSQL** (pg 8.16.3)
 - **SQL Server** (mssql 12.0.0)
@@ -214,7 +214,7 @@ Il Cloud Connector supporta diversi tipi di database:
     "database": "mydb",
     "user": "dbuser",
     "password": "dbpass",
-    "ssl": true,  // Abilita connessione crittografata SSL/TLS (consigliato per produzione)
+    "ssl": true,  // Enables an encrypted SSL/TLS connection (recommended in production)
     "connectionTimeoutMillis": 30000,
     "max": 100
   }
@@ -238,25 +238,25 @@ Il Cloud Connector supporta diversi tipi di database:
     },
     "options": {
       "useUTC": false
-      // "trustServerCertificate": true  // Solo per sviluppo con certificati non validi
+      // "trustServerCertificate": true  // Development only, with invalid certificates
     }
   }
 }
 ```
 
-**Nota**: `trustServerCertificate: true` bypassa la validazione SSL. Usare solo in sviluppo!
+**Note**: `trustServerCertificate: true` bypasses SSL validation. Use it in development only!
 
-##### Supporto SQL Server legacy (TLS)
+##### Legacy SQL Server support (TLS)
 
-`mssql` / `tedious` negozia la connessione usando le impostazioni TLS di Node, che dalla v12 richiedono **TLS 1.2 come minimo**. SQL Server **<= 2014 (12.0.4439.1)** — e alcune installazioni di **SQL Server 2016** senza CU recenti — parlano solo TLS 1.0/1.1. L'handshake fallisce con messaggi criptici tipo `Cannot call write after a stream was destroyed`.
+`mssql` / `tedious` negotiates the connection using Node's TLS settings, which since v12 require **TLS 1.2 as a minimum**. SQL Server **<= 2014 (12.0.4439.1)** — and some **SQL Server 2016** installations without recent CUs — only speak TLS 1.0/1.1. The handshake fails with cryptic messages such as `Cannot call write after a stream was destroyed`.
 
-Il Cloud Connector intercetta gli errori tipici di questo scenario e li ri-lancia con un suggerimento operativo. Per risolvere il problema all'origine, applicare la patch consigliata da Microsoft sul server SQL ([KB 3135244](https://support.microsoft.com/en-us/help/3135244)). Come workaround temporaneo, abbassare il minimo TLS lato connector aggiungendo a `connectionOptions.options`:
+The Cloud Connector intercepts the errors typical of this scenario and rethrows them with an actionable hint. To fix the problem at its root, apply the patch recommended by Microsoft on the SQL Server ([KB 3135244](https://support.microsoft.com/en-us/help/3135244)). As a temporary workaround, lower the minimum TLS version on the connector side by adding this to `connectionOptions.options`:
 
 ```json
 "cryptoCredentialsDetails": { "minVersion": "TLSv1" }
 ```
 
-**Sconsigliato per produzione**: lasciare aperto TLS 1.0 espone a vulnerabilità note. Preferire l'upgrade del SQL Server.
+**Not recommended in production**: leaving TLS 1.0 open exposes you to known vulnerabilities. Prefer upgrading the SQL Server.
 
 #### Oracle
 ```json
@@ -273,11 +273,11 @@ Il Cloud Connector intercetta gli errori tipici di questo scenario e li ri-lanci
 }
 ```
 
-##### Supporto server Oracle legacy (< 12.1)
+##### Legacy Oracle server support (< 12.1)
 
-Il driver `oracledb` usa di default la modalità **Thin** (puro JavaScript), che supporta solo Oracle Database 12.1 e successivi. Tentando di connettersi a server più vecchi (10.2, 11.1, 11.2) si ottiene l'errore `NJS-138`.
+The `oracledb` driver defaults to **Thin** mode (pure JavaScript), which only supports Oracle Database 12.1 and later. Connecting to older servers (10.2, 11.1, 11.2) fails with error `NJS-138`.
 
-Per supportare server legacy il Cloud Connector può attivare la modalità **Thick**, che richiede una copia locale di **Oracle Instant Client** sul server dove gira il connector. Per abilitarla impostare la variabile d'ambiente `ORACLE_INSTANT_CLIENT_DIR` con il path della directory dell'Instant Client, **prima** di avviare il connector:
+To support legacy servers the Cloud Connector can switch to **Thick** mode, which requires a local copy of **Oracle Instant Client** on the server running the connector. To enable it, set the `ORACLE_INSTANT_CLIENT_DIR` environment variable to the path of the Instant Client directory **before** starting the connector:
 
 ###### Windows (Command Prompt):
 ```batch
@@ -294,12 +294,12 @@ $env:ORACLE_INSTANT_CLIENT_DIR="C:\oracle\instantclient_23_5"
 export ORACLE_INSTANT_CLIENT_DIR="/opt/oracle/instantclient_23_5"
 ```
 
-**Note**:
-- Scaricare Instant Client da [oracle.com/database/technologies/instant-client.html](https://www.oracle.com/database/technologies/instant-client.html). Si raccomanda la versione **19c o superiore**, che supporta server da 11.2 a 23c.
-- L'architettura dell'Instant Client deve corrispondere a quella di Node.js (32/64 bit, x64/ARM64).
-- **Windows**: richiede Microsoft Visual C++ Redistributable.
-- **macOS (ARM64)**: dopo aver scompattato l'archivio, rimuovere la quarantena con `xattr -d com.apple.quarantine instantclient_*/*`.
-- L'attivazione è a livello di processo: tutte le connessioni Oracle del connector useranno Thick mode (resta retrocompatibile con i server moderni).
+**Notes**:
+- Download Instant Client from [oracle.com/database/technologies/instant-client.html](https://www.oracle.com/database/technologies/instant-client.html). Version **19c or later** is recommended, as it supports servers from 11.2 to 23c.
+- The Instant Client architecture must match the one Node.js was built for (32/64 bit, x64/ARM64).
+- **Windows**: requires the Microsoft Visual C++ Redistributable.
+- **macOS (ARM64)**: after unpacking the archive, remove the quarantine flag with `xattr -d com.apple.quarantine instantclient_*/*`.
+- Thick mode is enabled process-wide: all the connector's Oracle connections will use it (it stays backwards compatible with modern servers).
 
 #### ODBC
 ```json
@@ -315,28 +315,28 @@ export ORACLE_INSTANT_CLIENT_DIR="/opt/oracle/instantclient_23_5"
 }
 ```
 
-**IMPORTANTE**: Le APIKey devono essere GUID validi, non usare `00000000-0000-0000-0000-000000000000`.
+**IMPORTANT**: API keys must be valid GUIDs. Do not use `00000000-0000-0000-0000-000000000000`.
 
-### Configurazione File System
+### File System Configuration
 
-Condivisione sicura di directory locali:
+Secure sharing of local directories:
 
 ```json
 "fileSystems": [
   {
     "name": "documents",
     "path": "C:\\Data\\Documents",
-    "permissions": "r",  // "r" per sola lettura, "rw" per lettura/scrittura
+    "permissions": "r",  // "r" for read-only, "rw" for read/write
     "whiteListedOrigins": ["https://trusted-domain.com"],
     "APIKey": "550e8400-e29b-41d4-a716-446655440006"
   }
 ]
 ```
 
-- **permissions**: `"r"` (sola lettura) o `"rw"` (lettura/scrittura)
-- **whiteListedOrigins**: Domini autorizzati per richieste HTTP (vuoto = nessuna richiesta HTTP)
+- **permissions**: `"r"` (read-only) or `"rw"` (read/write)
+- **whiteListedOrigins**: Domains allowed for HTTP requests (empty = no HTTP requests allowed)
 
-### Configurazione Plugin
+### Plugin Configuration
 
 #### Active Directory
 ```json
@@ -355,186 +355,186 @@ Condivisione sicura di directory locali:
 ]
 ```
 
-## Installazione come Servizio
+## Installing as a Service
 
-Per mantenere il Cloud Connector sempre attivo, si consiglia l'uso di [PM2](https://github.com/Unitech/pm2):
+To keep the Cloud Connector always running, [PM2](https://github.com/Unitech/pm2) is recommended:
 
-### Installazione PM2
+### Installing PM2
 ```bash
 npm install -g pm2
 ```
 
-### Avvio con PM2
+### Starting with PM2
 ```bash
 pm2 start public_html/cloudServer.js --name cloud-connector
 pm2 save
 pm2 startup
 ```
 
-### Comandi PM2 utili
+### Useful PM2 Commands
 ```bash
-pm2 list              # Lista processi
-pm2 logs              # Visualizza log
+pm2 list              # List processes
+pm2 logs              # Show logs
 pm2 restart cloud-connector
 pm2 stop cloud-connector
 pm2 delete cloud-connector
 ```
 
-### Script di Deployment
+### Deployment Script
 ```bash
 #!/bin/bash
 # deploy.sh
 
-# Aggiorna codice
+# Update the code
 git pull origin master
 
-# Aggiorna dipendenze
+# Update the dependencies
 cd public_html
 npm update
 
-# Riavvia con PM2
+# Restart through PM2
 pm2 restart cloud-connector --update-env
 
-# Salva configurazione
+# Save the configuration
 pm2 save
 ```
 
-## Sicurezza
+## Security
 
-### Utente Database
+### Database User
 
-Best practices per l'utente di accesso al database:
-- Concedere solo i permessi strettamente necessari (SELECT, INSERT, UPDATE, DELETE)
-- Evitare privilegi globali, concederli solo su tabelle specifiche se necessario
-- Non concedere privilegi amministrativi (GRANT, CREATE USER, ALTER SYSTEM)
-- Creare ruoli specifici per il Cloud Connector
-- Usare connessioni sicure (SSL/TLS)
-- Credenziali diverse per sviluppo, test e produzione
+Best practices for the database account:
+- Grant only the strictly necessary permissions (SELECT, INSERT, UPDATE, DELETE)
+- Avoid global privileges; grant them on specific tables only when needed
+- Do not grant administrative privileges (GRANT, CREATE USER, ALTER SYSTEM)
+- Create dedicated roles for the Cloud Connector
+- Use secure connections (SSL/TLS)
+- Use different credentials for development, test and production
 
-### Utente Processi
+### Process User
 
-Configurazione sicura per l'utente che esegue il servizio:
+Secure setup for the account running the service:
 
-**Sistema Operativo:**
-- Creare un utente dedicato per Node.js/PM2
-- Permessi di lettura/esecuzione nella directory del progetto
-- Permessi di scrittura solo per log e directory temporanee
+**Operating system:**
+- Create a dedicated user for Node.js/PM2
+- Read/execute permissions on the project directory
+- Write permissions only on logs and temporary directories
 
 **Node.js:**
-- Permesso di eseguire Node.js
-- Accesso in lettura a node_modules
+- Permission to run Node.js
+- Read access to node_modules
 
 **PM2:**
-- Accesso ai comandi PM2 necessari
-- Scrittura nella home directory per configurazioni PM2
+- Access to the PM2 commands needed
+- Write access to the home directory for the PM2 configuration
 
-## Architettura
+## Architecture
 
-### Struttura del Progetto
+### Project Structure
 
 ```
 cloud-connector/
-├── public_html/              # Directory principale dell'applicazione
-│   ├── cloudServer.js        # Entry point principale
-│   ├── server.js             # Client Socket.IO
-│   ├── utils.js              # Utility e crittografia
-│   ├── logger.js             # Sistema di logging
-│   ├── config.json           # Configurazione attiva
-│   ├── config_example.json   # Template configurazione
-│   ├── db/                   # Connettori database
-│   │   ├── datamodel.js      # Classe base
+├── public_html/              # Main application directory
+│   ├── cloudServer.js        # Main entry point
+│   ├── server.js             # Socket.IO client
+│   ├── utils.js              # Utilities and encryption
+│   ├── logger.js             # Logging subsystem
+│   ├── config.json           # Active configuration
+│   ├── config_example.json   # Configuration template
+│   ├── db/                   # Database connectors
+│   │   ├── datamodel.js      # Base class
 │   │   ├── mysql.js
 │   │   ├── postgres.js
 │   │   ├── oracle.js
 │   │   ├── sqlserver.js
 │   │   └── odbc.js
 │   ├── fs/                   # File system
-│   │   ├── nodedriver.js     # Driver principale
+│   │   ├── nodedriver.js     # Main driver
 │   │   ├── fs.js
 │   │   ├── file.js
 │   │   ├── directory.js
 │   │   └── url.js
-│   └── plugins/              # Sistema plugin
-│       ├── plugin.js         # Classe base
-│       └── activedirectory/  # Plugin AD
+│   └── plugins/              # Plugin subsystem
+│       ├── plugin.js         # Base class
+│       └── activedirectory/  # AD plugin
 ├── README.md
-├── CLAUDE.md                 # Documentazione sviluppatori
+├── CLAUDE.md                 # Developer documentation
 └── .gitignore
 ```
 
-### Flusso di Comunicazione
+### Communication Flow
 
-1. **Connessione inversa**: Il connector si connette ai server remoti (no porte in ingresso)
-2. **Socket.IO**: Comunicazione bidirezionale real-time
-3. **Message-based**: Comandi tramite messaggi JSON
-4. **API Key**: Autenticazione per ogni risorsa
+1. **Reverse connection**: The connector connects to the remote servers (no inbound port)
+2. **Socket.IO**: Real-time bidirectional communication
+3. **Message-based**: Commands travel as JSON messages
+4. **API Key**: Authentication for every resource
 
-## Controllo Remoto
+## Remote Control
 
-Per abilitare la configurazione remota, impostare `remoteConfigurationKey` nel config.json:
-- Riavvio remoto
-- Modifica configurazione
-- Aggiornamento software
+To enable remote configuration, set `remoteConfigurationKey` in config.json:
+- Remote restart
+- Configuration changes
+- Software update
 
 ## Troubleshooting
 
-### Problemi Comuni
+### Common Problems
 
-#### Errore connessione database
-- Verificare credenziali nel config.json
-- Controllare raggiungibilità database
+#### Database connection error
+- Check the credentials in config.json
+- Check that the database is reachable
 
-#### Oracle: errore `NJS-138` (server < 12.1)
-- Il driver `oracledb` in modalità Thin non supporta server Oracle precedenti alla 12.1
-- Soluzione: installare Oracle Instant Client e impostare `ORACLE_INSTANT_CLIENT_DIR` (vedi [Supporto server Oracle legacy](#supporto-server-oracle-legacy--121))
+#### Oracle: error `NJS-138` (server < 12.1)
+- In Thin mode the `oracledb` driver does not support Oracle servers older than 12.1
+- Fix: install Oracle Instant Client and set `ORACLE_INSTANT_CLIENT_DIR` (see [Legacy Oracle server support](#legacy-oracle-server-support--121))
 
-#### SQL Server: errore `Cannot call write after a stream was destroyed`
-- Tipicamente indica un mismatch TLS con un SQL Server vecchio (<= 2014 12.0.4439.1, alcune installazioni 2016)
-- Soluzione raccomandata: applicare [KB Microsoft 3135244](https://support.microsoft.com/en-us/help/3135244) per abilitare TLS 1.2 sul SQL Server
-- Workaround temporaneo: vedi [Supporto SQL Server legacy](#supporto-sql-server-legacy-tls)
+#### SQL Server: error `Cannot call write after a stream was destroyed`
+- Usually a TLS mismatch with an old SQL Server (<= 2014 12.0.4439.1, some 2016 installations)
+- Recommended fix: apply [Microsoft KB 3135244](https://support.microsoft.com/en-us/help/3135244) to enable TLS 1.2 on the SQL Server
+- Temporary workaround: see [Legacy SQL Server support](#legacy-sql-server-support-tls)
 
-#### APIKey non valida
-- Messaggio: "The APIKey of dataModel is set to the default value"
-- Soluzione: Generare GUID valido, non usare `00000000-0000-0000-0000-000000000000`
+#### Invalid API key
+- Message: "The APIKey of dataModel is set to the default value"
+- Fix: generate a valid GUID, do not use `00000000-0000-0000-0000-000000000000`
 
-#### Certificati SSL non validi
-- Solo per sviluppo: `"rejectUnauthorized": false` in connectionOptions
-- **MAI in produzione!**
+#### Invalid SSL certificates
+- Development only: `"rejectUnauthorized": false` in connectionOptions
+- **NEVER in production!**
 
-#### Password non criptate
-- Impostare variabile `CC_KEY` PRIMA del primo avvio
-- Minimo 32 caratteri
+#### Passwords are not encrypted
+- Set the `CC_KEY` variable BEFORE the first start
+- Minimum 32 characters
 
-#### Plugin ActiveDirectory non funziona
-- Eseguire `npm update` in `public_html/plugins/activedirectory`
-- Verificare URL LDAP e credenziali
+#### The ActiveDirectory plugin does not work
+- Run `npm update` in `public_html/plugins/activedirectory`
+- Check the LDAP URL and the credentials
 
-### Log e Debug
-- **Log**: Console di sistema
-- **Logger**: `logger.js` per logging strutturato
-- **Livelli**: ERROR, WARNING, INFO, DEBUG
+### Logs and Debugging
+- **Log**: System console
+- **Logger**: `logger.js` for structured logging
+- **Levels**: ERROR, WARNING, INFO, DEBUG
 
-## Performance e Best Practices
+## Performance and Best Practices
 
 ### Connection Pooling
-- **MySQL/PostgreSQL**: Default 10 connessioni
-- **SQL Server**: Configurabile con `max` in options
-- **Oracle**: Gestione automatica
+- **MySQL/PostgreSQL**: 10 connections by default
+- **SQL Server**: Configurable through `max` in options
+- **Oracle**: Handled automatically
 
-### Sicurezza
-1. **Sempre** usare passwordPrivateKey personalizzata
-2. **Mai** esporre il connector su internet
-3. **Limitare** permessi utente database
-4. **Aggiornare** regolarmente dipendenze
+### Security
+1. **Always** use a custom passwordPrivateKey
+2. **Never** expose the connector on the internet
+3. **Restrict** the database user permissions
+4. **Update** the dependencies regularly
 
-### Monitoraggio
-- PM2 per restart automatico
-- Alert per disconnessioni
-- Monitor CPU/memoria
+### Monitoring
+- PM2 for automatic restart
+- Alerts on disconnections
+- CPU/memory monitoring
 
-## Esempi di Configurazione
+## Configuration Examples
 
-### Configurazione Multi-Database Completa
+### Full Multi-Database Configuration
 ```json
 {
   "name": "production-connector",
@@ -600,12 +600,12 @@ Per abilitare la configurazione remota, impostare `remoteConfigurationKey` nel c
 }
 ```
 
-## Documentazione Aggiuntiva
+## Additional Documentation
 
-- [Guida ufficiale Instant Developer](https://storage.googleapis.com/inde-downloads/doc/02-Struttura%20del%20database.pdf#page=18)
-- [Repository GitHub](https://github.com/progamma/cloud-connector)
-- [CLAUDE.md](./CLAUDE.md) - Documentazione per sviluppatori
+- [Official Instant Developer guide](https://storage.googleapis.com/inde-downloads/doc/02-Struttura%20del%20database.pdf#page=18)
+- [GitHub repository](https://github.com/progamma/cloud-connector)
+- [CLAUDE.md](./CLAUDE.md) - Developer documentation
 
 ---
 
-**Versione**: 26.0.0 | **Node.js**: 22.21.1+ | **Licenza**: Copyright Pro Gamma Spa
+**Version**: 26.0.0 | **Node.js**: 22.21.1+ | **License**: Copyright Pro Gamma Spa
