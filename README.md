@@ -7,7 +7,7 @@
 - [System Requirements](#system-requirements)
 - [Installation](#installation)
   - [Download and Setup](#download-and-setup)
-  - [Environment Variables Configuration](#environment-variables-configuration)
+  - [Configuring Environment Variables](#configuring-environment-variables)
   - [Installing Dependencies](#installing-dependencies)
 - [Configuration](#configuration)
   - [config.json Structure](#configjson-structure)
@@ -33,7 +33,7 @@
 
 The Cloud Connector is a tool that lets applications built with Instant Developer Cloud connect to one or more remote databases.
 
-Normally it is the application that connects to the database, which means at least one port must be opened to the outside world on the database server. With the Cloud Connector installed on the server hosting the database, or on a server in the same local network, it is the database that opens a connection towards the application. No specific port needs to be exposed to the outside, which greatly increases security.
+Normally it is the application that connects to the database, which means the database server has to expose at least one port to the outside world. With the Cloud Connector installed on the server hosting the database, or on a server in the same local network, it is the database that opens a connection to the application. No specific port needs to be opened to the outside, which greatly increases security.
 
 ## Key Features
 
@@ -71,7 +71,7 @@ Normally it is the application that connects to the database, which means at lea
    cp config_example.json config.json
    ```
 
-### Environment Variables Configuration
+### Configuring Environment Variables
 
 Before starting the Cloud Connector you must set the environment variable holding the encryption key.
 
@@ -124,7 +124,7 @@ export CC_KEY="your-secret-key-of-at-least-32-characters"
 
 ### config.json Structure
 
-The `config.json` file in the `public_html` directory holds the whole Cloud Connector configuration:
+The `config.json` file in the `public_html` directory holds the entire Cloud Connector configuration:
 
 ```json
 {
@@ -214,7 +214,7 @@ The Cloud Connector supports several database types:
     "database": "mydb",
     "user": "dbuser",
     "password": "dbpass",
-    "ssl": true,  // Enables the encrypted SSL/TLS connection (recommended in production)
+    "ssl": true,  // Enables an encrypted SSL/TLS connection (recommended in production)
     "connectionTimeoutMillis": 30000,
     "max": 100
   }
@@ -299,7 +299,7 @@ export ORACLE_INSTANT_CLIENT_DIR="/opt/oracle/instantclient_23_5"
 - The Instant Client architecture must match the one Node.js was built for (32/64 bit, x64/ARM64).
 - **Windows**: requires the Microsoft Visual C++ Redistributable.
 - **macOS (ARM64)**: after unpacking the archive, remove the quarantine flag with `xattr -d com.apple.quarantine instantclient_*/*`.
-- Thick mode is enabled process-wide: every Oracle connection of the connector will use it (it stays backwards compatible with modern servers).
+- Thick mode is enabled process-wide: all the connector's Oracle connections will use it (it stays backwards compatible with modern servers).
 
 #### ODBC
 ```json
@@ -334,7 +334,7 @@ Secure sharing of local directories:
 ```
 
 - **permissions**: `"r"` (read-only) or `"rw"` (read/write)
-- **whiteListedOrigins**: Domains allowed for HTTP requests (empty = no HTTP request allowed)
+- **whiteListedOrigins**: Domains allowed for HTTP requests (empty = no HTTP requests allowed)
 
 ### Plugin Configuration
 
@@ -371,7 +371,7 @@ pm2 save
 pm2 startup
 ```
 
-### Useful PM2 commands
+### Useful PM2 Commands
 ```bash
 pm2 list              # List processes
 pm2 logs              # Show logs
