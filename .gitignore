@@ -1,4 +1,4 @@
-/.claude
+/.claude/settings.local.json
 /.vscode
 /public_html/log/
 /nbproject/private/
