@@ -36,6 +36,8 @@ Before writing new code:
 
 ## Common Development Commands
 
+Run from `public_html/`, where `package.json` lives: from the root of the repository npm answers `ENOENT`.
+
 ```bash
 npm install                  # Install dependencies
 node public_html/cloudServer.js  # Start Cloud Connector server

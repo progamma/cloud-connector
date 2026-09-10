@@ -384,7 +384,7 @@ Its own settings live in `config.json`:
 
 Both entries have those values when the block is missing altogether, so an installation that is updated to this version gets the page without a single change to its `config.json`. They are read once, when the connector starts: changing the port from the page takes effect at the next restart, so that a save can never pull the socket out from under the request making it. Set `enabled` to `false` to serve no page at all.
 
-If something else already holds that port the page does not give up, because a page nobody can reach is also a page from which the port cannot be changed: it steps along, up to ten ports past the one asked for, and writes a warning in the log saying where it went. Only if all ten are taken does it stay away, and it says that too.
+If something else already holds that port the page does not give up, because a page nobody can reach is also a page from which the port cannot be changed: it steps along, trying ten ports in all counting from the one asked for, and writes a warning in the log saying where it went. Only if all ten are taken does it stay away, and it says that too.
 
 The page also comes up when `config.json` does not exist yet or cannot be loaded, because on a fresh install it is the only way to write one.
 

@@ -34,7 +34,9 @@ const dbDrivers = require("./db/drivers");
  *
  * @property {CloudServer} parent - Parent CloudServer instance
  * @property {Object} server - Node HTTP server, present only while listening
- * @property {Number} port - Port the page listens on
+ * @property {Number} requestedPort - Port the configuration asked for, which is the one a save is
+ *                                    weighed against: what answered may be a step further along
+ * @property {Number} port - Port the page ended up listening on
  * @property {String} configFile - Full path of config.json
  * @property {String} root - Directory the page assets are served from
  * @property {String} langDir - Directory the translations are read from
