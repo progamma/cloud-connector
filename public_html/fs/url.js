@@ -166,7 +166,9 @@ class Url
       return await this.fs.httpRequest(this, "UPLOAD", options);
     }
     catch (e) {
-      return {error: e};
+      return {
+        error: e
+      };
     }
   }
 

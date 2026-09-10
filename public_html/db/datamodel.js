@@ -503,7 +503,10 @@ class DataModel
   convertValue(value)
   {
     if (value instanceof Buffer)
-      return {type: "buffer", data: value.toString("base64")};
+      return {
+        type: "buffer",
+        data: value.toString("base64")
+      };
     return value;
   }
 
