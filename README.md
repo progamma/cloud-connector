@@ -384,6 +384,8 @@ Its own settings live in `config.json`:
 
 Both entries have those values when the block is missing altogether, so an installation that is updated to this version gets the page without a single change to its `config.json`. They are read once, when the connector starts: changing the port from the page takes effect at the next restart, so that a save can never pull the socket out from under the request making it. Set `enabled` to `false` to serve no page at all.
 
+If something else already holds that port the page does not give up, because a page nobody can reach is also a page from which the port cannot be changed: it steps along, up to ten ports past the one asked for, and writes a warning in the log saying where it went. Only if all ten are taken does it stay away, and it says that too.
+
 The page also comes up when `config.json` does not exist yet or cannot be loaded, because on a fresh install it is the only way to write one.
 
 An option no driver declares — a tuned `pool.min`, a `cryptoCredentialsDetails` for an older SQL Server — is shown all the same, under *Other options*, as the JSON fragment it is, and is handed to the driver exactly as it is written there. JSON because a form would have to guess types and would have nothing to say about a value nested inside another or about a list; a fragment that does not parse holds the save back rather than quietly writing the last one that did. The one thing that drops such an option is changing the driver class of a datamodel, which rebuilds the connection options around the class that has to understand them.

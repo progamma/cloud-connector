@@ -51,6 +51,15 @@ class ConfigServer
   };
 
   /**
+   * How many ports to try, starting from the one asked for, before giving up. A page nobody can
+   * reach is also a page from which the port cannot be changed, so being turned away by whoever
+   * holds that one port is not a good enough reason to be absent: it steps along instead, but
+   * within a range short enough to be worth looking through.
+   * @type {Number}
+   */
+  static portsToTry = 10;
+
+  /**
    * Value sent to the page in place of every secret, and understood on the way back as
    * "keep the one already stored"
    * @type {String}
@@ -156,27 +165,43 @@ class ConfigServer
   async start()
   {
     let settings = await this.readSettings();
+    this.requestedPort = settings.port;
+    //
     if (!settings.enabled)
       return this.log("INFO", "The local configuration page is disabled");
     //
-    this.port = settings.port;
-    let server = http.createServer((req, res) => this.onRequest(req, res));
-    //
-    try {
-      await new Promise((resolve, reject) => {
-        server.once("error", reject);
-        server.listen(this.port, "127.0.0.1", resolve);
-      });
+    for (let port = this.requestedPort; port < this.requestedPort + ConfigServer.portsToTry; port++) {
+      let server = http.createServer((req, res) => this.onRequest(req, res));
+      //
+      try {
+        await new Promise((resolve, reject) => {
+          server.once("error", reject);
+          server.listen(port, "127.0.0.1", resolve);
+        });
+      }
+      catch (e) {
+        // A bind that failed leaves nothing to close. Somebody else holding the port is the one
+        // case worth stepping over; anything else is about this machine, and trying again a port
+        // along would only hide it.
+        if (e.code === "EADDRINUSE")
+          continue;
+        //
+        return this.log("ERROR", `The local configuration page cannot listen on port ${port}: ${e.message}`);
+      }
+      //
+      server.removeAllListeners("error");
+      server.on("error", e => this.log("ERROR", `Local configuration page: ${e.message}`));
+      this.server = server;
+      this.port = port;
+      //
+      if (port !== this.requestedPort)
+        this.log("WARNING", `Port ${this.requestedPort} was taken, so the local configuration page took ${port} instead`);
+      //
+      return this.log("INFO", `Local configuration page available at http://127.0.0.1:${port}`);
     }
-    catch (e) {
-      return this.log("ERROR", `The local configuration page cannot listen on port ${this.port}: ${e.message}`);
-    }
     //
-    server.removeAllListeners("error");
-    server.on("error", e => this.log("ERROR", `Local configuration page: ${e.message}`));
-    this.server = server;
-    //
-    this.log("INFO", `Local configuration page available at http://127.0.0.1:${this.port}`);
+    this.log("ERROR", "The local configuration page found no free port between " +
+            `${this.requestedPort} and ${this.requestedPort + ConfigServer.portsToTry - 1}`);
   }
 
 
@@ -746,8 +771,10 @@ class ConfigServer
     // Both the port and whether the page is served at all are read at startup, so what is asked
     // for here is only a promise until then. Being switched off has to be said as much as being
     // moved: otherwise the page answers "saved and reloaded" and then goes on answering.
+    // Against the port that was asked for, not the one that answered: a page that had to step
+    // along would otherwise call every save a change
     let wanted = Object.assign({}, ConfigServer.defaults, config.localConfiguration);
-    let restartNeeded = Number(wanted.port) !== this.port || Boolean(wanted.enabled) !== Boolean(this.server);
+    let restartNeeded = Number(wanted.port) !== this.requestedPort || Boolean(wanted.enabled) !== Boolean(this.server);
     //
     return {saved: true, restartNeeded};
   }
