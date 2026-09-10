@@ -600,6 +600,7 @@ To enable remote configuration, set `remoteConfigurationKey` in config.json:
 - The key is not 64 hexadecimal characters: generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and set `CC_KEY` to it
 - Set the `CC_KEY` variable BEFORE the first start
 - Passwords already written in clear text are encrypted at the first start with a valid key
+- This message and the one below can appear together, separated by a semicolon: a save that retypes one password while leaving the others as they were produces exactly that configuration
 
 #### The passwords cannot be decrypted and the databases refuse the connection
 - Message: "the passwords of '...' cannot be decrypted, and those datamodels will not connect"

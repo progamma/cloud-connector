@@ -147,15 +147,21 @@ class CloudServer
     }
     else {
       // A password that carries an iv was encrypted by a key that worked, and stays encrypted and
-      // unreadable: the opposite of what there is to say about one sitting in the file in clear.
-      // Naming the datamodels replaces the line each of them used to get from processPasswords
-      let locked = resolvedConfig.datamodels?.filter(dm => dm.iv && dm.connectionOptions?.password).map(dm => `'${dm.name}'`);
-      let what = locked?.length ? `the passwords of ${locked.join(", ")} cannot be decrypted, and those datamodels will not connect` :
-              "the passwords in config.json are not being encrypted";
+      // unreadable; one without it is sitting there in clear. The two are not alternatives: a save
+      // from the page makes exactly the configuration where both hold, because the password just
+      // retyped loses its iv while the ones left alone keep theirs. Naming the datamodels replaces
+      // the line each of them used to get from processPasswords
+      let withPassword = resolvedConfig.datamodels?.filter(dm => dm.connectionOptions?.password) || [];
+      let locked = withPassword.filter(dm => dm.iv);
+      let what = [];
+      if (locked.length < withPassword.length || !locked.length)
+        what.push("the passwords in config.json are not being encrypted");
+      if (locked.length)
+        what.push(`the passwords of ${locked.map(dm => `'${dm.name}'`).join(", ")} cannot be decrypted, and those datamodels will not connect`);
       //
       // Kept, and not only logged, because the configuration page saves through this method: whoever
       // has just typed a password has no reason to go and open the log in another tab
-      this.passwordKeyError = `${what}: ${Utils.invalidKeyMessage(key)}`;
+      this.passwordKeyError = `${what.join("; ")}: ${Utils.invalidKeyMessage(key)}`;
       this.log("ERROR", this.passwordKeyError);
     }
     //
