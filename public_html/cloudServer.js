@@ -98,6 +98,16 @@ class CloudServer
     // the only way to write one
     this.configServer = new ConfigServer(this);
     await this.configServer.start();
+    //
+    // Asked to stop, the page is closed before the process goes. Installing a handler takes the
+    // default away, so leaving has to be done here: nothing else waits to be tidied up, and a
+    // process manager that hears nothing back sends a harder signal on its own.
+    for (let signal of ["SIGINT", "SIGTERM"]) {
+      process.on(signal, () => {
+        this.log("INFO", `Stopping on ${signal}`);
+        this.configServer.stop().finally(() => process.exit(0));
+      });
+    }
   }
 
 

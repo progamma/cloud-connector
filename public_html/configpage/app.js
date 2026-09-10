@@ -1438,8 +1438,10 @@ async function drawLog()
   let view = document.getElementById("log");
   let atBottom = view.scrollTop + view.clientHeight >= view.scrollHeight - 4;
   //
+  // The connector writes the time in UTC; what is read here is a clock, so it says the hour of
+  // this machine, in the shape the chosen language gives it
   view.replaceChildren(...entries.map(entry => el("div", {className: entry.level}, [
-    el("time", {textContent: entry.date.substring(11, 19)}),
+    el("time", {textContent: new Date(entry.date).toLocaleTimeString(state.language)}),
     entry.message
   ])));
   //

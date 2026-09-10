@@ -386,12 +386,14 @@ Both entries have those values when the block is missing altogether, so an insta
 
 The page also comes up when `config.json` does not exist yet or cannot be loaded, because on a fresh install it is the only way to write one.
 
-An option the page does not show, because no driver declares it — a tuned `pool.min`, a `cryptoCredentialsDetails` for an older SQL Server, the top level `connectionOptions` — is written back exactly as it was found. The one thing that drops such an option is changing the driver class of a datamodel, which rebuilds the connection options around the class that has to understand them.
+An option no driver declares — a tuned `pool.min`, a `cryptoCredentialsDetails` for an older SQL Server — is shown all the same, under *Other options*, as the JSON fragment it is, and is handed to the driver exactly as it is written there. JSON because a form would have to guess types and would have nothing to say about a value nested inside another or about a list; a fragment that does not parse holds the save back rather than quietly writing the last one that did. The one thing that drops such an option is changing the driver class of a datamodel, which rebuilds the connection options around the class that has to understand them.
+
+The top level `connectionOptions`, which the page has no form for either, is written back exactly as it was found.
 
 ### What the Page Can Do
 
 - Set the connector name, the remote servers and the IDE users. An IDE user is not typed in the shape the file wants: the page asks where the IDE is, and writes `username`, `organization/username` or `https://ide.url@username` accordingly
-- Add, change and remove datamodels, with a form per driver class that offers only the options that driver understands
+- Add, change and remove datamodels, with a form per driver class that offers only the options that driver understands, and a JSON box for whatever that driver declares nothing about
 - Add, change and remove shared file systems, the addresses each one may reach, and plugins together with the settings each one asks for
 - Every datamodel, file system and plugin is a card that starts closed and says what it is in one line, so that a connector with a long list stays readable
 - Generate the API keys and the `remoteConfigurationKey` with a button

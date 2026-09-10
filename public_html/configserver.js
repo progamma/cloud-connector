@@ -362,9 +362,13 @@ class ConfigServer
     if (!content)
       return this.sendJson(res, 404, {error: `Unknown route '${route}'`});
     //
+    // frame-ancestors has no fallback on default-src and has to be written: without it a hostile
+    // page open in the same browser can hold this one in an invisible frame and take the clicks,
+    // and the footer with the save button never moves. It is the one way in that the preflight,
+    // which stops everything else from another origin, has nothing to say about.
     res.writeHead(200, {
       "Content-Type": contentType,
-      "Content-Security-Policy": "default-src 'self'; base-uri 'none'; form-action 'none'"
+      "Content-Security-Policy": "default-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
     });
     res.end(content);
   }
@@ -678,6 +682,12 @@ class ConfigServer
     if (config.passwordPrivateKey === ConfigServer.secretPlaceholder)
       config.passwordPrivateKey = stored.passwordPrivateKey;
     //
+    // A stored password is ciphertext under the key that was in force when it was written. Under a
+    // new key it cannot be read, and what loadConfig would then write back is that same ciphertext
+    // encrypted a second time, under a fresh iv that replaces the only one that could undo the
+    // first: the password would be gone for good, the old key included.
+    let keyChanged = config.passwordPrivateKey !== stored.passwordPrivateKey;
+    //
     config.plugins?.forEach((plugin, i) => {
       let previous = stored.plugins?.find(p => p.name === (originalNames.plugins?.[i] || plugin.name));
       ConfigServer.restoreSecretKeys(plugin.config, previous?.config, `Plugin '${plugin.name}'`);
@@ -697,6 +707,11 @@ class ConfigServer
         let value = ConfigServer.getPath(previous?.connectionOptions, field);
         if (value === undefined)
           throw new Error(`Datamodel '${dm.name}': '${field}' is still masked but there is nothing stored to keep, type it again`);
+        //
+        if (keyChanged && field === "password") {
+          throw new Error(`Datamodel '${dm.name}': the password key has changed, so the stored password ` +
+                  "can no longer be read. Type it again in this same save.");
+        }
         //
         ConfigServer.setPath(dm.connectionOptions, field, value);
       }
@@ -728,8 +743,13 @@ class ConfigServer
     //
     await this.parent.loadConfig(config);
     //
-    // The page listens on the port it was given at startup, so a new one is only a promise
-    return {saved: true, restartNeeded: Number(config.localConfiguration?.port || ConfigServer.defaults.port) !== this.port};
+    // Both the port and whether the page is served at all are read at startup, so what is asked
+    // for here is only a promise until then. Being switched off has to be said as much as being
+    // moved: otherwise the page answers "saved and reloaded" and then goes on answering.
+    let wanted = Object.assign({}, ConfigServer.defaults, config.localConfiguration);
+    let restartNeeded = Number(wanted.port) !== this.port || Boolean(wanted.enabled) !== Boolean(this.server);
+    //
+    return {saved: true, restartNeeded};
   }
 
 
