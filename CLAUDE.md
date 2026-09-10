@@ -40,7 +40,7 @@ Run from `public_html/`, where `package.json` lives: from the root of the reposi
 
 ```bash
 npm install                  # Install dependencies
-node public_html/cloudServer.js  # Start Cloud Connector server
+node cloudServer.js          # Start Cloud Connector server
 pm2 start cloudServer.js     # Start with PM2 process manager (production)
 npm run lint                 # ESLint over public_html, the configuration page included
 npm test                     # Run test suite (if configured)
