@@ -452,7 +452,10 @@ class ConfigServer
     }
     //
     // The page shows an example path in the shape of the machine the connector runs on
-    return {drivers, platform: process.platform};
+    return {
+      drivers,
+      platform: process.platform
+    };
   }
 
 
@@ -778,7 +781,13 @@ class ConfigServer
     let wanted = Object.assign({}, ConfigServer.defaults, config.localConfiguration);
     let restartNeeded = Number(wanted.port) !== this.requestedPort || Boolean(wanted.enabled) !== Boolean(this.server);
     //
-    return {saved: true, restartNeeded};
+    // loadConfig has just weighed the key on the resolved configuration, and a save is where a
+    // password is actually written: the answer carries what it found, so that the page can say it
+    return {
+      saved: true,
+      restartNeeded,
+      passwordKeyError: this.parent.passwordKeyError
+    };
   }
 
 
@@ -818,7 +827,12 @@ class ConfigServer
   async listDirectories(target)
   {
     if (!target)
-      return {ok: true, path: "", parent: "", entries: await ConfigServer.rootDirectories()};
+      return {
+        ok: true,
+        path: "",
+        parent: "",
+        entries: await ConfigServer.rootDirectories()
+      };
     //
     let here = path.resolve(target);
     //
@@ -831,10 +845,21 @@ class ConfigServer
       let found = await fs.readdir(here, {withFileTypes: true});
       let entries = found.filter(e => e.isDirectory()).map(e => ({name: e.name, path: path.join(here, e.name)}));
       entries.sort((a, b) => a.name.localeCompare(b.name));
-      return {ok: true, path: here, parent, entries};
+      return {
+        ok: true,
+        path: here,
+        parent,
+        entries
+      };
     }
     catch (e) {
-      return {ok: false, path: here, parent, entries: [], error: e.message};
+      return {
+        ok: false,
+        path: here,
+        parent,
+        entries: [],
+        error: e.message
+      };
     }
   }
 
@@ -857,7 +882,10 @@ class ConfigServer
       return url ? {ok: true, url} : {ok: false, error: `The console does not know '${user}'`};
     }
     catch (e) {
-      return {ok: false, error: e.message || String(e)};
+      return {
+        ok: false,
+        error: e.message || String(e)
+      };
     }
   }
 
@@ -937,16 +965,34 @@ class ConfigServer
     };
     this.restoreSecrets(probe, stored, {datamodels: [body.originalName]});
     Utils.replaceEnvVariables(probe);
-    Utils.processPasswords(probe, probe.passwordPrivateKey, false, this.parent);
+    //
+    // The rule loadConfig follows: a key that cannot be used leaves the password as the file has it,
+    // and the attempt is made with what the connector itself would hand the driver
+    let usableKey = !probe.passwordPrivateKey || Utils.isValidKey(probe.passwordPrivateKey);
+    if (usableKey)
+      Utils.processPasswords(probe, probe.passwordPrivateKey, false, this.parent);
     //
     let startTime = new Date();
     let driver = new DriverClass(this.parent, probe.datamodels[0]);
     try {
       let info = await driver.testConnection();
-      return {ok: true, driver: info, elapsed: (new Date()).getTime() - startTime.getTime()};
+      return {
+        ok: true,
+        driver: info,
+        elapsed: (new Date()).getTime() - startTime.getTime()
+      };
     }
     catch (e) {
-      return {ok: false, error: e.message, elapsed: (new Date()).getTime() - startTime.getTime()};
+      // Said only when the key really is what the driver stumbled on: after restoreSecrets an iv is
+      // there when the password handed over is the stored ciphertext, which no key could open.
+      // Without it the password arrived whole, and an address or a database name was the problem
+      let blamesTheKey = !usableKey && probe.datamodels[0].iv;
+      let error = blamesTheKey ? `${e.message}. ${Utils.invalidKeyMessage(probe.passwordPrivateKey)}` : e.message;
+      return {
+        ok: false,
+        error,
+        elapsed: (new Date()).getTime() - startTime.getTime()
+      };
     }
   }
 }

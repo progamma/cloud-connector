@@ -278,4 +278,4 @@ All components receive a `parent` reference for logging:
 - DataModel/FS/Plugin → Individual connections/operations
 
 ### Environment Variables
-- `%CC_KEY%` - Password encryption key for configuration
+- `%CC_KEY%` - Password encryption key for configuration, 64 hexadecimal characters (the 32 bytes of AES-256)

@@ -137,7 +137,33 @@ class CloudServer
     Utils.replaceEnvVariables(resolvedConfig);
     //
     let key = resolvedConfig.passwordPrivateKey;
-    Utils.processPasswords(resolvedConfig, key, false, this);
+    //
+    // An unusable key does not stop a connector that today works: it is said out loud, and the
+    // passwords are left as the file has them, which is what the drivers have been receiving
+    let usableKey = !key || Utils.isValidKey(key);
+    if (usableKey) {
+      delete this.passwordKeyError;
+      Utils.processPasswords(resolvedConfig, key, false, this);
+    }
+    else {
+      // A password that carries an iv was encrypted by a key that worked, and stays encrypted and
+      // unreadable; one without it is sitting there in clear. The two are not alternatives: a save
+      // from the page makes exactly the configuration where both hold, because the password just
+      // retyped loses its iv while the ones left alone keep theirs. Naming the datamodels replaces
+      // the line each of them used to get from processPasswords
+      let withPassword = resolvedConfig.datamodels?.filter(dm => dm.connectionOptions?.password) || [];
+      let locked = withPassword.filter(dm => dm.iv);
+      let what = [];
+      if (locked.length < withPassword.length || !locked.length)
+        what.push("the passwords in config.json are not being encrypted");
+      if (locked.length)
+        what.push(`the passwords of ${locked.map(dm => `'${dm.name}'`).join(", ")} cannot be decrypted, and those datamodels will not connect`);
+      //
+      // Kept, and not only logged, because the configuration page saves through this method: whoever
+      // has just typed a password has no reason to go and open the log in another tab
+      this.passwordKeyError = `${what.join("; ")}: ${Utils.invalidKeyMessage(key)}`;
+      this.log("ERROR", this.passwordKeyError);
+    }
     //
     this.configChanged = (this.name !== resolvedConfig.name);
     this.name = resolvedConfig.name;
@@ -158,8 +184,10 @@ class CloudServer
     //
     this.log("INFO", "Configuration loaded with success");
     //
-    // Resave the config with the passwords encrypted
-    Utils.processPasswords(config, key, true, this);
+    // Resave the config with the passwords encrypted. The write happens in any case, because a
+    // configuration arrived from remote is persisted here and nowhere else
+    if (usableKey)
+      Utils.processPasswords(config, key, true, this);
     await fs.writeFile(path.join(__dirname, "config.json"), JSON.stringify(config, null, 2), {encoding: "utf8"});
   }
 

@@ -1556,10 +1556,13 @@ async function save()
     // Read back what was stored: the passwords come back masked and the page starts from the file again
     await load();
     //
+    // A key that could not be used has to be said here, where the password was typed, and not only
+    // in the log. It arrives already worded from the connector, like the messages of the drivers
+    let keyProblem = result.passwordKeyError ? ` ${result.passwordKeyError}` : "";
     if (result.restartNeeded)
-      say(t("Configuration saved and reloaded. The new port of this page takes effect at the next restart."), "warn");
+      say(t("Configuration saved and reloaded. The new port of this page takes effect at the next restart.") + keyProblem, "warn");
     else
-      say(t("Configuration saved and reloaded."), "ok");
+      say(t("Configuration saved and reloaded.") + keyProblem, keyProblem ? "warn" : "ok");
   }
   catch (e) {
     say(e.message, "ko");

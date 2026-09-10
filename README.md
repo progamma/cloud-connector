@@ -83,19 +83,27 @@ Before starting the Cloud Connector you must set the environment variable holdin
 
 **CC_KEY is an environment variable** and must be set in the operating system before the Cloud Connector starts. The `%CC_KEY%` syntax in config.json tells the connector to read the value from the environment variable named `CC_KEY`.
 
+The key is not a passphrase: it is the AES-256 key itself, **64 hexadecimal characters**, the 32 bytes the algorithm takes, written as hexadecimal. Generate one:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Then set the variable to the 64 characters it printed. There is no example key to copy here on purpose: a key published in a manual is a key everybody has, and the passwords it protects are protected from nobody.
+
 #### Windows (Command Prompt):
 ```batch
-set CC_KEY=your-secret-key-of-at-least-32-characters
+set CC_KEY=<the 64 characters printed by the command above>
 ```
 
 #### Windows (PowerShell):
 ```powershell
-$env:CC_KEY="your-secret-key-of-at-least-32-characters"
+$env:CC_KEY="<the 64 characters printed by the command above>"
 ```
 
 #### Linux/Mac:
 ```bash
-export CC_KEY="your-secret-key-of-at-least-32-characters"
+export CC_KEY="<the 64 characters printed by the command above>"
 ```
 
 #### Making the variable permanent:
@@ -103,7 +111,7 @@ export CC_KEY="your-secret-key-of-at-least-32-characters"
 - **Linux/Mac**: Add the export to `~/.bashrc`, `~/.bash_profile` or `/etc/environment`
 
 **IMPORTANT**:
-- The key must be **at least 32 characters** long
+- The key must be **exactly 64 hexadecimal characters** (`0-9`, `a-f`). Anything else is refused, and the connector says so at startup
 - Set the variable **BEFORE** the first start (passwords are encrypted on first start)
 - A different name can be used by changing `passwordPrivateKey` in config.json
 
@@ -155,7 +163,8 @@ The `config.json` file in the `public_html` directory holds the entire Cloud Con
 ### Password Security
 
 - **passwordPrivateKey**: Reads the encryption key from the environment variable
-- The key must be **at least 32 characters** long to provide adequate security
+- The key must be **exactly 64 hexadecimal characters**, the 32 bytes AES-256 takes. Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- A key of any other length, or one with a character that is not hexadecimal, is refused: the connector keeps running, and says at startup that the passwords are staying in clear text
 - If it is not defined, a default value is used (not recommended)
 - Further reading: [OWASP Cryptographic Storage](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation)
 
@@ -408,6 +417,8 @@ The options offered for each database are declared by the driver classes themsel
 
 A password is never sent to the browser. Every value a driver declares as secret — the `password` of the SQL drivers, and the whole `connectionString` of ODBC, which usually carries `PWD=` — is replaced by `********`. Leaving that placeholder alone keeps the stored password; typing over it replaces it. Encryption stays where it was, in `processPasswords`, so the file on disk is written exactly as before.
 
+A save is where a password is really written, so it is also where a key that cannot be used has to be said: the page reports it next to "Configuration saved and reloaded", in the words the connector used, rather than leaving it in the log.
+
 The same applies to `passwordPrivateKey` when it holds a key rather than a reference such as `%CC_KEY%`, which is one more reason to keep it as a reference.
 
 The settings block of a plugin has no schema to go by, because every plugin invents its own — the Active Directory one carries a `password`. There the rule is the name: anything called `password`, `pwd`, `secret`, `token` or `credential`, at any depth, is masked. It errs towards masking, because a name it failed to recognise would be a password handed to the browser in clear.
@@ -585,8 +596,16 @@ To enable remote configuration, set `remoteConfigurationKey` in config.json:
 - **NEVER in production!**
 
 #### Passwords are not encrypted
+- Message: "the passwords in config.json are not being encrypted", in the log and on the configuration page after a save
+- The key is not 64 hexadecimal characters: generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and set `CC_KEY` to it
 - Set the `CC_KEY` variable BEFORE the first start
-- Minimum 32 characters
+- Passwords already written in clear text are encrypted at the first start with a valid key
+- This message and the one below can appear together, separated by a semicolon: a save that retypes one password while leaving the others as they were produces exactly that configuration
+
+#### The passwords cannot be decrypted and the databases refuse the connection
+- Message: "the passwords of '...' cannot be decrypted, and those datamodels will not connect"
+- The passwords are encrypted, and the key that could read them is no longer the one in `CC_KEY`: the variable was lost or changed
+- Put the original key back. If it is gone, delete the `iv` of those datamodels in `config.json`, type the passwords again in clear text, and restart with a valid key: they are encrypted again on that start
 
 #### The ActiveDirectory plugin does not work
 - Run `npm update` in `public_html/plugins/activedirectory`
