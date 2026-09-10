@@ -1,0 +1,851 @@
+/*
+ * Instant Developer Cloud
+ * Copyright Pro Gamma Spa 2000-2021
+ * All rights reserved
+ */
+
+/*
+ * Colours, shapes and type scale are the ones the IDE uses, taken from its allnew.css so that the
+ * two look like one product. The IDE switches theme with a class it puts on the page; this one has
+ * nobody to put it there, so it follows the theme of the system.
+ * The only value with no counterpart in the IDE is the warning colour, which the IDE has no need of.
+ */
+:root {
+  /*
+   * What the browser draws itself follows the theme too: the tick inside a checkbox, the list a
+   * select opens, the scrollbars, the colour autofill paints a field with. Without this the page
+   * turns dark and those stay light.
+   */
+  color-scheme: light dark;
+
+  --body-background-x: #f5f8ff;
+  --white-background-x: #ffffff;
+
+  --light-text-x: #ffffff;
+  --dark-text-x: #384255;
+  --medium-gray-text-x: #626262;
+  --light-gray-text-x: #acacac;
+
+  --light-border-x: #eaebf0;
+  --medium-border-x: #dae0e6;
+
+  --color-inde-x: #40ad50;
+  --color-inde-hl-x: #338a40;
+
+  --color-negative-x: #ff494b;
+  --color-negative-hl-x: #d02e2e;
+
+  --bluebtn-color-x: #437ef7;
+  --bluebtn-background-x: #f5f8ff;
+  --bluebtn-background2-x: #eaf0fe;
+
+  --color-warning-x: #b54708;
+  --page-overlay-background-x: #00000080;
+
+  --body-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+          "Segoe UI Symbol", "Noto Color Emoji";
+  --mono-font: ui-monospace, Consolas, "Courier New", monospace;
+
+  --btn-radius-x: 10px;
+  --btn-padding-x: 8px 12px;
+
+  /*
+   * How wide the content is allowed to get, and the room left at its sides. On a wide screen the
+   * side room grows and the content sits in the middle; the bars stay full width, so the lines
+   * that separate them still run from edge to edge.
+   */
+  --page-width-x: 1000px;
+  --page-gutter-x: max(24px, calc((100% - var(--page-width-x)) / 2));
+
+  /* How tall the bar at the bottom is, so that what has to stay clear of it knows by how much */
+  --footer-height-x: 64px;
+
+  /* How wide a box to fill in is allowed to get: one width for all of them, so they line up */
+  --field-width-x: 360px;
+
+  /*
+   * What the pieces stuck to the edges cover: the title and the tabs above, the add button and the
+   * command bar below. Scrolling something into view has to clear them, or the browser stops as
+   * soon as the edge of the window is reached and leaves it underneath.
+   */
+  --scroll-clear-x: 120px;
+
+
+  --font-small-x: 12px;
+  --font-small2-x: 13px;
+  --font-medium-x: 14px;
+  --font-large2-x: 18px;
+  --weight-medium-x: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --body-background-x: #151b28;
+    --white-background-x: #1c2634;
+
+    --dark-text-x: #d0d0d0;
+    --medium-gray-text-x: #a5acba;
+    --light-gray-text-x: #8b8b8b;
+
+    --light-border-x: #252d3c;
+    --medium-border-x: #252d3c;
+
+    --color-inde-x: #40ad50;
+    --color-inde-hl-x: #338a40;
+
+    --color-negative-x: #c14c4c;
+    --color-negative-hl-x: #bf2718;
+
+    --bluebtn-background-x: #2e3646;
+    --bluebtn-background2-x: #2e3646;
+
+    --color-warning-x: #d29922;
+    --page-overlay-background-x: #151b28b0;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--body-background-x);
+  color: var(--dark-text-x);
+  font-family: var(--body-font);
+  font-size: var(--font-medium-x);
+  line-height: 1.5;
+  padding-bottom: calc(var(--footer-height-x) + 24px);
+}
+
+/* The title and the tabs stay in view: with a long list of datamodels they are the way back */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--white-background-x);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px var(--page-gutter-x);
+  background: var(--white-background-x);
+  border-bottom: 1px solid var(--medium-border-x);
+}
+
+header h1 {
+  margin: 0;
+  font-size: var(--font-large2-x);
+  font-weight: var(--weight-medium-x);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.subtitle {
+  color: var(--medium-gray-text-x);
+}
+
+.summary {
+  color: var(--medium-gray-text-x);
+  font-size: var(--font-small2-x);
+}
+
+/* Narrow, but with the room on the right that the chevron needs, or it sits on top of the name */
+header select {
+  width: auto;
+  min-width: 130px;
+  padding: 4px 32px 4px 10px;
+  font-size: var(--font-small-x);
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+  padding: 0 var(--page-gutter-x);
+  background: var(--white-background-x);
+  border-bottom: 1px solid var(--medium-border-x);
+  overflow-x: auto;
+}
+
+.tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--medium-gray-text-x);
+  padding: 10px 12px;
+  font-size: var(--font-medium-x);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--dark-text-x);
+  background: none;
+}
+
+.tab.selected {
+  color: var(--color-inde-hl-x);
+  border-bottom-color: var(--color-inde-x);
+}
+
+main {
+  padding: 24px var(--page-gutter-x);
+}
+
+.panel {
+  display: none;
+}
+
+.panel.selected {
+  display: block;
+}
+
+.card {
+  background: var(--white-background-x);
+  border: 1px solid var(--medium-border-x);
+  border-radius: var(--btn-radius-x);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  scroll-margin: var(--scroll-clear-x) 0;
+}
+
+.card h2 {
+  margin: 0 0 4px;
+  font-size: var(--font-medium-x);
+  font-weight: var(--weight-medium-x);
+}
+
+.card h2:not(:first-child) {
+  margin-top: 20px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.card-head h2 {
+  margin: 0;
+}
+
+.card-head.closed {
+  margin-bottom: 0;
+}
+
+.disclosure {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.disclosure:focus-visible {
+  outline: 2px solid var(--color-inde-x);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 14px;
+  color: var(--medium-gray-text-x);
+}
+
+.card-summary {
+  color: var(--medium-gray-text-x);
+  font-size: var(--font-small2-x);
+  font-weight: normal;
+  overflow-wrap: anywhere;
+}
+
+.field {
+  margin-bottom: 12px;
+}
+
+/*
+ * Every box stops at the same width, so a column of them lines up whether it stands on its own or
+ * inside a grid. A box paired with a button is left out: those hold a key or a path, and the pair
+ * needs the room. What is written under a box is not capped, and runs the whole width it has.
+ */
+.field > input,
+.field > select,
+.field > .select {
+  max-width: var(--field-width-x);
+}
+
+/* Given the whole row, because the line under it would otherwise be broken into a stack */
+.columns .field.wide {
+  grid-column: 1 / -1;
+}
+
+/*
+ * The label of a field sits above it, on its own line. A checkbox line is a label too, but it sits
+ * beside its box, so it is left out: with a type in it this selector would otherwise outweigh the
+ * single class of .checkbox-line and flatten it back to a block.
+ */
+.field label:not(.checkbox-line) {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--medium-gray-text-x);
+  font-size: var(--font-small2-x);
+  min-height: 20px;
+}
+
+/* Sits under an empty label, so it starts exactly where the fields beside it start */
+.field.remove {
+  flex: none;
+  margin-bottom: 0;
+}
+
+.checkbox-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--dark-text-x);
+  cursor: pointer;
+}
+
+/* Standing on its own under a heading, it needs the same room a field would take */
+.card > .checkbox-line {
+  margin: 10px 0 4px;
+}
+
+/*
+ * Every checkbox in the page, wherever it sits. The control itself is the box, redrawn here, and
+ * the IDE's tick lies over it: a real drawing rather than a background image, so it takes its
+ * colour from the text and one theme needs no different copy of it from the other. The control
+ * stays a control, so clicking it and reaching it with the keyboard keep working on their own.
+ */
+.checkbox {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.checkbox input[type="checkbox"] {
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 1px solid var(--medium-border-x);
+  border-radius: 3px;
+  background: var(--body-background-x);
+  cursor: pointer;
+}
+
+.checkbox svg {
+  position: absolute;
+  inset: 3px;
+  color: var(--dark-text-x);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checkbox input:checked + svg {
+  opacity: 1;
+}
+
+.checkbox input:focus-visible {
+  outline: 2px solid var(--color-inde-x);
+  outline-offset: 1px;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+select,
+textarea {
+  width: 100%;
+  padding: var(--btn-padding-x);
+  border: 1px solid var(--medium-border-x);
+  border-radius: var(--btn-radius-x);
+  background: var(--body-background-x);
+  color: var(--dark-text-x);
+  font-family: var(--body-font);
+  font-size: var(--font-medium-x);
+}
+
+/*
+ * The arrow the browser draws sits hard against the edge, so the page draws the IDE's instead:
+ * a real shape laid over the control, which takes its colour from the text and needs no different
+ * copy of itself from one theme to the other.
+ */
+select {
+  appearance: none;
+  padding-right: 34px;
+  cursor: pointer;
+}
+
+.select {
+  position: relative;
+  display: block;
+}
+
+.select svg {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  margin-top: -6px;
+  color: var(--medium-gray-text-x);
+  pointer-events: none;
+}
+
+textarea {
+  resize: vertical;
+  font-family: var(--mono-font);
+  font-size: var(--font-small2-x);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--color-inde-x);
+  outline-offset: -1px;
+}
+
+input:disabled {
+  color: var(--light-gray-text-x);
+}
+
+input.invalid {
+  border-color: var(--color-negative-x);
+}
+
+.with-button {
+  display: flex;
+  gap: 8px;
+}
+
+/* A picker beside a box takes only the room it needs, and leaves the rest to the box */
+.with-button .select {
+  flex: none;
+}
+
+.with-button select {
+  width: auto;
+  min-width: 120px;
+}
+
+.help {
+  color: var(--medium-gray-text-x);
+  font-size: var(--font-small-x);
+  margin: 4px 0 0;
+}
+
+/* A line explaining a whole block has something under it, and needs the room to say so */
+.card > .help {
+  margin-bottom: 14px;
+}
+
+.help.ok {
+  color: var(--color-inde-hl-x);
+}
+
+.help.ko {
+  color: var(--color-negative-hl-x);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 16px;
+}
+
+/*
+ * Several grids stacked one on the other, one per group of options. auto-fill rather than auto-fit
+ * so that the empty tracks stay: a group of two lines up with the columns of the group of four
+ * above it, instead of stretching to fill the width.
+ */
+.columns.aligned {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--light-border-x);
+  scroll-margin: var(--scroll-clear-x) 0;
+}
+
+.row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Switches keep each other company instead of being scattered through the grid of the boxes */
+.switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 32px;
+  margin-bottom: 12px;
+}
+
+.switches .field {
+  margin-bottom: 0;
+}
+
+.row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.row .columns {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+button {
+  border: 1px solid var(--medium-border-x);
+  border-radius: var(--btn-radius-x);
+  background: var(--bluebtn-background-x);
+  color: var(--bluebtn-color-x);
+  padding: var(--btn-padding-x);
+  font-family: var(--body-font);
+  font-size: var(--font-medium-x);
+  font-weight: var(--weight-medium-x);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--bluebtn-background2-x);
+  border-color: var(--bluebtn-color-x);
+}
+
+button.primary {
+  background: var(--color-inde-x);
+  border-color: var(--color-inde-x);
+  color: var(--light-text-x);
+}
+
+button.primary:hover {
+  background: var(--color-inde-hl-x);
+  border-color: var(--color-inde-hl-x);
+}
+
+button.danger {
+  background: var(--white-background-x);
+  color: var(--medium-gray-text-x);
+}
+
+button.danger:hover {
+  background: var(--white-background-x);
+  border-color: var(--color-negative-x);
+  color: var(--color-negative-hl-x);
+}
+
+/* The one that does the throwing away, in a dialog that asks before it happens */
+button.destructive {
+  background: var(--color-negative-hl-x);
+  border-color: var(--color-negative-hl-x);
+  color: var(--light-text-x);
+}
+
+button.destructive:hover {
+  background: var(--color-negative-x);
+  border-color: var(--color-negative-x);
+  color: var(--light-text-x);
+}
+
+/* Square, and only as tall as its glyph: what it does is said by the tooltip */
+button.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  line-height: 0;
+}
+
+/*
+ * Keeps the add button in view while the list above it scrolls. It reaches all the way down to the
+ * edge of the window, where the command bar covers it, so that nothing can be seen slipping through
+ * between the two. Its own bottom padding is what holds the button clear of that bar, and the
+ * negative margin gives back the room that padding would otherwise add at the end of the list.
+ */
+.add-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding-bottom: var(--footer-height-x);
+  margin-bottom: calc(-1 * var(--footer-height-x));
+  background: var(--body-background-x);
+}
+
+button.add {
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px;
+  border-style: dashed;
+  background: var(--bluebtn-background2-x);
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px var(--page-gutter-x);
+  background: var(--white-background-x);
+  border-top: 1px solid var(--medium-border-x);
+  z-index: 20;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unsaved {
+  color: var(--color-warning-x);
+  font-size: var(--font-small2-x);
+}
+
+.message {
+  font-size: var(--font-small2-x);
+  min-height: 20px;
+}
+
+.message.ok {
+  color: var(--color-inde-hl-x);
+}
+
+.message.ko {
+  color: var(--color-negative-hl-x);
+}
+
+.message.warn {
+  color: var(--color-warning-x);
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: var(--light-gray-text-x);
+}
+
+.dot.on {
+  background: var(--color-inde-x);
+}
+
+.dot.off {
+  background: var(--color-negative-x);
+}
+
+.info {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  font-size: var(--font-small2-x);
+}
+
+.info dt {
+  color: var(--medium-gray-text-x);
+}
+
+.info dd {
+  margin: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-small2-x);
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--light-border-x);
+}
+
+th {
+  color: var(--medium-gray-text-x);
+  font-weight: normal;
+}
+
+/* A list inside a card, with nothing in it: centred like the empty tabs, but plainer, because the
+   line above the list has already said what would go there */
+.empty {
+  padding: 24px 0;
+  color: var(--medium-gray-text-x);
+  font-size: var(--font-medium-x);
+  text-align: center;
+}
+
+/* A tab with nothing in it has room to say what would go there, so it says it */
+.empty-state {
+  padding: 56px 24px;
+  color: var(--medium-gray-text-x);
+  font-size: var(--font-medium-x);
+  text-align: center;
+  text-wrap: balance;
+}
+
+.empty-state strong {
+  display: block;
+  max-width: 40em;
+  margin: 0 auto 8px;
+  color: var(--dark-text-x);
+  font-size: var(--font-large2-x);
+  font-weight: var(--weight-medium-x);
+}
+
+.log {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--medium-border-x);
+  border-radius: var(--btn-radius-x);
+  background: var(--body-background-x);
+  font-family: var(--mono-font);
+  font-size: var(--font-small-x);
+  margin-top: 8px;
+}
+
+.log div {
+  padding: 2px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log .ERROR {
+  color: var(--color-negative-hl-x);
+}
+
+.log .WARNING {
+  color: var(--color-warning-x);
+}
+
+.log time {
+  color: var(--medium-gray-text-x);
+  margin-right: 8px;
+}
+
+.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--medium-gray-text-x);
+  font-size: var(--font-small2-x);
+}
+
+code {
+  font-family: var(--mono-font);
+  font-size: var(--font-small-x);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--page-overlay-background-x);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 100%;
+  padding: 20px;
+  border: 1px solid var(--medium-border-x);
+  border-radius: var(--btn-radius-x);
+  background: var(--white-background-x);
+}
+
+.dialog h2 {
+  margin: 0;
+  font-size: var(--font-medium-x);
+  font-weight: var(--weight-medium-x);
+}
+
+.dialog .actions {
+  justify-content: flex-end;
+}
+
+.browse-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.browse-path {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono-font);
+  font-size: var(--font-small2-x);
+}
+
+.browse-list {
+  flex: 1;
+  min-height: 160px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--medium-border-x);
+  border-radius: var(--btn-radius-x);
+  background: var(--body-background-x);
+}
+
+/* A folder is a button, so the keyboard walks the list the same way the mouse does */
+.browse-item {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--dark-text-x);
+  font-weight: normal;
+  text-align: left;
+}
+
+.browse-item:hover {
+  background: var(--bluebtn-background2-x);
+  color: var(--dark-text-x);
+}
+
+/* The block of free JSON: read as code, so shown as code */
+.card > textarea {
+  font-family: var(--mono-font);
+}
