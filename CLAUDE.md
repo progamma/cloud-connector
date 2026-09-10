@@ -40,6 +40,7 @@ Before writing new code:
 npm install                  # Install dependencies
 node public_html/cloudServer.js  # Start Cloud Connector server
 pm2 start cloudServer.js     # Start with PM2 process manager (production)
+npm run lint                 # ESLint over public_html, the configuration page included
 npm test                     # Run test suite (if configured)
 ```
 
