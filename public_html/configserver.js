@@ -778,7 +778,9 @@ class ConfigServer
     let wanted = Object.assign({}, ConfigServer.defaults, config.localConfiguration);
     let restartNeeded = Number(wanted.port) !== this.requestedPort || Boolean(wanted.enabled) !== Boolean(this.server);
     //
-    return {saved: true, restartNeeded};
+    // loadConfig has just weighed the key on the resolved configuration, and a save is where a
+    // password is actually written: the answer carries what it found, so that the page can say it
+    return {saved: true, restartNeeded, passwordKeyError: this.parent.passwordKeyError};
   }
 
 
@@ -951,9 +953,11 @@ class ConfigServer
       return {ok: true, driver: info, elapsed: (new Date()).getTime() - startTime.getTime()};
     }
     catch (e) {
-      // With an unusable key the password the driver refused is the encrypted one, or one the page
-      // could not encrypt: the driver's message alone would send the search in the wrong direction
-      let error = usableKey ? e.message : `${e.message}. ${Utils.invalidKeyMessage(probe.passwordPrivateKey)}`;
+      // Said only when the key really is what the driver stumbled on: after restoreSecrets an iv is
+      // there when the password handed over is the stored ciphertext, which no key could open.
+      // Without it the password arrived whole, and an address or a database name was the problem
+      let blamesTheKey = !usableKey && probe.datamodels[0].iv;
+      let error = blamesTheKey ? `${e.message}. ${Utils.invalidKeyMessage(probe.passwordPrivateKey)}` : e.message;
       return {ok: false, error, elapsed: (new Date()).getTime() - startTime.getTime()};
     }
   }

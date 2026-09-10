@@ -141,17 +141,23 @@ class CloudServer
     // An unusable key does not stop a connector that today works: it is said out loud, and the
     // passwords are left as the file has them, which is what the drivers have been receiving
     let usableKey = !key || Utils.isValidKey(key);
-    if (!usableKey) {
+    if (usableKey) {
+      delete this.passwordKeyError;
+      Utils.processPasswords(resolvedConfig, key, false, this);
+    }
+    else {
       // A password that carries an iv was encrypted by a key that worked, and stays encrypted and
       // unreadable: the opposite of what there is to say about one sitting in the file in clear.
       // Naming the datamodels replaces the line each of them used to get from processPasswords
       let locked = resolvedConfig.datamodels?.filter(dm => dm.iv && dm.connectionOptions?.password).map(dm => `'${dm.name}'`);
-      let what = locked?.length ? `THE PASSWORDS OF ${locked.join(", ")} CANNOT BE DECRYPTED, AND THOSE DATAMODELS WILL NOT CONNECT` :
-              "THE PASSWORDS IN config.json ARE NOT BEING ENCRYPTED";
-      this.log("ERROR", `${what}: ${Utils.invalidKeyMessage(key)}`);
+      let what = locked?.length ? `the passwords of ${locked.join(", ")} cannot be decrypted, and those datamodels will not connect` :
+              "the passwords in config.json are not being encrypted";
+      //
+      // Kept, and not only logged, because the configuration page saves through this method: whoever
+      // has just typed a password has no reason to go and open the log in another tab
+      this.passwordKeyError = `${what}: ${Utils.invalidKeyMessage(key)}`;
+      this.log("ERROR", this.passwordKeyError);
     }
-    else
-      Utils.processPasswords(resolvedConfig, key, false, this);
     //
     this.configChanged = (this.name !== resolvedConfig.name);
     this.name = resolvedConfig.name;

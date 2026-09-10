@@ -417,6 +417,8 @@ The options offered for each database are declared by the driver classes themsel
 
 A password is never sent to the browser. Every value a driver declares as secret — the `password` of the SQL drivers, and the whole `connectionString` of ODBC, which usually carries `PWD=` — is replaced by `********`. Leaving that placeholder alone keeps the stored password; typing over it replaces it. Encryption stays where it was, in `processPasswords`, so the file on disk is written exactly as before.
 
+A save is where a password is really written, so it is also where a key that cannot be used has to be said: the page reports it next to "Configuration saved and reloaded", in the words the connector used, rather than leaving it in the log.
+
 The same applies to `passwordPrivateKey` when it holds a key rather than a reference such as `%CC_KEY%`, which is one more reason to keep it as a reference.
 
 The settings block of a plugin has no schema to go by, because every plugin invents its own — the Active Directory one carries a `password`. There the rule is the name: anything called `password`, `pwd`, `secret`, `token` or `credential`, at any depth, is masked. It errs towards masking, because a name it failed to recognise would be a password handed to the browser in clear.
@@ -594,13 +596,13 @@ To enable remote configuration, set `remoteConfigurationKey` in config.json:
 - **NEVER in production!**
 
 #### Passwords are not encrypted
-- Message: "THE PASSWORDS IN config.json ARE NOT BEING ENCRYPTED"
+- Message: "the passwords in config.json are not being encrypted", in the log and on the configuration page after a save
 - The key is not 64 hexadecimal characters: generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and set `CC_KEY` to it
 - Set the `CC_KEY` variable BEFORE the first start
 - Passwords already written in clear text are encrypted at the first start with a valid key
 
 #### The passwords cannot be decrypted and the databases refuse the connection
-- Message: "THE PASSWORDS OF '...' CANNOT BE DECRYPTED, AND THOSE DATAMODELS WILL NOT CONNECT"
+- Message: "the passwords of '...' cannot be decrypted, and those datamodels will not connect"
 - The passwords are encrypted, and the key that could read them is no longer the one in `CC_KEY`: the variable was lost or changed
 - Put the original key back. If it is gone, delete the `iv` of those datamodels in `config.json`, type the passwords again in clear text, and restart with a valid key: they are encrypted again on that start
 
