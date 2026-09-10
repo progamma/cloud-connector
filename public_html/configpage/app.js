@@ -747,10 +747,16 @@ function drawRemoteServers()
 function splitIdeUser(entry)
 {
   if (!/^https?:\/\//i.test(entry))
-    return {address: "", user: entry || ""};
+    return {
+      address: "",
+      user: entry || ""
+    };
   //
   let [address, user] = entry.split("@");
-  return {address, user: user || ""};
+  return {
+    address,
+    user: user || ""
+  };
 }
 
 

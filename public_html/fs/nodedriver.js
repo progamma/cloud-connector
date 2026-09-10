@@ -818,11 +818,19 @@ class NodeDriver extends FS
   serializeObject(obj)
   {
     if (obj instanceof File)
-      return {path: obj.path, type: "file"};
+      return {
+        path: obj.path,
+        type: "file"
+      };
     else if (obj instanceof Directory)
-      return {path: obj.path, type: "directory"};
+      return {
+        path: obj.path,
+        type: "directory"
+      };
     else if (obj instanceof Url)
-      return {url: obj.url};
+      return {
+        url: obj.url
+      };
   }
 
 
