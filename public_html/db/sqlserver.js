@@ -38,6 +38,79 @@ const DataModel = require("./datamodel");
  */
 class SQLServer extends DataModel
 {
+  /** @inheritdoc */
+  static connectionOptionsSchema = [
+    {
+      name: "server",
+      group: "server",
+      label: "Server",
+      type: "string",
+      required: true,
+      default: "localhost",
+      help: "Hostname, optionally followed by \\instance"
+    },
+    {
+      name: "port",
+      group: "server",
+      label: "Port",
+      type: "number",
+      default: 1433
+    },
+    {
+      name: "database",
+      group: "server",
+      label: "Database",
+      type: "string",
+      required: true,
+      placeholder: "mydb"
+    },
+    {
+      name: "user",
+      group: "credentials",
+      label: "User",
+      type: "string",
+      required: true,
+      placeholder: "dbuser"
+    },
+    {
+      name: "password",
+      group: "credentials",
+      label: "Password",
+      type: "password"
+    },
+    {
+      name: "pool.max",
+      group: "options",
+      label: "Pool size",
+      type: "number",
+      default: 10,
+      help: "Maximum number of connections kept open towards the database"
+    },
+    {
+      name: "connectionTimeout",
+      group: "options",
+      label: "Connection timeout (ms)",
+      type: "number",
+      default: 30000
+    },
+    {
+      name: "options.encrypt",
+      group: "options",
+      label: "Encrypted connection",
+      type: "boolean",
+      default: true
+    },
+    {
+      name: "options.trustServerCertificate",
+      group: "options",
+      label: "Trust the server certificate",
+      type: "boolean",
+      default: false,
+      help: "Skips certificate validation: for development only"
+    }
+  ];
+
+
   constructor(parent, config)
   {
     super(parent, config);

@@ -16,6 +16,11 @@
   - [Database Configuration](#database-configuration)
   - [File System Configuration](#file-system-configuration)
   - [Plugin Configuration](#plugin-configuration)
+- [Local Configuration Page](#local-configuration-page)
+  - [Reaching the Page](#reaching-the-page)
+  - [What the Page Can Do](#what-the-page-can-do)
+  - [Passwords in the Page](#passwords-in-the-page)
+  - [Adding a Language](#adding-a-language)
 - [Installing as a Service](#installing-as-a-service)
 - [Security](#security)
   - [Database User](#database-user)
@@ -43,6 +48,7 @@ Normally it is the application that connects to the database, which means the da
 - **Plugin System**: Extensible architecture (e.g. Active Directory)
 - **Encryption**: Passwords encrypted with a customizable key
 - **Socket.IO**: Real-time bidirectional communication
+- **Local configuration page**: A page on the loopback interface writes `config.json` and reloads it, in the language of the browser
 
 ## System Requirements
 
@@ -130,6 +136,10 @@ The `config.json` file in the `public_html` directory holds the entire Cloud Con
 {
   "name": "my-connector",
   "passwordPrivateKey": "%CC_KEY%",
+  "localConfiguration": {
+    "enabled": true,
+    "port": 8099
+  },
   "connectionOptions": {
     // Optional: for development environments with invalid SSL certificates
     // "rejectUnauthorized": false  // WARNING: development only!
@@ -355,6 +365,68 @@ Secure sharing of local directories:
 ]
 ```
 
+## Local Configuration Page
+
+The Cloud Connector serves a configuration page on the machine it runs on, so that `config.json` does not have to be edited by hand. Saving from the page rewrites the file and reloads the configuration through the same path remote configuration takes, so the service keeps running.
+
+### Reaching the Page
+
+The page answers at **http://127.0.0.1:8099**, and only there: the socket is bound to the loopback interface, and every request is checked again against both the address it comes from and the `Host` header it carries. Nothing outside the machine can reach it, which is why it asks for no password.
+
+Its own settings live in `config.json`:
+
+```json
+"localConfiguration": {
+  "enabled": true,
+  "port": 8099
+}
+```
+
+Both entries have those values when the block is missing altogether, so an installation that is updated to this version gets the page without a single change to its `config.json`. They are read once, when the connector starts: changing the port from the page takes effect at the next restart, so that a save can never pull the socket out from under the request making it. Set `enabled` to `false` to serve no page at all.
+
+The page also comes up when `config.json` does not exist yet or cannot be loaded, because on a fresh install it is the only way to write one.
+
+An option the page does not show, because no driver declares it — a tuned `pool.min`, a `cryptoCredentialsDetails` for an older SQL Server, the top level `connectionOptions` — is written back exactly as it was found. The one thing that drops such an option is changing the driver class of a datamodel, which rebuilds the connection options around the class that has to understand them.
+
+### What the Page Can Do
+
+- Set the connector name, the remote servers and the IDE users. An IDE user is not typed in the shape the file wants: the page asks where the IDE is, and writes `username`, `organization/username` or `https://ide.url@username` accordingly
+- Add, change and remove datamodels, with a form per driver class that offers only the options that driver understands
+- Add, change and remove shared file systems, the addresses each one may reach, and plugins together with the settings each one asks for
+- Every datamodel, file system and plugin is a card that starts closed and says what it is in one line, so that a connector with a long list stays readable
+- Generate the API keys and the `remoteConfigurationKey` with a button
+- Try a datamodel before saving it: the connector opens a connection with the options on screen and closes it again, and reports what the driver said
+- Show which remote servers are connected, which resources are loaded, and the tail of the log
+
+The options offered for each database are declared by the driver classes themselves, in `connectionOptionsSchema`. A new connector dropped into `db/` and registered in `db/drivers.js` gets its form for free.
+
+### Passwords in the Page
+
+A password is never sent to the browser. Every value a driver declares as secret — the `password` of the SQL drivers, and the whole `connectionString` of ODBC, which usually carries `PWD=` — is replaced by `********`. Leaving that placeholder alone keeps the stored password; typing over it replaces it. Encryption stays where it was, in `processPasswords`, so the file on disk is written exactly as before.
+
+The same applies to `passwordPrivateKey` when it holds a key rather than a reference such as `%CC_KEY%`, which is one more reason to keep it as a reference.
+
+The settings block of a plugin has no schema to go by, because every plugin invents its own — the Active Directory one carries a `password`. There the rule is the name: anything called `password`, `pwd`, `secret`, `token` or `credential`, at any depth, is masked. It errs towards masking, because a name it failed to recognise would be a password handed to the browser in clear.
+
+### Adding a Language
+
+The page speaks the language of the browser when it has it, English otherwise, and a picker in the header overrides the choice.
+
+A language is one file under `public_html/configpage/lang/`, named after its code:
+
+```json
+{
+  "name": "Deutsch",
+  "strings": {
+    "Save and reload": "Speichern und neu laden"
+  }
+}
+```
+
+The English text is the key, so an entry nobody has translated yet shows up in English instead of showing a key no one can read, and `en.json` needs no texts of its own. The keys cover the page and the labels the drivers publish alike. Nothing else has to be touched: the connector lists the directory and offers what it finds.
+
+Messages that come from a database driver stay in the words the driver used.
+
 ## Installing as a Service
 
 To keep the Cloud Connector always running, [PM2](https://github.com/Unitech/pm2) is recommended:
@@ -437,12 +509,19 @@ cloud-connector/
 ├── public_html/              # Main application directory
 │   ├── cloudServer.js        # Main entry point
 │   ├── server.js             # Socket.IO client
+│   ├── configserver.js       # Server of the local configuration page
 │   ├── utils.js              # Utilities and encryption
 │   ├── logger.js             # Logging subsystem
 │   ├── config.json           # Active configuration
 │   ├── config_example.json   # Configuration template
+│   ├── configpage/           # Local configuration page
+│   │   ├── index.html
+│   │   ├── app.js
+│   │   ├── style.css
+│   │   └── lang/             # One file per language
 │   ├── db/                   # Database connectors
 │   │   ├── datamodel.js      # Base class
+│   │   ├── drivers.js        # Registry of the driver classes
 │   │   ├── mysql.js
 │   │   ├── postgres.js
 │   │   ├── oracle.js

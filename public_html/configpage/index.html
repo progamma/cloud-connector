@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<!--
+ Instant Developer Cloud
+ Copyright Pro Gamma Spa 2000-2021
+ All rights reserved
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloud Connector</title>
+  <link rel="icon" href="favicon.ico" sizes="16x16 32x32">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar">
+    <header>
+      <div class="title">
+        <h1>Cloud Connector</h1>
+        <span id="connectorName" class="subtitle"></span>
+      </div>
+      <div class="title">
+        <div id="connectionSummary" class="summary"></div>
+        <span class="select"><select id="language" aria-label="Language"></select></span>
+      </div>
+    </header>
+
+    <nav id="tabs">
+      <button type="button" class="tab" data-panel="general" data-i18n="Connector"></button>
+      <button type="button" class="tab" data-panel="datamodels" data-i18n="Datamodels"></button>
+      <button type="button" class="tab" data-panel="fileSystems" data-i18n="File systems"></button>
+      <button type="button" class="tab" data-panel="plugins" data-i18n="Plugins"></button>
+      <button type="button" class="tab" data-panel="status" data-i18n="Status"></button>
+    </nav>
+  </div>
+
+  <main>
+    <section id="general" class="panel">
+      <div class="card">
+        <h2 data-i18n="Identity"></h2>
+        <div id="generalFields"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="Remote servers"></h2>
+        <p class="help" data-i18n="The applications this connector serves, one address each."></p>
+        <div id="remoteServers"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="IDE users"></h2>
+        <p class="help" data-i18n="The IDE users allowed to reach this connector. Say where their IDE is, and the page writes the value the connector expects."></p>
+        <div id="remoteUserNames"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="Local configuration page"></h2>
+        <p class="help" data-i18n="This page. The port is read when the connector starts, so a new one takes effect at the next restart."></p>
+        <div id="localFields"></div>
+      </div>
+    </section>
+
+    <section id="datamodels" class="panel">
+      <div id="datamodelList"></div>
+      <div class="add-bar">
+        <button type="button" class="add" data-add="datamodel" data-i18n="Add datamodel"></button>
+      </div>
+    </section>
+
+    <section id="fileSystems" class="panel">
+      <div id="fileSystemList"></div>
+      <div class="add-bar">
+        <button type="button" class="add" data-add="fileSystem" data-i18n="Add file system"></button>
+      </div>
+    </section>
+
+    <section id="plugins" class="panel">
+      <div id="pluginList"></div>
+      <div class="add-bar">
+        <button type="button" class="add" data-add="plugin" data-i18n="Add plugin"></button>
+      </div>
+    </section>
+
+    <section id="status" class="panel">
+      <div class="card">
+        <h2 data-i18n="Connector"></h2>
+        <div id="statusInfo" class="info"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="Remote servers"></h2>
+        <div id="statusServers"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="Resources"></h2>
+        <div id="statusResources"></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="Log"></h2>
+        <label class="inline checkbox-line" id="logAutoLabel">
+          <span data-i18n="Keep it up to date"></span>
+        </label>
+        <div id="log" class="log"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div id="message" class="message"></div>
+    <div class="actions">
+      <span id="unsaved" class="unsaved" data-i18n="Unsaved changes" hidden></span>
+      <button type="button" id="reload" data-i18n="Discard changes"></button>
+      <button type="button" id="save" class="primary" data-i18n="Save and reload"></button>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

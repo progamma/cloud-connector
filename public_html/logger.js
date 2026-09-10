@@ -23,11 +23,21 @@
  * @property {String} date - Date for log file rotation (when file logging is enabled)
  * @property {Stream} stream - File stream for general logs (when file logging is enabled)
  * @property {Stream} errStream - File stream for error logs (when file logging is enabled)
+ * @property {Array} history - Most recent log entries, oldest first
  */
 class Logger
 {
+  /**
+   * Number of entries kept in memory, so that the local configuration page can show
+   * the tail of the log without file logging being enabled.
+   * @type {Number}
+   */
+  static historySize = 500;
+
+
   constructor()
   {
+    this.history = [];
     this.init();
   }
 
@@ -63,12 +73,27 @@ class Logger
   {
     let logString = JSON.stringify({level, message, /*date: new Date(),*/ data});
     //
+    this.history.push({date: (new Date()).toISOString(), level, message, data});
+    if (this.history.length > Logger.historySize)
+      this.history.shift();
+    //
     console.log(logString);
     /*
      this.stream.write(logString + "\n");
      if (level === "ERROR")
      this.errStream.write(logString + "\n");
      */
+  }
+
+
+  /**
+   * Returns the most recent log entries, oldest first.
+   * @param {Number} [count] - How many entries to return; all of them when omitted
+   * @returns {Array} Log entries, each with date, level, message and data
+   */
+  getHistory(count)
+  {
+    return count > 0 ? this.history.slice(-count) : this.history.slice();
   }
 }
 

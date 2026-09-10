@@ -56,6 +56,23 @@ class DataModel
     ping: "ping"
   };
 
+  /**
+   * Describes the entries this driver accepts inside connectionOptions, so that the local
+   * configuration page can offer a form with only the options this driver understands.
+   * A name is a path, so "pool.max" is the max entry of the nested pool object. An entry with no
+   * default of its own carries a placeholder instead, so that an empty field still shows its shape.
+   * @type {Array<{name: String, label: String, type: String, required: Boolean, default: *,
+   *               placeholder: String, help: String}>}
+   */
+  static connectionOptionsSchema = [];
+
+  /**
+   * Describes the entries this driver accepts beside name, class and APIKey, outside of
+   * connectionOptions. Same shape as connectionOptionsSchema.
+   * @type {Array<Object>}
+   */
+  static datamodelOptionsSchema = [];
+
 
   constructor(parent, config)
   {
@@ -196,6 +213,33 @@ class DataModel
     }
     finally {
       delete this.pool;
+    }
+  }
+
+
+  /**
+   * Opens a connection and closes it again, to verify that the configured options really reach
+   * the database. It goes through the same path a remote server would, so what it proves is what
+   * the connector will do; the pool it opens is closed, so nothing survives the check.
+   * @returns {Promise<String>} Descriptor of the driver that answered, e.g. "mysql2@3.24.3"
+   * @throws {Error} Whatever the driver raises when the connection cannot be opened
+   */
+  async testConnection()
+  {
+    let cid = require("crypto").randomUUID();
+    try {
+      await this.openConnection({cid});
+      await this.closeConnection({cid});
+      return this.getDriverInfo();
+    }
+    finally {
+      try {
+        await this.closePool();
+      }
+      catch (e) {
+        // Reported rather than thrown: a failure here would hide the error the caller is testing for
+        this.parent.log("WARNING", `Unable to close the test pool of datamodel '${this.name}': ${e.message}`);
+      }
     }
   }
 

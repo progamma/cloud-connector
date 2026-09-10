@@ -41,6 +41,53 @@ class Oracle extends DataModel
   /** Process-wide flag tracking whether oracledb Thick mode has been initialised */
   static thickInitialized = false;
 
+  /** @inheritdoc */
+  static connectionOptionsSchema = [
+    {
+      name: "connectString",
+      group: "server",
+      label: "Connect string",
+      type: "string",
+      required: true,
+      placeholder: "localhost:1521/ORCL",
+      help: "Easy Connect, as in host:1521/service, or a TNS alias"
+    },
+    {
+      name: "user",
+      group: "credentials",
+      label: "User",
+      type: "string",
+      required: true,
+      placeholder: "dbuser"
+    },
+    {
+      name: "password",
+      group: "credentials",
+      label: "Password",
+      type: "password"
+    },
+    {
+      name: "poolMax",
+      group: "options",
+      label: "Pool size",
+      type: "number",
+      default: 10,
+      help: "Maximum number of connections kept open towards the database"
+    }
+  ];
+
+  /** @inheritdoc */
+  static datamodelOptionsSchema = [
+    {
+      name: "maxRows",
+      label: "Maximum rows a query may bring back",
+      type: "number",
+      placeholder: "10000",
+      help: "Empty or zero means no limit. oracledb reads it once for the whole process, so the " +
+              "last Oracle datamodel loaded decides for all of them."
+    }
+  ];
+
 
   constructor(parent, config)
   {

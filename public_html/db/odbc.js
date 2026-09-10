@@ -34,6 +34,37 @@ const DataModel = require("./datamodel");
  */
 class ODBC extends DataModel
 {
+  /** @inheritdoc */
+  static connectionOptionsSchema = [
+    {
+      // Treated as a secret because it usually carries PWD=, and nothing else in the string
+      // tells the connector where the password ends
+      name: "connectionString",
+      group: "server",
+      label: "Connection string",
+      type: "password",
+      required: true,
+      placeholder: "DSN=MyDSN;UID=user;PWD=secret",
+      help: "Hidden once saved, because it carries the password"
+    },
+    {
+      name: "maxSize",
+      group: "options",
+      label: "Pool size",
+      type: "number",
+      default: 10,
+      help: "Maximum number of connections kept open towards the database"
+    },
+    {
+      name: "connectionTimeout",
+      group: "options",
+      label: "Connection timeout (s)",
+      type: "number",
+      default: 30
+    }
+  ];
+
+
   constructor(parent, config)
   {
     super(parent, config);

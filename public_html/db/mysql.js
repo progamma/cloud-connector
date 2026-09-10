@@ -36,6 +36,63 @@ const DataModel = require("./datamodel");
  */
 class MySQL extends DataModel
 {
+  /** @inheritdoc */
+  static connectionOptionsSchema = [
+    {
+      name: "host",
+      group: "server",
+      label: "Host",
+      type: "string",
+      required: true,
+      default: "localhost"
+    },
+    {
+      name: "port",
+      group: "server",
+      label: "Port",
+      type: "number",
+      default: 3306
+    },
+    {
+      name: "database",
+      group: "server",
+      label: "Database",
+      type: "string",
+      required: true,
+      placeholder: "mydb"
+    },
+    {
+      name: "user",
+      group: "credentials",
+      label: "User",
+      type: "string",
+      required: true,
+      placeholder: "dbuser"
+    },
+    {
+      name: "password",
+      group: "credentials",
+      label: "Password",
+      type: "password"
+    },
+    {
+      name: "connectionLimit",
+      group: "options",
+      label: "Pool size",
+      type: "number",
+      default: 10,
+      help: "Maximum number of connections kept open towards the database"
+    },
+    {
+      name: "connectTimeout",
+      group: "options",
+      label: "Connection timeout (ms)",
+      type: "number",
+      default: 30000
+    }
+  ];
+
+
   constructor(parent, config)
   {
     super(parent, config);

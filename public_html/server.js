@@ -24,6 +24,7 @@ const io = require("socket.io-client");
  * @property {String} serverUrl - URL of the remote server to connect to
  * @property {String} ideUserName - Username for IDE connections (optional)
  * @property {Object} socket - Socket.IO client instance
+ * @property {Boolean} connected - True while the socket is connected
  *
  * @param {CloudServer} parent - Parent CloudServer instance
  * @param {String} url - Server URL to connect to
@@ -36,6 +37,16 @@ class Server
     this.parent = parent;
     this.serverUrl = url;
     this.ideUserName = username;
+  }
+
+
+  /**
+   * Whether the Socket.IO connection to the remote server is up right now.
+   * @returns {Boolean} True while the socket is connected
+   */
+  get connected()
+  {
+    return this.socket?.connected === true;
   }
 
 
