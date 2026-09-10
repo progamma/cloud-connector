@@ -115,6 +115,36 @@ class Utils
 
 
   /**
+   * Queries the Instant Developer Cloud console to find which server hosts a specific user.
+   * @param {String} username - Username to look up
+   * @returns {Promise<String>} Server URL hosting the user
+   * @throws {Error} If user cannot be located or request fails
+   */
+  static async serverForUser(username)
+  {
+    return await new Promise((resolve, reject) => {
+      let options = {hostname: "console.instantdevelopercloud.com",
+        path: "/CCC/?mode=rest&cmd=serverURL&user=" + username,
+        method: "GET"
+      };
+      //
+      let req = require("https").request(options, res => {
+        let data = "";
+        res.on("data", chunk => data += chunk);
+        res.on("end", () => {
+          if (res.statusCode !== 200)
+            reject(data);
+          else
+            resolve(data);
+        });
+      });
+      req.on("error", reject);
+      req.end();
+    });
+  }
+
+
+  /**
    * Detects the standard timezone offset (without DST) for the current locale.
    * Calculates the maximum offset between January and July to find non-DST offset.
    * @returns {Number} Standard timezone offset in minutes

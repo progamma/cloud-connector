@@ -13,6 +13,8 @@ Cloud Connector is a Node.js-based middleware application that enables secure co
 - `public_html/` - Main application code (all server-side logic)
   - `cloudServer.js` - Main entry point and message routing
   - `server.js` - Socket.IO client for remote connections
+  - `configserver.js` - HTTP server of the local configuration page
+- `public_html/configpage/` - The only client-side code: the local configuration page and its languages
 - `public_html/db/` - Database connectors and data models
 - `public_html/fs/` - File system operations and storage management
 - `public_html/plugins/` - Extensible plugin system
@@ -34,10 +36,13 @@ Before writing new code:
 
 ## Common Development Commands
 
+Run from `public_html/`, where `package.json` lives: from the root of the repository npm answers `ENOENT`.
+
 ```bash
 npm install                  # Install dependencies
-node public_html/cloudServer.js  # Start Cloud Connector server
+node cloudServer.js          # Start Cloud Connector server
 pm2 start cloudServer.js     # Start with PM2 process manager (production)
+npm run lint                 # ESLint over public_html, the configuration page included
 npm test                     # Run test suite (if configured)
 ```
 
@@ -247,8 +252,8 @@ Extensible architecture:
 ## Development Notes
 
 ### Architecture Patterns
-- **No REST API**: Uses WebSocket message passing via Socket.IO
-- **No client-side code**: Pure backend Node.js daemon
+- **No REST API towards the cloud**: Uses WebSocket message passing via Socket.IO. The only HTTP endpoints are the ones `configserver.js` serves to the local configuration page, on the loopback interface
+- **Client-side code only in the configuration page**: everything else is a backend Node.js daemon
 - **Reverse proxy model**: Prevents exposing database ports to internet
 - **Multi-tenant**: Supports multiple databases, file systems, and plugins simultaneously
 - **Configuration-driven**: All resources defined in `config.json`

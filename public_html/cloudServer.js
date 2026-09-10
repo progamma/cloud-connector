@@ -5,23 +5,14 @@
  */
 
 const fs = require("fs").promises;
-const https = require("https");
 const path = require("path");
 
 const Server = require("./server");
 const Logger = require("./logger");
 const Utils = require("./utils");
 const NodeDriver = require("./fs/nodedriver");
-
-// Static registry of supported database drivers. Adding a new connector
-// requires updating this map (and dropping the file in ./db/).
-const dbDrivers = {
-  MySQL: require("./db/mysql"),
-  Postgres: require("./db/postgres"),
-  SQLServer: require("./db/sqlserver"),
-  Oracle: require("./db/oracle"),
-  ODBC: require("./db/odbc")
-};
+const ConfigServer = require("./configserver");
+const dbDrivers = require("./db/drivers");
 
 
 /**
@@ -37,7 +28,9 @@ const dbDrivers = {
  * - **Dynamic configuration**: Supports hot-reloading of configuration without service restart
  * - **Security**: API key-based authentication for all resources
  * - **Extensibility**: Plugin system for additional functionality (e.g., Active Directory)
+ * - **Local configuration**: A page served on the loopback interface writes config.json and reloads it
  *
+ * @property {ConfigServer} configServer - Server of the local configuration page
  * @property {Array} servers - List of connected remote servers (IDE/apps)
  * @property {Array} datamodels - List of configured database connections
  * @property {Array} fileSystems - List of configured file system shares
@@ -83,11 +76,16 @@ class CloudServer
 
   /**
    * Starts the Cloud Connector server.
-   * Initializes the configuration and sets up global error handlers.
-   * This is the main entry point for the application.
+   * Initializes the configuration, brings up the local configuration page and sets up global
+   * error handlers. This is the main entry point for the application.
    */
   async start()
   {
+    // Set up first: anything that goes wrong from here on has somewhere to be reported, and a
+    // rejection nobody catches ends the process on its own
+    process.on("uncaughtException", e => console.error("uncaughtException", e));
+    process.on("unhandledRejection", e => console.error("unhandledRejection", e));
+    //
     this.log("INFO", `Start Cloud Connector with id=${this.id}`);
     try {
       await this.loadConfig();
@@ -96,8 +94,20 @@ class CloudServer
       this.log("ERROR", ex.message);
     }
     //
-    process.on("uncaughtException", e => console.error("uncaughtException", e));
-    process.on("unhandledRejection", e => console.error("unhandledRejection", e));
+    // Started whether or not the configuration could be loaded: on a fresh install the page is
+    // the only way to write one
+    this.configServer = new ConfigServer(this);
+    await this.configServer.start();
+    //
+    // Asked to stop, the page is closed before the process goes. Installing a handler takes the
+    // default away, so leaving has to be done here: nothing else waits to be tidied up, and a
+    // process manager that hears nothing back sends a harder signal on its own.
+    for (let signal of ["SIGINT", "SIGTERM"]) {
+      process.on(signal, () => {
+        this.log("INFO", `Stopping on ${signal}`);
+        this.configServer.stop().finally(() => process.exit(0));
+      });
+    }
   }
 
 
@@ -110,36 +120,6 @@ class CloudServer
   log(level, message, data)
   {
     this.logger.log(level, message, data);
-  }
-
-
-  /**
-   * Queries the Instant Developer Cloud console to find which server hosts a specific user.
-   * @param {String} username - Username to look up
-   * @returns {Promise<String>} Server URL hosting the user
-   * @throws {Error} If user cannot be located or request fails
-   */
-  static async serverForUser(username)
-  {
-    return await new Promise((resolve, reject) => {
-      let options = {hostname: "console.instantdevelopercloud.com",
-        path: "/CCC/?mode=rest&cmd=serverURL&user=" + username,
-        method: "GET"
-      };
-      //
-      let req = https.request(options, res => {
-        let data = "";
-        res.on("data", chunk => data += chunk);
-        res.on("end", () => {
-          if (res.statusCode !== 200)
-            reject(data);
-          else
-            resolve(data);
-        });
-      });
-      req.on("error", reject);
-      req.end();
-    });
   }
 
 
@@ -228,7 +208,7 @@ class CloudServer
       if (!srvUrl) {
         // Ask the InDe console where is this user
         try {
-          srvUrl = await CloudServer.serverForUser(username);
+          srvUrl = await Utils.serverForUser(username);
           if (!srvUrl)
             return this.log("WARNING", `Can't locate the server for the user ${username}`);
         }
