@@ -67,6 +67,33 @@ class Utils
 
 
   /**
+   * Tells whether a key can be used to encrypt the passwords: AES-256 wants 32 bytes, read as
+   * hexadecimal, so 64 hexadecimal characters. The check is anchored because the cipher's own is not:
+   * it takes the hexadecimal it finds and stops at the first character that is not one, so a key
+   * with junk after the 64th character would work and one character less would not.
+   * @param {String} key - Key to check
+   * @returns {Boolean} True if the key can be used
+   */
+  static isValidKey(key)
+  {
+    return /^[0-9a-fA-F]{64}$/.test(key);
+  }
+
+
+  /**
+   * Says what is wrong with a key, and how to generate a good one.
+   * @param {String} key - Key that did not pass isValidKey
+   * @returns {String} Message to show
+   */
+  static invalidKeyMessage(key)
+  {
+    let why = key.length === 64 ? "it is not hexadecimal" : `it is ${key.length} characters long`;
+    return `passwordPrivateKey must be 64 hexadecimal characters, the 32 bytes AES-256 needs, but ${why}. ` +
+            `Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`;
+  }
+
+
+  /**
    * Encrypts text using AES-256-CBC algorithm.
    * Used primarily for encrypting database passwords in configuration.
    * @param {String} text - Text to encrypt
@@ -239,16 +266,17 @@ class Utils
    * Automatically handles both plaintext and encrypted passwords.
    * Generates unique initialization vectors for each datamodel when encrypting.
    * @param {Object} config - Configuration object containing datamodels
-   * @param {String} key - Encryption/decryption key (must be at least 32 characters)
+   * @param {String} key - Encryption/decryption key, 64 hexadecimal characters; omitted, the default key is used
    * @param {Boolean} [encrypt] - If true, encrypt passwords; if false or omitted, decrypt
    * @param {Object} logger - Logger with a log(level, message) method used to surface decryption warnings
-   * @throws {Error} If key is too short or encryption fails
+   * @throws {Error} If the key cannot be used or encryption fails
    */
   static processPasswords(config, key, encrypt, logger)
   {
-    // Validate key length for security
-    if (key && key.length < 32)
-      throw new Error("passwordPrivateKey must be at least 32 characters long");
+    // Refused before a password is read: left to the cipher, the failure lands on the rewrite at the
+    // end, the one step whose failure changes nothing that can be seen
+    if (key && !Utils.isValidKey(key))
+      throw new Error(Utils.invalidKeyMessage(key));
     //
     config.datamodels?.forEach(dm => {
       let password = dm.connectionOptions.password;

@@ -77,19 +77,27 @@ Before starting the Cloud Connector you must set the environment variable holdin
 
 **CC_KEY is an environment variable** and must be set in the operating system before the Cloud Connector starts. The `%CC_KEY%` syntax in config.json tells the connector to read the value from the environment variable named `CC_KEY`.
 
+The key is not a passphrase: it is the AES-256 key itself, **64 hexadecimal characters**, the 32 bytes the algorithm takes, written as hexadecimal. Generate one:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Then set the variable to what it printed. The key below is an example: use your own.
+
 #### Windows (Command Prompt):
 ```batch
-set CC_KEY=your-secret-key-of-at-least-32-characters
+set CC_KEY=8f14e45fceea167a5a36dedd4bea2543f14e45fceea167a5a36dedd4bea25438
 ```
 
 #### Windows (PowerShell):
 ```powershell
-$env:CC_KEY="your-secret-key-of-at-least-32-characters"
+$env:CC_KEY="8f14e45fceea167a5a36dedd4bea2543f14e45fceea167a5a36dedd4bea25438"
 ```
 
 #### Linux/Mac:
 ```bash
-export CC_KEY="your-secret-key-of-at-least-32-characters"
+export CC_KEY="8f14e45fceea167a5a36dedd4bea2543f14e45fceea167a5a36dedd4bea25438"
 ```
 
 #### Making the variable permanent:
@@ -97,7 +105,7 @@ export CC_KEY="your-secret-key-of-at-least-32-characters"
 - **Linux/Mac**: Add the export to `~/.bashrc`, `~/.bash_profile` or `/etc/environment`
 
 **IMPORTANT**:
-- The key must be **at least 32 characters** long
+- The key must be **exactly 64 hexadecimal characters** (`0-9`, `a-f`). Anything else is refused, and the connector says so at startup
 - Set the variable **BEFORE** the first start (passwords are encrypted on first start)
 - A different name can be used by changing `passwordPrivateKey` in config.json
 
@@ -145,7 +153,8 @@ The `config.json` file in the `public_html` directory holds the entire Cloud Con
 ### Password Security
 
 - **passwordPrivateKey**: Reads the encryption key from the environment variable
-- The key must be **at least 32 characters** long to provide adequate security
+- The key must be **exactly 64 hexadecimal characters**, the 32 bytes AES-256 takes. Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- A key of any other length, or one with a character that is not hexadecimal, is refused: the connector keeps running, and says at startup that the passwords are staying in clear text
 - If it is not defined, a default value is used (not recommended)
 - Further reading: [OWASP Cryptographic Storage](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#key-generation)
 
@@ -502,8 +511,10 @@ To enable remote configuration, set `remoteConfigurationKey` in config.json:
 - **NEVER in production!**
 
 #### Passwords are not encrypted
+- Message: "THE PASSWORDS IN config.json ARE NOT BEING ENCRYPTED"
+- The key is not 64 hexadecimal characters: generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and set `CC_KEY` to it
 - Set the `CC_KEY` variable BEFORE the first start
-- Minimum 32 characters
+- Passwords already written in clear text are encrypted at the first start with a valid key
 
 #### The ActiveDirectory plugin does not work
 - Run `npm update` in `public_html/plugins/activedirectory`

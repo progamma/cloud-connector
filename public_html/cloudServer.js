@@ -157,7 +157,14 @@ class CloudServer
     Utils.replaceEnvVariables(resolvedConfig);
     //
     let key = resolvedConfig.passwordPrivateKey;
-    Utils.processPasswords(resolvedConfig, key, false, this);
+    //
+    // An unusable key does not stop a connector that today works: it is said out loud, and the
+    // passwords are left as the file has them, which is what the drivers have been receiving
+    let usableKey = !key || Utils.isValidKey(key);
+    if (!usableKey)
+      this.log("ERROR", `THE PASSWORDS IN config.json ARE NOT BEING ENCRYPTED: ${Utils.invalidKeyMessage(key)}`);
+    else
+      Utils.processPasswords(resolvedConfig, key, false, this);
     //
     this.configChanged = (this.name !== resolvedConfig.name);
     this.name = resolvedConfig.name;
@@ -178,8 +185,10 @@ class CloudServer
     //
     this.log("INFO", "Configuration loaded with success");
     //
-    // Resave the config with the passwords encrypted
-    Utils.processPasswords(config, key, true, this);
+    // Resave the config with the passwords encrypted. The write happens in any case, because a
+    // configuration arrived from remote is persisted here and nowhere else
+    if (usableKey)
+      Utils.processPasswords(config, key, true, this);
     await fs.writeFile(path.join(__dirname, "config.json"), JSON.stringify(config, null, 2), {encoding: "utf8"});
   }
 
