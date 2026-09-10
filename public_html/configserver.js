@@ -937,7 +937,12 @@ class ConfigServer
     };
     this.restoreSecrets(probe, stored, {datamodels: [body.originalName]});
     Utils.replaceEnvVariables(probe);
-    Utils.processPasswords(probe, probe.passwordPrivateKey, false, this.parent);
+    //
+    // The rule loadConfig follows: a key that cannot be used leaves the password as the file has it,
+    // and the attempt is made with what the connector itself would hand the driver
+    let usableKey = !probe.passwordPrivateKey || Utils.isValidKey(probe.passwordPrivateKey);
+    if (usableKey)
+      Utils.processPasswords(probe, probe.passwordPrivateKey, false, this.parent);
     //
     let startTime = new Date();
     let driver = new DriverClass(this.parent, probe.datamodels[0]);
@@ -946,7 +951,10 @@ class ConfigServer
       return {ok: true, driver: info, elapsed: (new Date()).getTime() - startTime.getTime()};
     }
     catch (e) {
-      return {ok: false, error: e.message, elapsed: (new Date()).getTime() - startTime.getTime()};
+      // With an unusable key the password the driver refused is the encrypted one, or one the page
+      // could not encrypt: the driver's message alone would send the search in the wrong direction
+      let error = usableKey ? e.message : `${e.message}. ${Utils.invalidKeyMessage(probe.passwordPrivateKey)}`;
+      return {ok: false, error, elapsed: (new Date()).getTime() - startTime.getTime()};
     }
   }
 }

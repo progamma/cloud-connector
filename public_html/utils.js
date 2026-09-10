@@ -89,7 +89,7 @@ class Utils
   {
     let why = key.length === 64 ? "it is not hexadecimal" : `it is ${key.length} characters long`;
     return `passwordPrivateKey must be 64 hexadecimal characters, the 32 bytes AES-256 needs, but ${why}. ` +
-            `Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`;
+            "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"";
   }
 
 

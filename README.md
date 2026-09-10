@@ -89,21 +89,21 @@ The key is not a passphrase: it is the AES-256 key itself, **64 hexadecimal char
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Then set the variable to what it printed. The key below is an example: use your own.
+Then set the variable to the 64 characters it printed. There is no example key to copy here on purpose: a key published in a manual is a key everybody has, and the passwords it protects are protected from nobody.
 
 #### Windows (Command Prompt):
 ```batch
-set CC_KEY=8f14e45fceea167a5a36dedd4bea2543f14e45fceea167a5a36dedd4bea25438
+set CC_KEY=<the 64 characters printed by the command above>
 ```
 
 #### Windows (PowerShell):
 ```powershell
-$env:CC_KEY="8f14e45fceea167a5a36dedd4bea2543f14e45fceea167a5a36dedd4bea25438"
+$env:CC_KEY="<the 64 characters printed by the command above>"
 ```
 
 #### Linux/Mac:
 ```bash
-export CC_KEY="8f14e45fceea167a5a36dedd4bea2543f14e45fceea167a5a36dedd4bea25438"
+export CC_KEY="<the 64 characters printed by the command above>"
 ```
 
 #### Making the variable permanent:
@@ -598,6 +598,11 @@ To enable remote configuration, set `remoteConfigurationKey` in config.json:
 - The key is not 64 hexadecimal characters: generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and set `CC_KEY` to it
 - Set the `CC_KEY` variable BEFORE the first start
 - Passwords already written in clear text are encrypted at the first start with a valid key
+
+#### The passwords cannot be decrypted and the databases refuse the connection
+- Message: "THE PASSWORDS OF '...' CANNOT BE DECRYPTED, AND THOSE DATAMODELS WILL NOT CONNECT"
+- The passwords are encrypted, and the key that could read them is no longer the one in `CC_KEY`: the variable was lost or changed
+- Put the original key back. If it is gone, delete the `iv` of those datamodels in `config.json`, type the passwords again in clear text, and restart with a valid key: they are encrypted again on that start
 
 #### The ActiveDirectory plugin does not work
 - Run `npm update` in `public_html/plugins/activedirectory`
