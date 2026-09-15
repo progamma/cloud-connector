@@ -444,7 +444,20 @@ Messages that come from a database driver stay in the words the driver used.
 
 ## Installing as a Service
 
-To keep the Cloud Connector always running, [PM2](https://github.com/Unitech/pm2) is recommended:
+### With the installer
+
+The installer does this, and everything above it: it brings its own Node.js runtime, lays the
+connector down, generates the password key, registers the service with the system's own mechanism —
+systemd, launchd, or the Windows Service Control Manager — and opens the configuration page. Nothing
+on this page has to be done by hand, PM2 included, and updating is running it again.
+
+Download it from the [releases](https://github.com/progamma/cloud-connector/releases) — one file per
+platform — and see [installer/README.md](installer/README.md).
+
+### By hand, with PM2
+
+Still the way when the connector runs from a checkout rather than from an installation: with
+[PM2](https://github.com/Unitech/pm2), which is then a prerequisite of its own.
 
 ### Installing PM2
 ```bash
