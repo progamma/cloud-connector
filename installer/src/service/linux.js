@@ -89,23 +89,25 @@ class LinuxService
 
 
   /**
-   * Reads the password key of an installation that is already there.
-   * @returns {String} The key, or nothing when there is none to read
+   * Reads every variable the registered service carries, not the key alone: this file is also
+   * where an operator puts the variables the connector reads and the installer knows nothing
+   * about, and an update rewrites it whole.
+   * @returns {Object} Variables by name
    */
-  readKey()
+  readEnv()
   {
-    return EnvFile.read(this.dir).CC_KEY;
+    return EnvFile.read(this.dir);
   }
 
 
   /**
    * Writes the unit and enables it, so that the connector comes up with the machine.
-   * @param {String} key - Password key to put in the environment
+   * @param {Object} env - Variables the service runs with, the password key among them
    * @param {String} [user] - User the connector runs as, root when not said
    */
-  install(key, user)
+  install(env, user)
   {
-    EnvFile.write(this.dir, {CC_KEY: key});
+    EnvFile.write(this.dir, env);
     //
     // Restart=always and not on-failure: a connector that stopped for any reason is a connector
     // the cloud cannot reach, and there is nothing an operator would do about it but start it again

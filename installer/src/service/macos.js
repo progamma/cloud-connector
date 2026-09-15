@@ -9,6 +9,7 @@ const path = require("path");
 const {spawnSync} = require("child_process");
 
 const EnvFile = require("./envfile");
+const {giveTo} = require("../posix");
 
 
 /**
@@ -95,29 +96,31 @@ class MacService
 
 
   /**
-   * Reads the password key of an installation that is already there.
-   * @returns {String} The key, or nothing when there is none to read
+   * Reads every variable the registered service carries, not the key alone: this file is also
+   * where an operator puts the variables the connector reads and the installer knows nothing
+   * about, and an update rewrites it whole.
+   * @returns {Object} Variables by name
    */
-  readKey()
+  readEnv()
   {
-    return EnvFile.read(this.dir).CC_KEY;
+    return EnvFile.read(this.dir);
   }
 
 
   /**
    * Writes the plist and loads it, so that the connector comes up with the machine.
-   * @param {String} key - Password key to put in the environment
+   * @param {Object} env - Variables the service runs with, the password key among them
    * @param {String} [user] - User the connector runs as, root when not said
    */
-  install(key, user)
+  install(env, user)
   {
-    EnvFile.write(this.dir, {CC_KEY: key});
+    EnvFile.write(this.dir, env);
     //
     // systemd reads its EnvironmentFile as root and only then drops to User=, but here the file
     // is read by the shell launchd has already put under UserName. So the owner has to be that
     // user, or the connector starts with no key at all and every stored password stops opening
     if (user)
-      MacService.giveTo(EnvFile.pathOf(this.dir), user);
+      giveTo(EnvFile.pathOf(this.dir), user);
     //
     // The paths are quoted for the shell, which is what stands between this and an installation
     // directory with a space in it - on macOS the normal kind - or with an apostrophe in it,
@@ -153,7 +156,7 @@ class MacService
       ""];
     fs.mkdirSync(path.join(this.dir, "logs"), {recursive: true});
     if (user)
-      MacService.giveTo(path.join(this.dir, "logs"), user);
+      giveTo(path.join(this.dir, "logs"), user);
     fs.writeFileSync(this.plistFile, plist.join("\n"));
     //
     // launchd checks these and refuses the plist otherwise, with a message that does not say so
@@ -196,20 +199,6 @@ class MacService
   {
     if (fs.existsSync(this.plistFile))
       this.launchctl(["unload", this.plistFile]);
-  }
-
-
-  /**
-   * Gives a file or a directory to the user the connector runs as.
-   * @param {String} target - What to hand over
-   * @param {String} user - User to hand it to
-   */
-  static giveTo(target, user)
-  {
-    let answer = spawnSync("chown", ["-R", user, target], {encoding: "utf8"});
-    if (answer.error || answer.status !== 0)
-      throw new Error(`Could not give ${target} to ${user}: ${(answer.stderr || answer.error.message).trim()}. ` +
-              "Check that the user exists.");
   }
 
 

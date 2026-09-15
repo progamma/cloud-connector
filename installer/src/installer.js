@@ -15,6 +15,7 @@ const {spawnSync} = require("child_process");
 const Payload = require("./payload");
 const ProgramList = require("./programlist");
 const serviceFor = require("./service");
+const {giveTo} = require("./posix");
 
 
 /**
@@ -28,9 +29,10 @@ const serviceFor = require("./service");
  * that makes the connector come up with the machine. Everything the page can do it leaves to the
  * page, which is why installing ends by opening it.
  *
- * An update keeps two things and replaces everything else: `config.json`, and the password key.
- * Replacing rather than writing over matters, because a driver that was dropped between two
- * versions would otherwise stay on the disk and go on being loadable.
+ * An update keeps `config.json` and the environment the service runs with - the password key, and
+ * whatever else was set there - and replaces everything else. Replacing rather than writing over
+ * matters, because a driver dropped between two versions would otherwise stay on the disk and go
+ * on being loadable.
  *
  * Nothing is half done. The old installation is moved aside rather than deleted, and it is put
  * back if any step of the new one fails: an update that goes wrong leaves a connector that works.
@@ -289,46 +291,59 @@ class Installer
     else
       this.say(`Installing the Cloud Connector in ${this.dir}`);
     this.payload = Payload.find();
-    // Said before it is done, not after: reading the list costs a few seconds, because a
-    // compressed archive has to be uncompressed all the way through to be listed at all
-    this.say("  checking what this installer carries");
-    this.service.checkReady(this.payload);
-    // One machine, one service by that name. Installing into a second directory would register a
-    // service over the first one and leave its files behind, running nothing and explaining nothing
-    let registered = this.service.registeredIn();
-    if (registered && !Installer.samePlace(registered, this.dir))
-      throw new Error("A Cloud Connector service is already registered on this machine, from " +
-              `${registered}, and there can only be one.\nInstall into that directory to update ` +
-              "it, or remove it first with --uninstall.");
-    this.say(`  unpacking with ${tar}`);
-    //
-    // The key is read before anything is taken apart, because on every platform it lives with the
-    // service definition, and that is one of the things about to be rewritten
-    let key = previous ? this.service.readKey() : undefined;
-    if (previous && !key)
-      this.notes.push("The previous installation had no key with its service definition, so a new " +
-              "one was generated. Any password already stored in config.json can no longer be read " +
-              "and has to be typed again on the configuration page.");
-    this.service.stop();
-    if (registered)
-      this.service.uninstall();
-    //
-    let backup = this.moveAside();
+    // The payload is a temporary file the size of the whole connector by now, so everything from
+    // here on is inside a try: the two refusals below throw, and a refused installation must not
+    // leave 47 MB behind in the temporary directory for having said no
+    let backup;
+    let env;
     try {
+      // Said before it is done, not after: reading the list costs a few seconds, because a
+      // compressed archive has to be uncompressed all the way through to be listed at all
+      this.say("  checking what this installer carries");
+      this.service.checkReady(this.payload);
+      // One machine, one service by that name. Installing into a second directory would register
+      // a service over the first and leave its files behind, running nothing and explaining nothing
+      let registered = this.service.registeredIn();
+      if (registered && !Installer.samePlace(registered, this.dir))
+        throw new Error("A Cloud Connector service is already registered on this machine, from " +
+                `${registered}, and there can only be one.\nInstall into that directory to update ` +
+                "it, or remove it first with --uninstall.");
+      this.say(`  unpacking with ${tar}`);
+      //
+      // Read before anything is taken apart, because on every platform the service definition is
+      // where these live, and taking the service apart deletes it. The whole environment and not
+      // just the key: whatever an operator added there - ORACLE_INSTANT_CLIENT_DIR for Oracle's
+      // Thick mode - has nowhere else to be, and an update that dropped it would say nothing
+      env = previous ? this.service.readEnv() : {};
+      if (previous && !env.CC_KEY)
+        this.notes.push("The previous installation had no key with its service definition, so a new " +
+                "one was generated. Any password already stored in config.json can no longer be read " +
+                "and has to be typed again on the configuration page.");
+      env.CC_KEY = env.CC_KEY || Installer.newKey();
+      let carried = Object.keys(env).filter(name => name !== "CC_KEY");
+      if (carried.length)
+        this.say(`  keeping the variables that were set: ${carried.join(", ")}`);
+      this.service.stop();
+      if (registered)
+        this.service.uninstall();
+      // Inside the try, not before it. By this point the service is already unregistered, so a
+      // rename that fails - on Windows one open handle under runtime/ is enough - would otherwise
+      // leave the machine with no service and a tree moved half aside, and nobody to put it back
+      backup = this.moveAside();
       fs.mkdirSync(this.dir, {recursive: true});
       this.payload.unpack(this.dir);
       this.writeConfig(previous);
-      this.service.install(key || Installer.newKey(), this.options.user);
+      this.service.install(env, this.options.user);
+      this.giveAwayTo(this.options.user);
       this.say("  starting the service");
       this.service.start();
     }
     catch (e) {
-      this.putBack(backup, key);
+      this.putBack(backup, env);
       throw new Error(`${e.message}\n\nNothing was changed: the previous installation was put back.`);
     }
     finally {
-      // Getting the payload out of the executable meant writing it to a temporary file. It is no
-      // longer needed either way, and it is the size of the whole connector
+      // Getting the payload out of the executable meant writing it to a temporary file
       let complaint = this.payload.cleanUp();
       if (complaint)
         this.notes.push(complaint);
@@ -340,6 +355,25 @@ class Installer
     //
     this.say(`\nThe Cloud Connector${version ? " " + version : ""} is installed and running as a service.`);
     await this.finish();
+  }
+
+
+  /**
+   * Hands the whole installation over to the user the connector will run as.
+   *
+   * Each platform already gives away the files it writes itself - the environment file, the log
+   * directory - but the tree that was unpacked belongs to root, and `config.json` is in it. The
+   * configuration page rewrites that file on every save, so without this the connector under
+   * --user opens the page, the operator fills it in, and saving fails on a permission error.
+   *
+   * @param {String} [user] - User the connector runs as, root when not said
+   */
+  giveAwayTo(user)
+  {
+    if (!user)
+      return;
+    this.say(`  giving it to ${user}`);
+    giveTo(this.dir, user);
   }
 
 
@@ -384,9 +418,15 @@ class Installer
    * what was installed.
    *
    * What it keeps is `config.json`, moved up into the installation directory where the removal
-   * cannot reach it. It is the one file in there nobody else can write again: the remote servers,
-   * the IDE users, the datamodels and their passwords are all in it, and an uninstall is often a
-   * step in putting the same connector back.
+   * cannot reach it: the remote servers, the IDE users and the datamodels are in it, and an
+   * uninstall is often a step in putting the same connector back.
+   *
+   * **The passwords in it are not among what survives.** They are encrypted with the key, and the
+   * key goes with the service definition being removed - which is the point of keeping it there
+   * and not beside them. A reinstallation generates a new one, and what the connector then finds
+   * it cannot decrypt: `Utils.processPasswords` logs a warning and leaves the ciphertext standing
+   * where the password was, so the datamodel tries to connect with that. Saying so is the whole
+   * of what can be done about it, and it is said where the decision is taken.
    */
   uninstall()
   {
@@ -396,6 +436,11 @@ class Installer
     new ProgramList(this.dir).remove();
     //
     let kept = this.keepTheConfiguration();
+    if (kept && this.hasStoredPasswords(kept))
+      this.notes.push("The passwords in the configuration that was kept can no longer be read: " +
+              "they were encrypted with the key that has just been removed along with the service. " +
+              "Everything else in the file is still good, and the passwords have to be typed again " +
+              "on the configuration page after reinstalling.");
     this.say("  removing what was installed");
     let stayed = [];
     for (let what of ["runtime", "public_html", "service", "logs", Installer.backupName]) {
@@ -421,6 +466,29 @@ class Installer
     // directory cannot go while it is in it. Saying so beats leaving it to be wondered about
     this.say(`${this.dir} still holds this installer${kept ? " and that file" : ""}: ` +
             "delete the folder once there is nothing in it worth keeping.");
+  }
+
+
+  /**
+   * Tells whether a configuration has passwords in it that were encrypted with the key.
+   *
+   * `iv` is what says so: the connector writes one beside every password it has encrypted, and a
+   * password with no `iv` is one that was left in clear and that a new key would read just fine.
+   *
+   * @param {String} configFile - Full path of the configuration to look at
+   * @returns {Boolean} True when there is at least one encrypted password in it
+   */
+  hasStoredPasswords(configFile)
+  {
+    try {
+      let config = JSON.parse(fs.readFileSync(configFile, "utf8"));
+      return (config.datamodels || []).some(dm => dm.iv && dm.connectionOptions?.password);
+    }
+    catch {
+      // Unreadable, so nothing can be promised about it either way: better to say too much than
+      // to let somebody reinstall believing the passwords will come back
+      return true;
+    }
   }
 
 
@@ -535,14 +603,14 @@ class Installer
   /**
    * Puts the old installation back, after something went wrong with the new one.
    *
-   * The key has to be handed in rather than read: taking the service apart is what deleted the
-   * only copy of it, and generating a fresh one here would restore an installation whose stored
-   * passwords no longer open - which is a worse outcome than the failure being recovered from.
+   * The environment has to be handed in rather than read: taking the service apart is what
+   * deleted the only copy of it, and generating a fresh key here would restore an installation
+   * whose stored passwords no longer open - a worse outcome than the failure being recovered from.
    *
    * @param {String} backup - Where the old installation went
-   * @param {String} key - Password key that installation was using
+   * @param {Object} env - Variables that installation was running with
    */
-  putBack(backup, key)
+  putBack(backup, env)
   {
     if (!backup)
       return;
@@ -552,7 +620,7 @@ class Installer
     }
     fs.rmSync(backup, {recursive: true, force: true});
     try {
-      this.service.install(key || Installer.newKey(), this.options.user);
+      this.service.install(env || {CC_KEY: Installer.newKey()}, this.options.user);
       this.service.start();
     }
     catch (e) {

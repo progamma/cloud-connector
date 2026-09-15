@@ -53,7 +53,17 @@ the part that comes before the page and that the page cannot do for itself.
 
 **It cannot install what is not a Node module.** On Linux and macOS the ODBC driver manager
 (`unixODBC`) is a system package, and so is the ODBC driver of each database; the Oracle Instant
-Client is one too, for Thick mode. The installer checks for them and says what is missing.
+Client is one too, for Thick mode.
+
+Of those it checks for `unixODBC` alone, and says how to install it. The other two it cannot look
+for: which ODBC driver is needed depends on which database each datamodel points at, and neither
+is known before the configuration page has been filled in. They are named here and in the note the
+installer prints, so that their absence is read as a missing package and not as a broken connector.
+
+For Thick mode, `ORACLE_INSTANT_CLIENT_DIR` has to be set before the connector starts, which for a
+service means the service definition. Put it in `<install dir>/cc.env` on Linux and macOS, or in
+`<install dir>/service/cloudconnector.xml` as another `<env>` on Windows: an update reads what is
+there and writes it back, so it survives.
 
 ## Layout it creates
 

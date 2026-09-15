@@ -126,10 +126,17 @@ class Payload
    */
   unpack(dir)
   {
+    // -o is what keeps the installed files root's. A tar records the uid and gid of whoever made
+    // it, and GNU tar extracting as the superuser restores them by default: without this, the
+    // files would belong to the account the release runner happened to build under - 501 on every
+    // macOS runner, which is also the first user of every Mac - and anybody holding that uid
+    // locally could rewrite the code that systemd and launchd start as root at boot. In extract
+    // mode both GNU tar and bsdtar read -o as "use the user doing the extracting".
+    //
     // The archive is named relative to a working directory rather than in full, because GNU tar
     // reads the drive letter in "C:\..." as a host to connect to and refuses the whole thing.
     // Only the argument of -f is read that way, so -C can stay the full path it has to be
-    let answer = spawnSync("tar", ["-xzf", path.basename(this.archive), "-C", dir],
+    let answer = spawnSync("tar", ["-xzf", path.basename(this.archive), "-o", "-C", dir],
             {encoding: "utf8", cwd: path.dirname(this.archive)});
     if (answer.error)
       throw new Error(`Could not run tar: ${answer.error.message}`);

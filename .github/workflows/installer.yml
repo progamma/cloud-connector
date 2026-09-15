@@ -23,6 +23,19 @@ jobs:
   build:
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
+
+    # Here and not inside the signing steps. The `env` context a step's own `if` can see holds
+    # the workflow's and the job's variables, never the step's own: read from there, a secret is
+    # null, and Actions compares a null to an empty string by turning both into zero - so
+    # `env.X != ''` is false however the secrets are set, and the signing never runs at all.
+    #
+    # The certificates themselves are never in this repository, which is public. These read the
+    # encrypted secrets of the repository or the organisation, which live in its settings, are
+    # masked in the logs, and are not handed to workflows started from a fork.
+    env:
+      WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+      APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+
     strategy:
       # One platform failing must not take the others down: three signed installers and a
       # message about the fourth is a better day than nothing at all
@@ -80,20 +93,19 @@ jobs:
         run: node build/build.js
 
       # --- signing -----------------------------------------------------------------------
-      # The certificates exist; the secret names below are what this workflow expects to find
-      # them under. Each step stands aside when its secret is not there, so that a build can be
-      # run before the secrets are in place and produce an unsigned installer rather than an
-      # error. An unsigned one is fine to test with and must not be published.
+      # The secret names below are what this workflow expects the certificates to be stored under,
+      # in the repository's or the organisation's settings. Each step stands aside when its secret
+      # is not there, so that a build can be run before they are in place: what comes out is then
+      # unsigned, which is fine to test with and is refused by the publishing step further down.
 
       - name: Sign (Windows)
-        if: runner.os == 'Windows' && env.CERTIFICATE != ''
+        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE_PFX != ''
         env:
-          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
           PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         shell: pwsh
         run: |
           $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CERTIFICATE))
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX))
           $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
             Where-Object { $_.FullName -match 'x64' } | Select-Object -Last 1
           & $signtool.FullName sign /f $pfx /p $env:PASSWORD /fd SHA256 `
@@ -104,9 +116,8 @@ jobs:
           # one, every installer already downloaded stops being trusted on the day it lapses
 
       - name: Sign and notarise (macOS)
-        if: runner.os == 'macOS' && env.CERTIFICATE != ''
+        if: runner.os == 'macOS' && env.APPLE_CERTIFICATE_P12 != ''
         env:
-          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -118,7 +129,7 @@ jobs:
           security create-keychain -p actions "$keychain"
           security set-keychain-settings -lut 900 "$keychain"
           security unlock-keychain -p actions "$keychain"
-          echo "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          echo "$APPLE_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
           security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k actions "$keychain"
           security list-keychain -d user -s "$keychain"
@@ -137,14 +148,38 @@ jobs:
           security delete-keychain "$keychain"
           rm -f "$RUNNER_TEMP/signing.p12"
 
-      - name: Say whether it was signed
+      # Asked of the file, not deduced from whether the signing step ran: a step that was skipped
+      # and a step that signed nothing look the same from the outside
+      - name: Is it signed?
+        id: signature
         shell: bash
         run: |
           cd installer/build/out
           ls -la ${{ matrix.file }}
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            codesign --display --verbose=2 ${{ matrix.file }} 2>&1 | grep -i "authority\|adhoc" || echo "UNSIGNED"
-          fi
+          signed=false
+          case "$RUNNER_OS" in
+            Windows)
+              status=$(powershell -NoProfile -Command \
+                "(Get-AuthenticodeSignature '${{ matrix.file }}').Status")
+              echo "Authenticode: $status"
+              [ "$status" = "Valid" ] && signed=true
+              ;;
+            macOS)
+              # --strict, and the ad-hoc signature the build applies must not count as signed
+              if codesign --verify --strict "${{ matrix.file }}" 2>&1 &&
+                 ! codesign --display --verbose=2 "${{ matrix.file }}" 2>&1 | grep -qi "adhoc"; then
+                signed=true
+              fi
+              codesign --display --verbose=2 "${{ matrix.file }}" 2>&1 | grep -i "authority" || true
+              ;;
+            Linux)
+              # An ELF carries no signature of its own: on Linux it is the package that is signed,
+              # and this is not one. Nothing to check, and nothing to refuse further down
+              signed=notApplicable
+              ;;
+          esac
+          echo "signed=$signed" >> "$GITHUB_OUTPUT"
+          echo "signed: $signed"
 
       - name: Keep it
         uses: actions/upload-artifact@v4
@@ -161,6 +196,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # Published is forever: somebody downloads it and Windows or Gatekeeper asks who made it.
+          # This is the gate, and it is a step and not a comment, because a comment stops nobody
+          if [ "${{ steps.signature.outputs.signed }}" = "false" ]; then
+            echo "::error::The $RUNNER_OS installer is not signed, so it is not being published." \
+                 "Set the signing secrets and run this again."
+            exit 1
+          fi
           cd installer/build/out
           # Named after the platform, because a release page with four files called cc-installer
           # is a release page nobody can download from

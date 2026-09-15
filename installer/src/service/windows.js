@@ -134,25 +134,34 @@ class WindowsService
 
 
   /**
-   * Reads the password key of an installation that is already there, out of the wrapper's XML,
-   * which on Windows is where it lives.
-   * @returns {String} The key, or nothing when there is none to read
+  /**
+   * Reads every variable the registered service carries.
+   *
+   * Not only the key, because this XML is the one place on Windows where an operator can put the
+   * variables the connector reads and the installer knows nothing about - ORACLE_INSTANT_CLIENT_DIR
+   * for Oracle's Thick mode above all. The XML is rewritten whole on every update, so whatever is
+   * in it has to be read back first or it is gone, silently.
+   *
+   * @returns {Object} Variables by name
    */
-  readKey()
+  readEnv()
   {
     if (!fs.existsSync(this.configFile))
-      return;
-    let found = fs.readFileSync(this.configFile, "utf8").match(/<env\s+name="CC_KEY"\s+value="([^"]*)"/);
-    return found ? found[1] : undefined;
+      return {};
+    let variables = {};
+    let entries = fs.readFileSync(this.configFile, "utf8").matchAll(/<env\s+name="([^"]*)"\s+value="([^"]*)"/g);
+    for (let [, name, value] of entries)
+      variables[name] = WindowsService.unescape(value);
+    return variables;
   }
 
 
   /**
    * Writes the wrapper's XML and registers the service, set to start with the machine.
-   * @param {String} key - Password key to put in the environment
+   * @param {Object} env - Variables the service runs with, the password key among them
    * @param {String} [user] - User the connector runs as, which this platform cannot honour
    */
-  install(key, user)
+  install(env, user)
   {
     // winsw can run a service as a named account, but only if it is given that account's password
     // as well, and an installer that asks for a Windows password is an installer nobody should
@@ -167,7 +176,9 @@ class WindowsService
       `  <executable>${WindowsService.escape(path.join(this.dir, "runtime", "node.exe"))}</executable>`,
       "  <arguments>cloudServer.js</arguments>",
       `  <workingdirectory>${WindowsService.escape(path.join(this.dir, "public_html"))}</workingdirectory>`,
-      `  <env name="CC_KEY" value="${WindowsService.escape(key)}"/>`,
+      ...Object.entries(env)
+              .map(([name, value]) => `  <env name="${WindowsService.escape(name)}" ` +
+                      `value="${WindowsService.escape(value)}"/>`),
       "  <startmode>Automatic</startmode>",
       "  <onfailure action=\"restart\" delay=\"5 sec\"/>",
       `  <logpath>${WindowsService.escape(path.join(this.dir, "logs"))}</logpath>`,
@@ -178,8 +189,12 @@ class WindowsService
       "</service>",
       ""];
     fs.mkdirSync(path.join(this.dir, "logs"), {recursive: true});
-    fs.writeFileSync(this.configFile, config.join("\n"));
+    // Empty first, then locked down, then filled in. Written and protected afterwards, there is a
+    // moment - short, but a moment - in which the key is on a disk under Program Files, where
+    // every user of the machine has read access
+    fs.writeFileSync(this.configFile, "");
     this.protect(this.configFile);
+    fs.writeFileSync(this.configFile, config.join("\n"));
     let answer = this.winsw("install");
     if (answer.status !== 0)
       throw new Error(`The service could not be registered: ${(answer.stderr || answer.stdout).trim()}`);
@@ -238,9 +253,20 @@ class WindowsService
     // /inheritance:r first, or the inherited "Users: read" survives everything granted after it.
     // The two accounts are named by SID because their names are translated: on an Italian Windows
     // "Administrators" is "Amministratori", and icacls would not know what was being asked for
-    spawnSync("icacls.exe", [target, "/inheritance:r"], {encoding: "utf8"});
+    let steps = [[target, "/inheritance:r"]];
     for (let who of ["*S-1-5-32-544", "*S-1-5-18"])
-      spawnSync("icacls.exe", [target, "/grant", `${who}:(F)`], {encoding: "utf8"});
+      steps.push([target, "/grant", `${who}:(F)`]);
+    for (let args of steps) {
+      let answer = spawnSync("icacls.exe", args, {encoding: "utf8"});
+      // Read, and not thrown away. This access list is the whole of what keeps the key away from
+      // the other users of the machine, and config.json sits next to it readable by all of them:
+      // the key and the ciphertext together are every database password in clear. An installation
+      // that cannot set it is not one to finish quietly
+      if (answer.error || answer.status !== 0)
+        throw new Error(`Could not take ${target} off the reach of other users: ` +
+                `${(answer.stderr || answer.stdout || answer.error?.message || "").trim()}\n` +
+                "That file holds the key to the stored passwords, so the installation stops here.");
+    }
   }
 
 
@@ -253,6 +279,19 @@ class WindowsService
   {
     return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;")
             .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+
+  /**
+   * Reads back what escape() wrote. The ampersand goes last, or a value that was written as
+   * `&amp;lt;` would come back as `<` instead of the `&lt;` somebody actually typed.
+   * @param {String} text - Text to unescape
+   * @returns {String} The original text
+   */
+  static unescape(text)
+  {
+    return String(text).replace(/&quot;/g, "\"").replace(/&gt;/g, ">")
+            .replace(/&lt;/g, "<").replace(/&amp;/g, "&");
   }
 }
 

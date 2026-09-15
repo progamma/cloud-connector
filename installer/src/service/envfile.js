@@ -58,16 +58,26 @@ class EnvFile
 
 
   /**
-   * Writes the variables of an installation, replacing whatever was there.
+   * Writes the variables of an installation, keeping any others that were already there.
+   *
+   * Kept and not replaced, because this file is also the only place an operator can put the
+   * variables the connector reads and the installer knows nothing about - ORACLE_INSTANT_CLIENT_DIR
+   * for Oracle's Thick mode above all, which has to be set before the connector starts and so, for
+   * a service, belongs to the service definition. Replacing the file would take those away at the
+   * first update, silently, from someone who had no other place to put them.
+   *
    * @param {String} dir - Installation directory
-   * @param {Object} variables - Variables by name
+   * @param {Object} variables - Variables by name, added to or replacing what is there
    */
   static write(dir, variables)
   {
-    let lines = ["# Written by the Cloud Connector installer. The key here is the only copy:",
-      "# losing it means the stored passwords can no longer be read.", ""];
-    for (let name of Object.keys(variables))
-      lines.push(`${name}=${variables[name]}`);
+    let all = Object.assign(EnvFile.read(dir), variables);
+    let lines = ["# Read by the Cloud Connector service. CC_KEY is written by the installer and is",
+      "# the only copy: losing it means the stored passwords can no longer be read.",
+      "# Anything else here is kept as it is across updates - this is where variables the",
+      "# connector reads go, ORACLE_INSTANT_CLIENT_DIR among them.", ""];
+    for (let name of Object.keys(all))
+      lines.push(`${name}=${all[name]}`);
     //
     // The mode is on the open so that a new file is never readable, not even for the instant
     // between creating it and tightening it. writeFileSync ignores mode when the file is already
