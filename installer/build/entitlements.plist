@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    What the installer is allowed to do under the hardened runtime, which notarisation requires.
+
+    Both of these are about V8 rather than about the installer: a Javascript engine compiles as it
+    runs, and the hardened runtime forbids writing memory and then executing it unless it is told
+    that this is the point. Without them the executable is signed, notarised, and dies on startup.
+
+    There is deliberately nothing else. The installer loads no library of its own, so library
+    validation stays on; the native modules that would need it belong to the connector, which
+    runs under the runtime in the payload and not under this signature.
+  -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+</dict>
+</plist>

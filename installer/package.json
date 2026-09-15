@@ -1,0 +1,21 @@
+{
+  "name": "cloud-connector-installer",
+  "version": "26.5.0",
+  "description": "Installs, updates and configures the Instant Developer Cloud Connector",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "payload": "node build/build.js --payload-only",
+    "build": "node build/build.js",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.27.0",
+    "globals": "^16.0.0",
+    "postject": "^1.0.0-alpha.6",
+    "rcedit": "^5.0.2"
+  }
+}
