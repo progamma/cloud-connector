@@ -295,9 +295,11 @@ class Installer
     // here on is inside a try: the two refusals below throw, and a refused installation must not
     // leave 47 MB behind in the temporary directory for having said no
     let env;
-    // Whether the service was taken apart, which is what decides if it has to be put back. Not
-    // the same question as whether anything was moved: the service goes first
-    let unregistered = false;
+    // What has actually been done to this machine, so far. Three separate facts, because the
+    // recovery needs all three and no one of them implies another: the service is taken apart
+    // before anything moves, and registered again after everything has been laid down, so a
+    // failure in between finds a machine that none of these alone describes
+    let done = {tookApart: false, laidDown: false, registered: false};
     try {
       // Said before it is done, not after: reading the list costs a few seconds, because a
       // compressed archive has to be uncompressed all the way through to be listed at all
@@ -328,7 +330,7 @@ class Installer
       this.service.stop();
       if (registered) {
         this.service.uninstall();
-        unregistered = true;
+        done.tookApart = true;
       }
       // Inside the try, not before it. By this point the service is already unregistered, so a
       // rename that fails - on Windows one open handle under runtime/ is enough - would otherwise
@@ -336,8 +338,10 @@ class Installer
       this.moveAside();
       fs.mkdirSync(this.dir, {recursive: true});
       this.payload.unpack(this.dir);
+      done.laidDown = true;
       this.writeConfig(previous);
       this.service.install(env, this.options.user);
+      done.registered = true;
       this.giveAwayTo(this.options.user);
       this.say("  starting the service");
       this.service.start();
@@ -345,10 +349,15 @@ class Installer
     catch (e) {
       // What the recovery actually managed, and not a sentence that assumes it worked. Somebody
       // reading this is deciding whether the machine still serves its connector
-      let trouble = this.putBack(env, unregistered);
-      throw new Error(`${e.message}\n\n` + (trouble
-        ? `The previous installation could not be fully put back: ${trouble}.`
-        : "Nothing was changed: the previous installation was put back."));
+      let trouble = this.putBack(env, done);
+      let outcome;
+      if (trouble)
+        outcome = `The machine could not be put back as it was: ${trouble}.`;
+      else if (done.tookApart)
+        outcome = "Nothing was changed: the previous installation was put back.";
+      else
+        outcome = "Nothing was installed: what had been laid down was taken away again.";
+      throw new Error(`${e.message}\n\n${outcome}`);
     }
     finally {
       // Getting the payload out of the executable meant writing it to a temporary file
@@ -625,20 +634,30 @@ class Installer
    * it may have stopped in the middle, with one directory moved and the next one still where it
    * was, and that is precisely the case worth surviving.
    *
-   * Whether the service has to be registered again is a different question, and is asked
-   * separately. Answering it with "was anything moved" is an approximation that breaks exactly
-   * here - the service is taken apart before anything moves, so it can need putting back when
-   * nothing does.
+   * There are two ways back, and which one applies is decided by whether there was an
+   * installation here to begin with:
+   *
+   * - **An update that failed** goes back to the installation that was moved aside, and its
+   *   service is registered again from it.
+   * - **A fresh install that failed** has nothing to go back to, so what there is to do is undo:
+   *   take away the service that was registered and the tree that was unpacked. Leaving them is
+   *   what makes the next attempt refuse to run - it finds a service already registered - and it
+   *   is the machine being left changed by an installer that says it changed nothing.
+   *
+   * Whether the service has to be registered again, whether one was created, and whether anything
+   * was moved are three questions and not one. Answering any of them with another is an
+   * approximation, and every such approximation has broken here at least once: the service is
+   * taken apart before anything moves, and registered again after everything is laid down.
    *
    * The environment has to be handed in rather than read: taking the service apart is what
    * deleted the only copy of it, and generating a fresh key here would restore an installation
    * whose stored passwords no longer open - a worse outcome than the failure being recovered from.
    *
    * @param {Object} env - Variables that installation was running with
-   * @param {Boolean} unregistered - True when the service was taken apart and has to go back
+   * @param {Object} done - What had been done: tookApart, laidDown, registered
    * @returns {String} What could not be put back, when something could not
    */
-  putBack(env, unregistered)
+  putBack(env, done)
   {
     let trouble = [];
     if (fs.existsSync(this.backup)) {
@@ -654,13 +673,34 @@ class Installer
       if (!trouble.length)
         fs.rmSync(this.backup, {recursive: true, force: true});
     }
-    if (unregistered) {
+    if (done.tookApart) {
       try {
         this.service.install(env || {CC_KEY: Installer.newKey()}, this.options.user);
         this.service.start();
       }
       catch (e) {
         trouble.push(`the service could not be registered again: ${e.message}`);
+      }
+      return trouble.join("; ");
+    }
+    // Nothing was here before, so there is nothing to put back and everything to undo
+    if (done.registered) {
+      try {
+        this.service.stop();
+        this.service.uninstall();
+      }
+      catch (e) {
+        trouble.push(`the service that had just been registered could not be removed: ${e.message}`);
+      }
+    }
+    if (done.laidDown) {
+      for (let what of ["runtime", "public_html", "service", "logs"]) {
+        try {
+          fs.rmSync(path.join(this.dir, what), {recursive: true, force: true});
+        }
+        catch (e) {
+          trouble.push(`${what} is still in ${this.dir} (${e.code || e.message})`);
+        }
       }
     }
     return trouble.join("; ");
