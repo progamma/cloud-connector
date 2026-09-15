@@ -51,9 +51,48 @@ class EnvFile
     for (let line of fs.readFileSync(file, "utf8").split("\n")) {
       let cut = line.indexOf("=");
       if (cut > 0 && !line.trimStart().startsWith("#"))
-        variables[line.slice(0, cut).trim()] = line.slice(cut + 1).trim();
+        variables[line.slice(0, cut).trim()] = EnvFile.unquote(line.slice(cut + 1).trim());
     }
     return variables;
+  }
+
+
+  /**
+   * Takes the quotes off a value, the way both readers of this file do.
+   * @param {String} value - Value as it is written
+   * @returns {String} The value it stands for
+   */
+  static unquote(value)
+  {
+    let quote = value[0];
+    if (value.length > 1 && (quote === "'" || quote === "\"") && value.endsWith(quote))
+      return value.slice(1, -1);
+    return value;
+  }
+
+
+  /**
+   * Writes a value so that both readers of this file give it back unchanged.
+   *
+   * Single quotes, because inside them neither `sh` nor systemd interprets anything: a value with
+   * a space in it - an Instant Client under a directory whose name has one - is otherwise read as
+   * an assignment followed by a command, and disappears without a word. Double quotes would carry
+   * the space but let `sh` expand a `$` or a backtick, which single quotes do not.
+   *
+   * A value containing a single quote is refused rather than mangled: neither reader has an escape
+   * for it inside single quotes, and writing something that quietly means something else is worse
+   * than saying so.
+   *
+   * @param {String} name - Variable name, for the message when the value cannot be written
+   * @param {String} value - Value to write
+   * @returns {String} The value, quoted
+   */
+  static quote(name, value)
+  {
+    if (String(value).includes("'"))
+      throw new Error(`The value of ${name} contains a single quote, which this file has no way ` +
+              "of carrying. Use a path without one.");
+    return `'${value}'`;
   }
 
 
@@ -77,7 +116,7 @@ class EnvFile
       "# Anything else here is kept as it is across updates - this is where variables the",
       "# connector reads go, ORACLE_INSTANT_CLIENT_DIR among them.", ""];
     for (let name of Object.keys(all))
-      lines.push(`${name}=${all[name]}`);
+      lines.push(`${name}=${EnvFile.quote(name, all[name])}`);
     //
     // The mode is on the open so that a new file is never readable, not even for the instant
     // between creating it and tightening it. writeFileSync ignores mode when the file is already

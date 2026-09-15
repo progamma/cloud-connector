@@ -294,8 +294,10 @@ class Installer
     // The payload is a temporary file the size of the whole connector by now, so everything from
     // here on is inside a try: the two refusals below throw, and a refused installation must not
     // leave 47 MB behind in the temporary directory for having said no
-    let backup;
     let env;
+    // Whether the service was taken apart, which is what decides if it has to be put back. Not
+    // the same question as whether anything was moved: the service goes first
+    let unregistered = false;
     try {
       // Said before it is done, not after: reading the list costs a few seconds, because a
       // compressed archive has to be uncompressed all the way through to be listed at all
@@ -324,12 +326,14 @@ class Installer
       if (carried.length)
         this.say(`  keeping the variables that were set: ${carried.join(", ")}`);
       this.service.stop();
-      if (registered)
+      if (registered) {
         this.service.uninstall();
+        unregistered = true;
+      }
       // Inside the try, not before it. By this point the service is already unregistered, so a
       // rename that fails - on Windows one open handle under runtime/ is enough - would otherwise
       // leave the machine with no service and a tree moved half aside, and nobody to put it back
-      backup = this.moveAside();
+      this.moveAside();
       fs.mkdirSync(this.dir, {recursive: true});
       this.payload.unpack(this.dir);
       this.writeConfig(previous);
@@ -339,8 +343,12 @@ class Installer
       this.service.start();
     }
     catch (e) {
-      this.putBack(backup, env);
-      throw new Error(`${e.message}\n\nNothing was changed: the previous installation was put back.`);
+      // What the recovery actually managed, and not a sentence that assumes it worked. Somebody
+      // reading this is deciding whether the machine still serves its connector
+      let trouble = this.putBack(env, unregistered);
+      throw new Error(`${e.message}\n\n` + (trouble
+        ? `The previous installation could not be fully put back: ${trouble}.`
+        : "Nothing was changed: the previous installation was put back."));
     }
     finally {
       // Getting the payload out of the executable meant writing it to a temporary file
@@ -348,7 +356,7 @@ class Installer
       if (complaint)
         this.notes.push(complaint);
     }
-    this.discard(backup);
+    this.discard();
     this.checkPrerequisites();
     let version = this.readInstalled()?.version;
     this.leaveAWayOut(version);
@@ -579,64 +587,92 @@ class Installer
 
 
   /**
+   * Where the old installation is moved to while the new one is laid down.
+   * @returns {String} Full path
+   */
+  get backup()
+  {
+    return path.join(this.dir, Installer.backupName);
+  }
+
+
+  /**
    * Moves the installation out of the way instead of deleting it, so that there is something to
    * go back to. What is moved is only what this installer owns: anything else in the directory,
    * logs included, stays where it is.
-   * @returns {String} Where the old installation went, or nothing when there was none
+   *
+   * It says nothing about where it put things, and on purpose. A caller that learns the location
+   * from the return value learns it only if this returns - and the case worth surviving is the
+   * one where it does not, three directories in, with one already moved. Where the backup lives
+   * is `this.backup`, known before any of this runs and true whether it finishes or not.
    */
   moveAside()
   {
-    let moved = [];
-    let backup = path.join(this.dir, Installer.backupName);
-    fs.rmSync(backup, {recursive: true, force: true});
+    fs.rmSync(this.backup, {recursive: true, force: true});
     for (let what of ["runtime", "public_html", "service"]) {
       if (!fs.existsSync(path.join(this.dir, what)))
         continue;
-      fs.mkdirSync(backup, {recursive: true});
-      fs.renameSync(path.join(this.dir, what), path.join(backup, what));
-      moved.push(what);
+      fs.mkdirSync(this.backup, {recursive: true});
+      fs.renameSync(path.join(this.dir, what), path.join(this.backup, what));
     }
-    return moved.length ? backup : undefined;
   }
 
 
   /**
    * Puts the old installation back, after something went wrong with the new one.
    *
+   * Whether there is anything to put back is read from the disk, not from how far the moving got:
+   * it may have stopped in the middle, with one directory moved and the next one still where it
+   * was, and that is precisely the case worth surviving.
+   *
+   * Whether the service has to be registered again is a different question, and is asked
+   * separately. Answering it with "was anything moved" is an approximation that breaks exactly
+   * here - the service is taken apart before anything moves, so it can need putting back when
+   * nothing does.
+   *
    * The environment has to be handed in rather than read: taking the service apart is what
    * deleted the only copy of it, and generating a fresh key here would restore an installation
    * whose stored passwords no longer open - a worse outcome than the failure being recovered from.
    *
-   * @param {String} backup - Where the old installation went
    * @param {Object} env - Variables that installation was running with
+   * @param {Boolean} unregistered - True when the service was taken apart and has to go back
+   * @returns {String} What could not be put back, when something could not
    */
-  putBack(backup, env)
+  putBack(env, unregistered)
   {
-    if (!backup)
-      return;
-    for (let what of fs.readdirSync(backup)) {
-      fs.rmSync(path.join(this.dir, what), {recursive: true, force: true});
-      fs.renameSync(path.join(backup, what), path.join(this.dir, what));
+    let trouble = [];
+    if (fs.existsSync(this.backup)) {
+      for (let what of fs.readdirSync(this.backup)) {
+        try {
+          fs.rmSync(path.join(this.dir, what), {recursive: true, force: true});
+          fs.renameSync(path.join(this.backup, what), path.join(this.dir, what));
+        }
+        catch (e) {
+          trouble.push(`${what} is still in ${this.backup} (${e.code || e.message})`);
+        }
+      }
+      if (!trouble.length)
+        fs.rmSync(this.backup, {recursive: true, force: true});
     }
-    fs.rmSync(backup, {recursive: true, force: true});
-    try {
-      this.service.install(env || {CC_KEY: Installer.newKey()}, this.options.user);
-      this.service.start();
+    if (unregistered) {
+      try {
+        this.service.install(env || {CC_KEY: Installer.newKey()}, this.options.user);
+        this.service.start();
+      }
+      catch (e) {
+        trouble.push(`the service could not be registered again: ${e.message}`);
+      }
     }
-    catch (e) {
-      this.notes.push(`The old installation was put back but its service could not be started: ${e.message}`);
-    }
+    return trouble.join("; ");
   }
 
 
   /**
    * Throws away the old installation, once the new one is running.
-   * @param {String} backup - Where the old installation went
    */
-  discard(backup)
+  discard()
   {
-    if (backup)
-      fs.rmSync(backup, {recursive: true, force: true});
+    fs.rmSync(this.backup, {recursive: true, force: true});
   }
 
 

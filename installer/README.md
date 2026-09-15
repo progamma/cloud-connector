@@ -65,6 +65,11 @@ service means the service definition. Put it in `<install dir>/cc.env` on Linux 
 `<install dir>/service/cloudconnector.xml` as another `<env>` on Windows: an update reads what is
 there and writes it back, so it survives.
 
+A value with a space in it needs quoting in `cc.env` — `ORACLE_INSTANT_CLIENT_DIR='/opt/oracle/instant
+client'` — and the installer writes it that way itself. Without the quotes the line is read as an
+assignment followed by a command and the variable is quietly never set, which is the kind of thing
+that is only noticed when a datamodel fails to connect.
+
 ## Layout it creates
 
 ```

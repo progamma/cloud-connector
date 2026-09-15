@@ -149,9 +149,13 @@ class WindowsService
     if (!fs.existsSync(this.configFile))
       return {};
     let variables = {};
-    let entries = fs.readFileSync(this.configFile, "utf8").matchAll(/<env\s+name="([^"]*)"\s+value="([^"]*)"/g);
+    // Both kinds of quote, because XML allows both and this file is also written by hand: somebody
+    // who follows the README and adds an <env> with apostrophes would otherwise have it read as
+    // absent and dropped at the next update, which is the very thing this reads the file for
+    let entries = fs.readFileSync(this.configFile, "utf8")
+            .matchAll(/<env\s+name=("[^"]*"|'[^']*')\s+value=("[^"]*"|'[^']*')/g);
     for (let [, name, value] of entries)
-      variables[name] = WindowsService.unescape(value);
+      variables[WindowsService.unescape(name.slice(1, -1))] = WindowsService.unescape(value.slice(1, -1));
     return variables;
   }
 

@@ -122,10 +122,16 @@ class MacService
     if (user)
       giveTo(EnvFile.pathOf(this.dir), user);
     //
+    // `set -a`, and not `export CC_KEY`. Sourcing a file sets shell variables, and only what is
+    // exported becomes the environment the connector starts with: naming one variable carried the
+    // key across and left everything else in the file read and then discarded - no use at all to
+    // an operator who put ORACLE_INSTANT_CLIENT_DIR there because there is nowhere else to put it.
+    // Between `set -a` and `set +a` every assignment is exported as it is made.
+    //
     // The paths are quoted for the shell, which is what stands between this and an installation
     // directory with a space in it - on macOS the normal kind - or with an apostrophe in it,
     // which a home directory called O'Brien has and which plain quotes would not survive
-    let start = `. ${MacService.quote(EnvFile.pathOf(this.dir))}; export CC_KEY; ` +
+    let start = `set -a; . ${MacService.quote(EnvFile.pathOf(this.dir))}; set +a; ` +
             `exec ${MacService.quote(path.join(this.dir, "runtime", "bin", "node"))} cloudServer.js`;
     let plist = ['<?xml version="1.0" encoding="UTF-8"?>',
       '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',

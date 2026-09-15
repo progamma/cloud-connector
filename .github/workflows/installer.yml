@@ -24,17 +24,21 @@ jobs:
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
 
-    # Here and not inside the signing steps. The `env` context a step's own `if` can see holds
-    # the workflow's and the job's variables, never the step's own: read from there, a secret is
-    # null, and Actions compares a null to an empty string by turning both into zero - so
-    # `env.X != ''` is false however the secrets are set, and the signing never runs at all.
+    # The answer to a question, and not the certificate it is asked about.
     #
-    # The certificates themselves are never in this repository, which is public. These read the
-    # encrypted secrets of the repository or the organisation, which live in its settings, are
-    # masked in the logs, and are not handed to workflows started from a fork.
+    # Something has to be here, because the `env` context a step's own `if` can see holds the
+    # workflow's and the job's variables and never the step's own: read from there, a secret is
+    # null, and Actions compares a null to an empty string by turning both into zero, so
+    # `env.X != ''` is false however the secrets are set and the signing never runs at all.
+    #
+    # But a job variable is in the environment of every step, not only of the one that wants it -
+    # `npm ci` for the connector and for each plugin among them, which is the install script of
+    # every dependency in that tree. A code signing certificate is the most valuable thing that
+    # passes through this workflow and it has no business being readable there. So what travels
+    # is `true` or `false`, and the certificate stays inside the step that signs.
     env:
-      WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
-      APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+      HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERTIFICATE_PFX != '' }}
+      HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE_P12 != '' }}
 
     strategy:
       # One platform failing must not take the others down: three signed installers and a
@@ -99,8 +103,9 @@ jobs:
       # unsigned, which is fine to test with and is refused by the publishing step further down.
 
       - name: Sign (Windows)
-        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE_PFX != ''
+        if: runner.os == 'Windows' && env.HAS_WINDOWS_CERT == 'true'
         env:
+          WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
           PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         shell: pwsh
         run: |
@@ -116,8 +121,9 @@ jobs:
           # one, every installer already downloaded stops being trusted on the day it lapses
 
       - name: Sign and notarise (macOS)
-        if: runner.os == 'macOS' && env.APPLE_CERTIFICATE_P12 != ''
+        if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true'
         env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
