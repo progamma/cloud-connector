@@ -285,6 +285,7 @@ class Installer
   async install()
   {
     let tar = Payload.checkTar();
+    this.checkNothingWasLeftBehind();
     let previous = this.readInstalled();
     if (previous)
       this.say(`Updating the Cloud Connector${previous.version ? " " + previous.version : ""} in ${this.dir}`);
@@ -529,12 +530,20 @@ class Installer
 
   /**
    * Moves config.json out of what is about to be deleted.
+   *
+   * It looks in the backup directory as well, and not because it expects one to be there: a
+   * recovery that could not finish leaves the only copy of the old installation in it, and the
+   * removal below takes that directory away with the rest. Where the file is found says nothing
+   * about how it got there, and none of this guesses - keeping a file that would otherwise be
+   * deleted is safe whatever the answer.
+   *
    * @returns {String} Where it was put, or nothing when there was none
    */
   keepTheConfiguration()
   {
-    let configFile = path.join(this.dir, "public_html", "config.json");
-    if (!fs.existsSync(configFile))
+    let configFile = [path.join(this.dir, "public_html", "config.json"),
+      path.join(this.backup, "public_html", "config.json")].find(where => fs.existsSync(where));
+    if (!configFile)
       return;
     let kept = path.join(this.dir, "config.json");
     fs.copyFileSync(configFile, kept);
@@ -610,6 +619,36 @@ class Installer
   static newKey()
   {
     return crypto.randomBytes(32).toString("hex");
+  }
+
+
+  /**
+   * Refuses to start when an earlier attempt left its backup behind.
+   *
+   * A backup directory is only ever left in place by a recovery that could not finish - `putBack`
+   * removes it when it has put everything back, and keeps it when it has not, which is the right
+   * thing to do because at that moment it holds the only copy of the old installation. Running
+   * again is then the most natural thing in the world, and the first thing this would do is
+   * `moveAside`, whose first line deletes that directory. `config.json` goes with it: the remote
+   * servers, the IDE users, the datamodels and their passwords, under a line that says a new
+   * configuration is being written.
+   *
+   * Stopping is the only answer that does not guess. Putting it back by hand would work in the
+   * case this was written for, but it would be a supposition about how the directory came to be
+   * there, and a wrong supposition costs exactly the file being protected.
+   */
+  checkNothingWasLeftBehind()
+  {
+    if (!fs.existsSync(this.backup))
+      return;
+    let configFile = path.join(this.backup, "public_html", "config.json");
+    throw new Error(`${this.backup} is still here, which means an earlier attempt could not put ` +
+            "the previous installation back where it was.\n\n" +
+            (fs.existsSync(configFile)
+              ? `The configuration of that installation is in it, at\n  ${configFile}\n\n`
+              : "") +
+            "Nothing has been done. Move whatever is worth keeping somewhere safe, remove\n" +
+            `  ${this.backup}\nand run this again.`);
   }
 
 
