@@ -336,12 +336,25 @@ class Installer
       // rename that fails - on Windows one open handle under runtime/ is enough - would otherwise
       // leave the machine with no service and a tree moved half aside, and nobody to put it back
       this.moveAside();
+      // Before the unpacking, for the same reason the one below is before the registration: tar
+      // can stop halfway with half a tree already written, and what the recovery needs to know is
+      // that files may be there, not that they all arrived
+      done.laidDown = true;
       fs.mkdirSync(this.dir, {recursive: true});
       this.payload.unpack(this.dir);
-      done.laidDown = true;
       this.writeConfig(previous);
-      this.service.install(env, this.options.user);
+      // Before the call and not after it. What the recovery needs to know is not "the service was
+      // registered" but "from here on a service definition may exist", and install() writes things
+      // that outlive it long before it returns: cc.env with the key in it is its first line, the
+      // unit and the plist come before the enable and the load that can fail. Set afterwards, a
+      // throw halfway through left the key on the disk and a unit in /etc/systemd/system pointing
+      // at a tree the undo had just removed - with Restart=always to keep trying forever.
+      //
+      // Calling uninstall() when there is nothing to remove is safe on all three: systemctl and
+      // launchctl are only checked for having run at all, the removals are forced, and on Windows
+      // the wrapper is there because unpacking has already happened
       done.registered = true;
+      this.service.install(env, this.options.user);
       this.giveAwayTo(this.options.user);
       this.say("  starting the service");
       this.service.start();
@@ -355,8 +368,13 @@ class Installer
         outcome = `The machine could not be put back as it was: ${trouble}.`;
       else if (done.tookApart)
         outcome = "Nothing was changed: the previous installation was put back.";
-      else
+      else if (done.laidDown || done.registered)
         outcome = "Nothing was installed: what had been laid down was taken away again.";
+      else
+        // The refusals at the top of the try land here, and being refused is a first class outcome
+        // and not a rare one. Telling somebody that what was laid down has been taken away, when
+        // the installer stopped before laying anything down, describes an undoing that never was
+        outcome = "Nothing was changed.";
       throw new Error(`${e.message}\n\n${outcome}`);
     }
     finally {
