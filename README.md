@@ -404,14 +404,14 @@ The top level `connectionOptions`, which the page has no form for either, is wri
 ### What the Page Can Do
 
 - Set the connector name, the remote servers and the IDE users. An IDE user is not typed in the shape the file wants: the page asks where the IDE is, and writes `username`, `organization/username` or `https://ide.url@username` accordingly
-- Add, change and remove datamodels, with a form per driver class that offers only the options that driver understands, and a JSON box for whatever that driver declares nothing about
+- Add, change and remove datamodels, with a form per driver class that offers only the options that driver understands, and a JSON box for whatever that driver declares nothing about. Changing the driver of a datamodel keeps what the new driver understands, also where it calls it by another name — the host of MySQL becomes the server of SQL Server, the pool size and the timeout go across — and drops the rest, along with the old driver's defaults: the MySQL port is not where SQL Server listens
 - Add, change and remove shared file systems, the addresses each one may reach, and plugins together with the settings each one asks for
 - Every datamodel, file system and plugin is a card that starts closed and says what it is in one line, so that a connector with a long list stays readable
 - Generate the API keys and the `remoteConfigurationKey` with a button
 - Try a datamodel before saving it: the connector opens a connection with the options on screen and closes it again, and reports what the driver said
 - Show which remote servers are connected, which resources are loaded, and the tail of the log
 
-The options offered for each database are declared by the driver classes themselves, in `connectionOptionsSchema`. A new connector dropped into `db/` and registered in `db/drivers.js` gets its form for free.
+The options offered for each database are declared by the driver classes themselves, in `connectionOptionsSchema`. A new connector dropped into `db/` and registered in `db/drivers.js` gets its form for free. An entry that is the same thing another driver calls differently says so with `means`, and a value goes across between two entries with the same `means`.
 
 ### Passwords in the Page
 
