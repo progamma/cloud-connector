@@ -66,7 +66,8 @@ class DataModel
    * the page carries a value from one entry to another with the same meaning when the driver of a
    * datamodel is changed, so that the host is not lost because another driver calls it server.
    * Only entries that take the very same value have it: a timeout in seconds does not mean what
-   * one in milliseconds does.
+   * one in milliseconds does. Where either of two entries has one it decides, and the same name is
+   * not enough: the connectionTimeout of ODBC and that of SQL Server are not the same thing.
    * @type {Array<{name: String, means: String, label: String, type: String, required: Boolean,
    *               default: *, placeholder: String, help: String}>}
    */

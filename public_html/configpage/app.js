@@ -1208,8 +1208,10 @@ function optionGroups(entries)
  * Fits the connection options to a new driver, so that a change of driver does not carry over an
  * option the new one would refuse, and does not lose one it only calls by another name.
  *
- * A value goes across when the new driver has an entry by the same name, or one that means the
- * same thing: the host of MySQL is the server of SQL Server. It does not when it is the old
+ * A value goes across when the new driver has an entry that means the same thing - the host of
+ * MySQL is the server of SQL Server - or, between two entries that say nothing of what they
+ * mean, one by the same name. Whatever the old driver does not declare stays behind: there is no
+ * telling what it meant there. It does not go across either when it is the old
  * driver's default, because that was never a choice about this database: the MySQL port is not
  * where SQL Server is listening, and the new driver has a default of its own for it.
  *
@@ -1223,8 +1225,11 @@ function keepKnownOptions(options, before, after)
   let old = before?.connectionOptions || [];
   let kept = {};
   after?.connectionOptions.forEach(entry => {
-    let source = old.find(o => o.name === entry.name) || (entry.means && old.find(o => o.means === entry.means));
-    let value = getPath(options, source?.name || entry.name);
+    // Where either entry has a meaning the meaning decides, and the name alone is not enough:
+    // connectionTimeout is seconds for ODBC and milliseconds for SQL Server. From a driver the page
+    // has no schema for there is nothing to go by but the name
+    let source = before ? old.find(o => o.means || entry.means ? o.means === entry.means : o.name === entry.name) : entry;
+    let value = source && getPath(options, source.name);
     if (value !== undefined && value !== source?.default)
       setPath(kept, entry.name, value);
   });
