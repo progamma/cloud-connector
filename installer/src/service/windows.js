@@ -65,6 +65,16 @@ class WindowsService
 
 
   /**
+   * Full path of the file the password key is kept in, which here is the wrapper's XML.
+   * @returns {String} Full path
+   */
+  get keyFile()
+  {
+    return this.configFile;
+  }
+
+
+  /**
    * Says whether this machine can have the service registered, before anything has been moved.
    * Finding out at the service step is finding out after the old installation has been taken
    * apart, and although that is put back, an update that rolls back is an update that failed.

@@ -895,8 +895,9 @@ function drawGeneral()
                     help: "The name this connector is known by in the IDE and in the applications"}),
           textField("Password key", state.config, "passwordPrivateKey",
                   {placeholder: "%CC_KEY%",
-                    help: "Best left as %CC_KEY%, so that the key lives in the environment and not beside the " +
-                            "passwords it protects. Whatever it points at has to be 64 hexadecimal characters. " +
+                    help: "Best left as %CC_KEY%: the installer gives the service that variable, with a key " +
+                            "it generated, so there is nothing to set by hand, and cc-installer --show-key " +
+                            "prints it. Whatever it points at has to be 64 hexadecimal characters. " +
                             "Changing it makes the stored passwords unreadable: type them all again in the same save."}),
           textField("Remote configuration key", state.config, "remoteConfigurationKey",
                   {generate: true, placeholder: sampleGuid,
