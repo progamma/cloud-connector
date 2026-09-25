@@ -40,6 +40,7 @@ class MySQL extends DataModel
   static connectionOptionsSchema = [
     {
       name: "host",
+      means: "server",
       group: "server",
       label: "Host",
       type: "string",
@@ -77,6 +78,7 @@ class MySQL extends DataModel
     },
     {
       name: "connectionLimit",
+      means: "poolSize",
       group: "options",
       label: "Pool size",
       type: "number",
@@ -85,6 +87,7 @@ class MySQL extends DataModel
     },
     {
       name: "connectTimeout",
+      means: "connectTimeoutMs",
       group: "options",
       label: "Connection timeout (ms)",
       type: "number",

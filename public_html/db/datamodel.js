@@ -61,8 +61,15 @@ class DataModel
    * configuration page can offer a form with only the options this driver understands.
    * A name is a path, so "pool.max" is the max entry of the nested pool object. An entry with no
    * default of its own carries a placeholder instead, so that an empty field still shows its shape.
-   * @type {Array<{name: String, label: String, type: String, required: Boolean, default: *,
-   *               placeholder: String, help: String}>}
+   *
+   * means names what an entry is, the same for every driver, where the drivers call it differently:
+   * the page carries a value from one entry to another with the same meaning when the driver of a
+   * datamodel is changed, so that the host is not lost because another driver calls it server.
+   * Only entries that take the very same value have it: a timeout in seconds does not mean what
+   * one in milliseconds does. Where either of two entries has one it decides, and the same name is
+   * not enough: the connectionTimeout of ODBC and that of SQL Server are not the same thing.
+   * @type {Array<{name: String, means: String, label: String, type: String, required: Boolean,
+   *               default: *, placeholder: String, help: String}>}
    */
   static connectionOptionsSchema = [];
 

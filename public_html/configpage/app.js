@@ -1044,8 +1044,15 @@ function drawDatamodel(datamodel, index)
   let classes = el("select", {}, Object.keys(state.schema.drivers).map(c =>
     el("option", {value: c, textContent: c, selected: c === datamodel.class})));
   classes.addEventListener("change", () => {
+    let before = state.schema.drivers[datamodel.class];
+    let after = state.schema.drivers[classes.value];
     datamodel.class = classes.value;
-    datamodel.connectionOptions = keepKnownOptions(datamodel.connectionOptions, classes.value);
+    datamodel.connectionOptions = keepKnownOptions(datamodel.connectionOptions, before, after);
+    //
+    // What the old driver declared beside the connection and the new one does not would stay in
+    // the datamodel with no field to show it, and be saved all the same
+    let declared = new Set((after?.datamodel || []).map(entry => entry.name));
+    before?.datamodel.filter(entry => !declared.has(entry.name)).forEach(entry => removePath(datamodel, entry.name));
     drawDatamodels();
   });
   //
@@ -1198,18 +1205,32 @@ function optionGroups(entries)
 
 
 /**
- * Drops from the connection options everything the new driver class does not know about, so that
- * a change of driver does not carry over an option the new one would refuse.
+ * Fits the connection options to a new driver, so that a change of driver does not carry over an
+ * option the new one would refuse, and does not lose one it only calls by another name.
+ *
+ * A value goes across when the new driver has an entry that means the same thing - the host of
+ * MySQL is the server of SQL Server - or, between two entries that say nothing of what they
+ * mean, one by the same name. Whatever the old driver does not declare stays behind: there is no
+ * telling what it meant there. It does not go across either when it is the old
+ * driver's default, because that was never a choice about this database: the MySQL port is not
+ * where SQL Server is listening, and the new driver has a default of its own for it.
+ *
  * @param {Object} options - Connection options as they are
- * @param {String} className - Driver class they have to fit
- * @returns {Object} Options the new class understands
+ * @param {Object} before - Schema of the driver they were written for
+ * @param {Object} after - Schema of the driver they have to fit
+ * @returns {Object} Options the new driver understands
  */
-function keepKnownOptions(options, className)
+function keepKnownOptions(options, before, after)
 {
+  let old = before?.connectionOptions || [];
   let kept = {};
-  state.schema.drivers[className]?.connectionOptions.forEach(entry => {
-    let value = getPath(options, entry.name);
-    if (value !== undefined)
+  after?.connectionOptions.forEach(entry => {
+    // Where either entry has a meaning the meaning decides, and the name alone is not enough:
+    // connectionTimeout is seconds for ODBC and milliseconds for SQL Server. From a driver the page
+    // has no schema for there is nothing to go by but the name
+    let source = before ? old.find(o => o.means || entry.means ? o.means === entry.means : o.name === entry.name) : entry;
+    let value = source && getPath(options, source.name);
+    if (value !== undefined && value !== source?.default)
       setPath(kept, entry.name, value);
   });
   //

@@ -49,6 +49,7 @@ class ODBC extends DataModel
     },
     {
       name: "maxSize",
+      means: "poolSize",
       group: "options",
       label: "Pool size",
       type: "number",
@@ -56,6 +57,7 @@ class ODBC extends DataModel
       help: "Maximum number of connections kept open towards the database"
     },
     {
+      // No means: it is in seconds, and the timeouts of the other drivers are in milliseconds
       name: "connectionTimeout",
       group: "options",
       label: "Connection timeout (s)",
