@@ -189,7 +189,8 @@ class Installer
         await this.askWhatToDo();
       this.service = serviceFor(this.dir);
       if (this.options.showKey) {
-        this.service = serviceFor(this.whereRegistered());
+        this.dir = this.whereRegistered();
+        this.service = serviceFor(this.dir);
         this.showKey();
       }
       else if (this.options.uninstall) {
@@ -520,8 +521,9 @@ class Installer
    *
    * The key lives with the service definition and nowhere else, which keeps it away from the
    * passwords it protects and also means that an uninstall takes it away for good. This is the
-   * way to keep a copy first: the passwords in a kept config.json open again once the same key is
-   * put back with the service of the new installation.
+   * way to keep a copy first: the passwords in a kept config.json open again once that file and the
+   * same key are both put back in the new installation. Both, because a reinstallation finds no
+   * connector where the kept file is and writes a new, empty configuration of its own.
    *
    * It is printed and not written to a file. A file would be one more place on the disk holding
    * the key, readable by whoever the directory lets in: where the copy goes is for the operator
@@ -534,7 +536,9 @@ class Installer
       throw new Error("The Cloud Connector service on this machine runs with no password key.");
     this.say(key);
     this.say("\nKeep it somewhere only you can read: together with config.json, it opens every stored " +
-            "password.\nTo use it again after reinstalling, put it in place of the new one in " +
+            "password.\nTo use it again after uninstalling and reinstalling here: copy the config.json the " +
+            `uninstall keeps, ${path.join(this.dir, "config.json")}, over ` +
+            `${path.join(this.dir, "public_html", "config.json")}, put the key in place of the new one in ` +
             `${this.service.keyFile}, then restart the service.`);
   }
 
