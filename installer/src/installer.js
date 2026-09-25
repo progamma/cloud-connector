@@ -116,6 +116,10 @@ class Installer
           options.uninstall = true;
           break;
 
+        case "--show-key":
+          options.showKey = true;
+          break;
+
         case "--no-browser":
           options.noBrowser = true;
           break;
@@ -149,6 +153,8 @@ class Installer
         : "  --user <name>    user the connector runs as, by default root",
       "  --uninstall      remove the connector and its service, keeping config.json",
       "                   (where it is installed is read from the service, so --dir is not needed)",
+      "  --show-key       print the password key the service runs with, to keep a copy of it",
+      "                   (an uninstall removes it, and the stored passwords do not open without it)",
       "  --no-browser     do not open the configuration page at the end",
       "  --help           this",
       ""].join("\n");
@@ -182,10 +188,14 @@ class Installer
       if (this.bare)
         await this.askWhatToDo();
       this.service = serviceFor(this.dir);
-      if (this.options.uninstall) {
+      if (this.options.showKey) {
+        this.service = serviceFor(this.whereRegistered());
+        this.showKey();
+      }
+      else if (this.options.uninstall) {
         // Where to uninstall from is worked out here and not in there, so that what does the
         // removing is handed the installation it is removing rather than going to look for it
-        this.dir = this.whereToUninstall();
+        this.dir = this.whereRegistered();
         this.service = serviceFor(this.dir);
         this.uninstall();
       }
@@ -506,6 +516,30 @@ class Installer
 
 
   /**
+   * Prints the password key the registered service runs with.
+   *
+   * The key lives with the service definition and nowhere else, which keeps it away from the
+   * passwords it protects and also means that an uninstall takes it away for good. This is the
+   * way to keep a copy first: the passwords in a kept config.json open again once the same key is
+   * put back with the service of the new installation.
+   *
+   * It is printed and not written to a file. A file would be one more place on the disk holding
+   * the key, readable by whoever the directory lets in: where the copy goes is for the operator
+   * to decide.
+   */
+  showKey()
+  {
+    let key = this.service.readEnv().CC_KEY;
+    if (!key)
+      throw new Error("The Cloud Connector service on this machine runs with no password key.");
+    this.say(key);
+    this.say("\nKeep it somewhere only you can read: together with config.json, it opens every stored " +
+            "password.\nTo use it again after reinstalling, put it in place of the new one in " +
+            `${this.service.keyFile}, then restart the service.`);
+  }
+
+
+  /**
    * Tells whether a configuration has passwords in it that were encrypted with the key.
    *
    * `iv` is what says so: the connector writes one beside every password it has encrypted, and a
@@ -552,16 +586,16 @@ class Installer
 
 
   /**
-   * Works out which installation an uninstall is about.
+   * Works out which installation an uninstall, or a request for the key, is about.
    *
    * The question goes to the service and not to --dir. There is one service by this name for the
    * whole machine, and it knows which directory it was installed from; --dir does not. Taking
    * --dir for that answer is how an uninstall comes to look in an empty directory, find nothing
    * it can do, and announce that the service is gone while it is still running.
    *
-   * @returns {String} The directory to uninstall from
+   * @returns {String} The directory the service was installed from
    */
-  whereToUninstall()
+  whereRegistered()
   {
     let where = this.service.registeredIn();
     if (!where)
@@ -570,7 +604,7 @@ class Installer
       return where;
     if (!Installer.samePlace(where, this.dir))
       throw new Error(`The Cloud Connector service on this machine was installed from ${where}, ` +
-              `not from ${this.dir}.\nRemove that one with --dir "${where}", or leave --dir off ` +
+              `not from ${this.dir}.\nName that one with --dir "${where}", or leave --dir off ` +
               "and it will be found.");
     return this.dir;
   }

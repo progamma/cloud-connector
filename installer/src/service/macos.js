@@ -51,6 +51,16 @@ class MacService
 
 
   /**
+   * Full path of the file the password key is kept in, which is not the plist.
+   * @returns {String} Full path
+   */
+  get keyFile()
+  {
+    return EnvFile.pathOf(this.dir);
+  }
+
+
+  /**
    * Says whether this machine can have the service registered, before anything has been moved.
    * launchctl has no --version, so it is asked something harmless that it does answer.
    */
