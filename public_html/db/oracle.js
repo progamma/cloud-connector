@@ -68,6 +68,7 @@ class Oracle extends DataModel
     },
     {
       name: "poolMax",
+      means: "poolSize",
       group: "options",
       label: "Pool size",
       type: "number",

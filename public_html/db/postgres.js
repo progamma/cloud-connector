@@ -41,6 +41,7 @@ class Postgres extends DataModel
   static connectionOptionsSchema = [
     {
       name: "host",
+      means: "server",
       group: "server",
       label: "Host",
       type: "string",
@@ -86,6 +87,7 @@ class Postgres extends DataModel
     },
     {
       name: "max",
+      means: "poolSize",
       group: "options",
       label: "Pool size",
       type: "number",
@@ -94,6 +96,7 @@ class Postgres extends DataModel
     },
     {
       name: "connectionTimeoutMillis",
+      means: "connectTimeoutMs",
       group: "options",
       label: "Connection timeout (ms)",
       type: "number",

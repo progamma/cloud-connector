@@ -42,6 +42,7 @@ class SQLServer extends DataModel
   static connectionOptionsSchema = [
     {
       name: "server",
+      means: "server",
       group: "server",
       label: "Server",
       type: "string",
@@ -80,6 +81,7 @@ class SQLServer extends DataModel
     },
     {
       name: "pool.max",
+      means: "poolSize",
       group: "options",
       label: "Pool size",
       type: "number",
@@ -88,6 +90,7 @@ class SQLServer extends DataModel
     },
     {
       name: "connectionTimeout",
+      means: "connectTimeoutMs",
       group: "options",
       label: "Connection timeout (ms)",
       type: "number",
