@@ -23,6 +23,31 @@ Run it with no arguments and it asks where to install and which port the page sh
 then waits before closing, because a console window that vanishes takes the reason with it. Pass
 an argument and it asks nothing.
 
+## The password key
+
+`config.json` says `"passwordPrivateKey": "%CC_KEY%"`, and `CC_KEY` is set for the service and for
+nothing else: in `<install dir>\service\cloudconnector.xml` on Windows, readable by administrators
+alone, and in `<install dir>/cc.env` on Linux and macOS, readable by root and by the account the
+service runs as, which is root unless `--user` said otherwise. There is nothing
+to set by hand, and it should not be set as a system environment variable either: every user and
+every process of the machine would read it, and the key with `config.json` is every database
+password in clear.
+
+```
+cc-installer --show-key
+```
+
+prints it. That is the way to keep a copy before an uninstall, which takes the key away with the
+service. Putting it back after reinstalling in the same directory takes two things, because the
+new installation starts from an empty configuration of its own and does not read the one that was
+kept:
+
+1. copy `<install dir>/config.json`, the one the uninstall kept, over
+   `<install dir>/public_html/config.json`
+2. put the copy of the key in place of the new one, in the file named above
+
+Then restart the service, and the stored passwords open again.
+
 ## Removing it
 
 ```

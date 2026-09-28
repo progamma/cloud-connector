@@ -6,6 +6,7 @@
 - [Key Features](#key-features)
 - [System Requirements](#system-requirements)
 - [Installation](#installation)
+  - [With the Installer](#with-the-installer)
   - [Download and Setup](#download-and-setup)
   - [Configuring Environment Variables](#configuring-environment-variables)
   - [Installing Dependencies](#installing-dependencies)
@@ -59,6 +60,21 @@ Normally it is the application that connects to the database, which means the da
 
 ## Installation
 
+### With the Installer
+
+On a machine that is going to run the connector, use the installer: one executable per platform,
+from the [releases](https://github.com/progamma/cloud-connector/releases). It brings its own
+Node.js, so nothing below has to be installed first, and it **takes care of the password key**: it
+generates one, gives it to the service as `CC_KEY`, and keeps it in the service definition, where
+only administrators can read it. There is no variable to set, not now and not after an update.
+
+To see the key — to keep a copy of it before an uninstall, which removes it — run
+`cc-installer --show-key` as administrator. See [Installing as a Service](#installing-as-a-service)
+and [installer/README.md](installer/README.md).
+
+The rest of this section is for running the connector from a checkout of this repository:
+developing it, or a machine where the installer is not used.
+
 ### Download and Setup
 
 1. **Install Node.js** v22.21.1 or later from [nodejs.org](https://nodejs.org)
@@ -79,7 +95,8 @@ Normally it is the application that connects to the database, which means the da
 
 ### Configuring Environment Variables
 
-Before starting the Cloud Connector you must set the environment variable holding the encryption key.
+With the installer, skip this: the service already runs with `CC_KEY`. Without it, you must set the
+environment variable holding the encryption key before starting the Cloud Connector.
 
 **CC_KEY is an environment variable** and must be set in the operating system before the Cloud Connector starts. The `%CC_KEY%` syntax in config.json tells the connector to read the value from the environment variable named `CC_KEY`.
 
@@ -107,8 +124,13 @@ export CC_KEY="<the 64 characters printed by the command above>"
 ```
 
 #### Making the variable permanent:
-- **Windows**: Control Panel → System → Advanced system settings → Environment Variables
-- **Linux/Mac**: Add the export to `~/.bashrc`, `~/.bash_profile` or `/etc/environment`
+Give it to the account that runs the connector, not to the whole machine. A system-wide variable is
+read by every user and every process, and the key together with `config.json` is every database
+password in clear text.
+- **Windows**: Control Panel → System → Advanced system settings → Environment Variables, under
+  *User variables* of that account, never under *System variables*
+- **Linux/Mac**: Add the export to `~/.bashrc` or `~/.bash_profile` of that account, not to
+  `/etc/environment`
 
 **IMPORTANT**:
 - The key must be **exactly 64 hexadecimal characters** (`0-9`, `a-f`). Anything else is refused, and the connector says so at startup
@@ -163,6 +185,7 @@ The `config.json` file in the `public_html` directory holds the entire Cloud Con
 ### Password Security
 
 - **passwordPrivateKey**: Reads the encryption key from the environment variable
+- With the installer the variable is set for the service, with a key the installer generated: `cc-installer --show-key` prints it
 - The key must be **exactly 64 hexadecimal characters**, the 32 bytes AES-256 takes. Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 - A key of any other length, or one with a character that is not hexadecimal, is refused: the connector keeps running, and says at startup that the passwords are staying in clear text
 - If it is not defined, a default value is used (not recommended)
@@ -447,7 +470,7 @@ Messages that come from a database driver stay in the words the driver used.
 ### With the installer
 
 The installer does this, and everything above it: it brings its own Node.js runtime, lays the
-connector down, generates the password key, registers the service with the system's own mechanism —
+connector down, generates the password key and keeps it with the service, registers the service with the system's own mechanism —
 systemd, launchd, or the Windows Service Control Manager — and opens the configuration page. Nothing
 on this page has to be done by hand, PM2 included, and updating is running it again.
 
