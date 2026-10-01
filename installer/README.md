@@ -111,8 +111,9 @@ definition, not beside the passwords it protects.
 ### All four at once
 
 The `Installer` workflow builds Windows x64, Linux x64, macOS x64 and macOS arm64, each on its own
-runner, and signs them. Run it from the Actions tab, or publish a release and let that run it: in
-that case the installers are attached to the release as they are built.
+runner, and signs the macOS ones. Run it from the Actions tab, or publish a release and let that run
+it: in that case the installers are attached to the release as they are built — all but the Windows
+one, which is signed by a person and attached by them (see below).
 
 That is the way to get the installers for the other platforms. **There is no cross build**, and
 there is no flag to ask for one: the payload carries native modules that `npm` resolves for the
@@ -127,7 +128,8 @@ node build/build.js
 ```
 
 Out comes `build/out/cc-installer.exe`, or `build/out/cc-installer` everywhere else. Unsigned:
-signing happens in the workflow, where the certificates are.
+the Windows one is signed as described below, the macOS ones in the workflow, where the Apple
+certificate is.
 
 It needs Node.js (any recent one — the runtime that ends up in the payload is downloaded, not this
 one), git, and the network. It takes a few minutes, most of it `npm ci` for the connector.
@@ -141,6 +143,32 @@ Two flags for going round the loop rather than for releasing:
 
 A build with no flags always starts by throwing the previous one away, so what comes out of a
 release is made of what is in the tree and nothing that was lying about.
+
+### Signing the Windows installer
+
+It is signed with the Pro Gamma certificate, the same one `INDE.exe` is signed with: issued by
+Certum, with its private key on SimplySign, Certum's remote HSM. That is what keeps it out of the
+workflow: signtool reaches the key through SimplySign Desktop, and every signature waits for a
+confirmation on the SimplySign app of a phone. So it is done by hand, on a Windows machine with the
+Windows SDK and SimplySign Desktop logged in:
+
+```
+cd installer
+node build/sign.js                             # signs build/out/cc-installer.exe
+node build/sign.js <file>                      # or another one
+node build/sign.js <file> --release v26.6.0    # and attaches it to that release
+```
+
+The file is either a local build or the `cc-installer-win-x64` artifact of the `Installer` run of
+that release, downloaded with `gh run download <run id> -n cc-installer-win-x64`.
+
+After signing it reads the signature back from the file and stops unless it is valid, made with the
+Pro Gamma certificate, and timestamped: a signature with no timestamp stops being trusted the day the
+certificate expires, and with it every installer already downloaded. `--release` attaches it as
+`cc-installer-win-x64.exe`, beside the three the workflow attached, and needs `gh` logged in.
+
+When signtool answers that no certificate was found, SimplySign Desktop is not logged in: the
+certificate is only in the store while it is.
 
 ### Why there is no cross build
 
