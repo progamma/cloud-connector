@@ -10,6 +10,11 @@ name: Installer
 #
 # Run it by hand from the Actions tab, or let a published release run it: in that case the
 # installers are attached to the release as they are built.
+#
+# All but the Windows one. That is signed with the Pro Gamma certificate, whose key is on Certum's
+# SimplySign and wants a confirmation on a phone for every signature: there is nobody here to give
+# it. The Windows installer is built unsigned and kept as an artifact, and whoever releases signs it
+# with installer/build/sign.js, which also attaches it to the release.
 
 on:
   workflow_dispatch:
@@ -37,7 +42,6 @@ jobs:
     # passes through this workflow and it has no business being readable there. So what travels
     # is `true` or `false`, and the certificate stays inside the step that signs.
     env:
-      HAS_WINDOWS_CERT: ${{ secrets.WINDOWS_CERTIFICATE_PFX != '' }}
       HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE_P12 != '' }}
 
     strategy:
@@ -98,27 +102,11 @@ jobs:
 
       # --- signing -----------------------------------------------------------------------
       # The secret names below are what this workflow expects the certificates to be stored under,
-      # in the repository's or the organisation's settings. Each step stands aside when its secret
+      # in the repository's or the organisation's settings. The step stands aside when its secret
       # is not there, so that a build can be run before they are in place: what comes out is then
       # unsigned, which is fine to test with and is refused by the publishing step further down.
-
-      - name: Sign (Windows)
-        if: runner.os == 'Windows' && env.HAS_WINDOWS_CERT == 'true'
-        env:
-          WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
-          PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        shell: pwsh
-        run: |
-          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX))
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
-            Where-Object { $_.FullName -match 'x64' } | Select-Object -Last 1
-          & $signtool.FullName sign /f $pfx /p $env:PASSWORD /fd SHA256 `
-            /tr http://timestamp.digicert.com /td SHA256 installer/build/out/${{ matrix.file }}
-          if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
-          Remove-Item $pfx
-          # A timestamp is what keeps the signature valid after the certificate expires: without
-          # one, every installer already downloaded stops being trusted on the day it lapses
+      #
+      # Nothing signs Windows here: see the top of this file, and installer/build/sign.js
 
       - name: Sign and notarise (macOS)
         if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true'
@@ -195,8 +183,10 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      # Not the Windows one: unsigned it would be refused below anyway, and signed it arrives
+      # from installer/build/sign.js, under the same name this would give it
       - name: Attach it to the release
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' && runner.os != 'Windows'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
