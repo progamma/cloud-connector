@@ -286,6 +286,8 @@ class Build
     // signature that no longer matches what it signs. It comes off here and goes back on at release
     if (process.platform === "darwin")
       spawnSync("codesign", ["--remove-signature", executable]);
+    else if (process.platform === "win32")
+      this.removeAuthenticode(executable);
     this.stampResources(executable);
     //
     this.say("injecting the blob");
@@ -302,6 +304,57 @@ class Build
     this.say(`\n${executable}\n  ${(size / 1024 / 1024).toFixed(1)} MB, not yet signed`);
     if (this.noWrapper)
       this.say("  and it cannot register the Windows service: built without the wrapper");
+  }
+
+
+  /**
+   * Takes the Authenticode signature off the copy of the runtime, before rcedit and postject
+   * touch it.
+   *
+   * node.exe arrives signed. The signature is a certificate table at the very end of the file,
+   * named by an entry in the PE header, and neither rcedit nor postject knows it is there: they
+   * rewrite the file, the table's bytes go, and the entry stays, pointing at a stretch of whatever
+   * section now lies at that offset. Windows reads such a file as unsigned and runs it, but
+   * signtool reads it as a malformed executable and refuses to sign it, with 0x800700C1 and
+   * nothing more - so the installer that came out could never be signed.
+   *
+   * This is the `signtool remove /s` of the Node.js single executable instructions, done by hand
+   * so that building does not need the Windows SDK: signing does, and that may be another machine.
+   * What goes is the table, found where Authenticode keeps it; a signature anywhere else is not
+   * one this knows how to remove, and it says so rather than guess.
+   *
+   * @param {String} executable - The copy of the runtime, before anything else is done to it
+   */
+  removeAuthenticode(executable)
+  {
+    let fd = fs.openSync(executable, "r+");
+    try {
+      let header = Buffer.alloc(4096);
+      fs.readSync(fd, header, 0, header.length, 0);
+      let pe = header.readUInt32LE(0x3c);
+      //
+      // "MZ" at the start, and "PE" followed by two zero bytes where the DOS header says the PE
+      // header begins: anything else is not a file this should be cutting pieces off
+      if (header.toString("latin1", 0, 2) !== "MZ" || header.readUInt32LE(pe) !== 0x4550)
+        throw new Error(`${executable} is not a Windows executable this can read`);
+      //
+      // The certificate table is the fifth data directory. The directories follow the fixed part
+      // of the optional header, which is 112 bytes in a PE32+ and 96 in a PE32
+      let entry = pe + 24 + (header.readUInt16LE(pe + 24) === 0x20b ? 112 : 96) + 4 * 8;
+      let offset = header.readUInt32LE(entry);
+      let size = header.readUInt32LE(entry + 4);
+      if (!size)
+        return;
+      if (offset + size !== fs.fstatSync(fd).size)
+        throw new Error(`The signature of ${executable} is not at the end of the file, where ` +
+                "Authenticode keeps it, so this does not know how to take it off.");
+      this.say("taking the signature off the runtime");
+      fs.ftruncateSync(fd, offset);
+      fs.writeSync(fd, Buffer.alloc(8), 0, 8, entry);
+    }
+    finally {
+      fs.closeSync(fd);
+    }
   }
 
 
