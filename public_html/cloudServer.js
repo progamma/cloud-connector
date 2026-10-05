@@ -248,9 +248,9 @@ class CloudServer
       username = username.split("/").pop();
     }
     //
-    // Without a protocol socket.io-client builds an invalid URL under Node: default to https
-    if (!/^(https?|wss?):\/\//i.test(srvUrl))
-      srvUrl = `https://${srvUrl}`;
+    // socket.io-client under Node builds an invalid URL without a protocol, or with an uppercase one:
+    // default to https and lowercase the protocol
+    srvUrl = /^(https?|wss?):\/\//i.test(srvUrl) ? srvUrl.replace(/^[a-z]+/i, p => p.toLowerCase()) : `https://${srvUrl}`;
     //
     // Check if server already exists
     for (let i = 0; i < this.oldServers.length; i++) {
