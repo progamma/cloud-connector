@@ -197,10 +197,11 @@ The `config.json` file in the `public_html` directory holds the entire Cloud Con
 The Instant Developer Cloud servers the connector will connect to:
 ```json
 "remoteServers": [
-  "prod1-pro-gamma.instantdevelopercloud.com",
-  "prod2-pro-gamma.instantdevelopercloud.com"
+  "https://prod1-pro-gamma.instantdevelopercloud.com",
+  "https://prod2-pro-gamma.instantdevelopercloud.com"
 ]
 ```
+The protocol can be omitted: an address without it is reached over `https://`.
 
 #### remoteUserNames
 IDE users allowed to connect. They can be given in different formats:
@@ -678,8 +679,8 @@ To enable remote configuration, set `remoteConfigurationKey` in config.json:
   "name": "production-connector",
   "passwordPrivateKey": "%CC_KEY%",
   "remoteServers": [
-    "prod1.instantdevelopercloud.com",
-    "prod2.instantdevelopercloud.com"
+    "https://prod1.instantdevelopercloud.com",
+    "https://prod2.instantdevelopercloud.com"
   ],
   "remoteUserNames": [
     "https://ide.instantdevelopercloud.com@team-member1",
