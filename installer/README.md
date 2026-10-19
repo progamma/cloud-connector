@@ -196,6 +196,16 @@ time. On the bare runtime it takes under two seconds.
 Nothing of the sort exists on Linux, and on macOS it would be an `Info.plist` inside an
 application bundle, which a bare executable is not.
 
+### The signature node.exe comes with
+
+The runtime the installer is made of is signed by the Node.js project, and the build takes that
+signature off before rcedit and postject touch the file: on macOS with `codesign`, on Windows by
+cutting the certificate table off the end of the file. Left on, the entry in the PE header that
+names it would survive the rewriting with nothing meaningful behind it. Windows would read the file
+as unsigned, but signtool would read it as malformed and refuse to sign it, with `0x800700C1` and
+no other word. The Node.js single executable instructions ask for `signtool remove /s` at this
+point; this is the same thing, without needing the Windows SDK on the machine that builds.
+
 ### On Windows, the service wrapper
 
 The build needs `build/vendor/winsw.exe` to produce a complete installer. Without it, it says so
