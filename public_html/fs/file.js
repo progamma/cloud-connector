@@ -247,7 +247,7 @@ class File
   async rename(newFile)
   {
     if (newFile instanceof Directory)
-      newFile = this.fs.file(`${newFile.path}/${this.name()}`);
+      newFile = this.fs.file(newFile.path ? `${newFile.path}/${this.name()}` : this.name());
     else if (typeof newFile === "string" && newFile.endsWith("/"))
       newFile = this.fs.file(`${newFile}${this.name()}`);
     //

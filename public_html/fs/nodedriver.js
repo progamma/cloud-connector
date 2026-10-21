@@ -402,7 +402,7 @@ class NodeDriver extends FS
       let {pipeline} = require("stream/promises");
       for await (let entry of zipFile) {
         if (entry.filename.endsWith("/"))
-          await this.directory(`${directory.path}/${entry.filename}`).create();
+          await this.directory(directory.path ? `${directory.path}/${entry.filename}` : entry.filename).create();
         else {
           let readStream = await entry.openReadStream();
           let writeStream = require("fs").createWriteStream(`${directory.absolutePath}/${entry.filename}`);
@@ -507,7 +507,8 @@ class NodeDriver extends FS
     let entries = await nodeFs.readdir(path);
     for (let entry of entries) {
       let stat = await nodeFs.stat(`${path}/${entry}`);
-      let obj = this[stat.isFile() ? "file" : "directory"](`${directory.path}/${entry}`);
+      let childPath = directory.path ? `${directory.path}/${entry}` : entry;
+      let obj = this[stat.isFile() ? "file" : "directory"](childPath);
       result.push(this.serializeObject(obj));
       //
       if (obj instanceof Directory && depth > 0)
